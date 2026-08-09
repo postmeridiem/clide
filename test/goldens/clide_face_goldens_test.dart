@@ -10,7 +10,7 @@ import '../helpers/widget_harness.dart';
 /// Both animation sources are pinned, or these images would differ every run:
 ///
 /// * `debugFreezeAt` holds the ticker at a fixed instant. Everything cyclic —
-///   breathe, blink, talk, thought dots, jitter, orbit — derives from it, so one
+///   breathe, blink, talk, thought dots, jitter — derives from it, so one
 ///   value fixes the whole frame. Chosen off a round number so the phases are
 ///   mid-cycle rather than all sitting at zero.
 /// * `debugClockLabel` pins the idle wall-clock, which is genuinely time-of-day

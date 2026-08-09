@@ -4,6 +4,7 @@
 /// app.dart (T-394).
 library;
 
+import 'package:clide/builtin/clide_companion/src/clide_strip.dart';
 import 'package:clide/extension/src/contribution.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
@@ -357,7 +358,22 @@ class _ContextSlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideSettings.theme.of(context).surface;
-    return Container(color: tokens.panelBackground, alignment: Alignment.topLeft, padding: const EdgeInsets.only(right: 2), child: active.build(context));
+    // The detail view takes the remaining height; the Clide strip sits beneath
+    // it (T-514 chose a strip sharing this column over a rail of its own).
+    // `stretch` so the strip spans the column rather than sizing to its content.
+    return Container(
+      color: tokens.panelBackground,
+      padding: const EdgeInsets.only(right: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Align(alignment: Alignment.topLeft, child: active.build(context)),
+          ),
+          const ClideStrip(),
+        ],
+      ),
+    );
   }
 }
 

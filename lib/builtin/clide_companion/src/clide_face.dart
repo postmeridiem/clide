@@ -27,7 +27,7 @@ const _leanTravel = 0.22;
 /// A glyph face whose expression tracks session state, over a rain field whose
 /// density encodes load.
 class ClideFace extends StatefulWidget {
-  const ClideFace({super.key, required this.state, this.gaze = Gaze.none, this.busyFor, this.debugFreezeAt, this.debugClockLabel});
+  const ClideFace({super.key, required this.state, this.gaze = Gaze.none, this.busyFor, this.faceAlignX = 0, this.debugFreezeAt, this.debugClockLabel});
 
   /// What the face is doing. Mapped from live session signals by Epic B.
   final FaceState state;
@@ -38,6 +38,16 @@ class ClideFace extends StatefulWidget {
   /// How long the current turn has been running, for the `[ Ns ]` cue. Owned by
   /// the caller — the face does not time turns.
   final Duration? busyFor;
+
+  /// Where the face sits horizontally: `-1` flush left, `0` centred, `1` flush
+  /// right. **The rain always spans the full box.**
+  ///
+  /// Added to the T-521 contract by T-526. The chosen placement puts the face at
+  /// the left of a wide strip with the speech bubble beside it, but the rain has
+  /// to keep the whole width: density reads as how many columns are lit, and
+  /// penning it into a narrow face region would cut ~45 columns to ~9 — the very
+  /// thing that made a strip preferable to a rail (T-514).
+  final double faceAlignX;
 
   /// Test seam: hold the animation at a fixed instant instead of running the
   /// ticker. Goldens of a live animation are flaky by construction, and sleeping
@@ -135,7 +145,7 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
     if (field == null) return false;
     final spec = specFor(widget.state);
     final settled = (_lean - widget.gaze.leanPx).abs() < 0.01;
-    return spec.rainStreams == 0 && field.isQuiescent && !spec.blink && !spec.talkCycle && !spec.thoughtDots && !spec.jitter && !spec.orbit && settled;
+    return spec.rainStreams == 0 && field.isQuiescent && !spec.blink && !spec.talkCycle && !spec.thoughtDots && !spec.jitter && settled;
   }
 
   void _tick(Duration elapsed) {
@@ -271,6 +281,7 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
                   busyFor: widget.busyFor,
                   lean: _lean,
                   clockLabel: _clockLabel(),
+                  faceAlignX: widget.faceAlignX,
                   rainFontSize: _rainFontSize,
                 ),
               ),

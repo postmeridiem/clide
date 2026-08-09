@@ -4931,3 +4931,137 @@ parked while still working.
 - Changing `state` on a mounted face works and is tested; no remount needed.
 - Under reduced motion the face still shows density, so mapping load to `rainStreams` remains
   meaningful even with animation off.', 'done', 'medium', NULL, NULL, NULL, '2026-08-09 00:34:02.298', '2026-08-09 03:30:41.037', NULL, 'b8e57bd73eddcf69ddd56befc18d1397', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XR4APSKWH94DNG00B51J4', 'task', '06FY73YPCJVWBXD9YF1JKZEK2W', 'C1: Clide strip surface — _ContextSlot becomes a Column, responsive 220-1000px', NULL, 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 03:00:32.981', '2026-08-09 08:13:30.548', NULL, '8717b6e3d51e2073dead8533f9057d15', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XR4APSKWH94DNG00B51J4', 'task', '06FY73YPCJVWBXD9YF1JKZEK2W', 'C1: Clide strip surface — _ContextSlot becomes a Column, responsive 220-1000px', NULL, 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 03:00:32.981', '2026-08-09 08:14:06.074', NULL, '3cf900209d70fc879502190cb482e191', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XR4APSKWH94DNG00B51J4', 'task', '06FY73YPCJVWBXD9YF1JKZEK2W', 'C1: Clide strip surface — _ContextSlot becomes a Column, responsive 220-1000px', 'Done (2026-08-09).
+
+**Shipped.** `ClideStrip` (112px, fixed) at the bottom of the context column; `_ContextSlot` is now `Column(Expanded(view), ClideStrip())`. Face full-bleed behind, bubble beside it, dropped below 266px.
+
+**Contract amendments made while wiring it up** — the face was built and goldened at 320x120, and almost every one of these is the same failure: a constant tuned for a square box behaving differently at 5:1.
+
+- `ClideFace.faceAlignX` (new prop, amends T-521). Face sits left; **rain still spans the full width**. Density reads as how many columns are lit; penning it into a 116px gutter would cut ~78 columns to ~9 and undo the reason a strip beat a rail (T-514).
+- `clockLabel` moved out of the painter — `DateTime.now()` inside `paint` was neither pure nor goldenable.
+- Mouth, thought dots and clock now hang off the **eye group''s centre**, not off the box. Aligning each independently is identical while centred and puts a one-char mouth under the *left eye* once the face moves left.
+- Clock joined the elapsed counter in a shared bottom-edge cue slot. Stacked under the mouth it fell off a 112px strip.
+- **Vignette anchored on the face, radius off the height.** It was centred on the box at `max(w,h)*0.54`, so on a strip it became a full-width wash that erased the rain — the signal it exists to protect.
+- **Rain spawn stagger scaled to the grid** (`rows*0.6+1`, was a flat 14 rows). A stream waiting above the top is a live stream you cannot see; at the strip''s ~8 rows that left barely a third of effort''s forty streams on screen.
+
+**Orbit arc dropped, not fixed — closes T-531.** It encoded activity, and activity is the rain''s job. Two signals for one fact, one of which read as a pink smear at strip proportions. `FaceSpec.orbit` removed outright rather than defaulted off.
+
+**Tests** 25 in `clide_strip_test.dart`, incl. the real snap points (220/420/1000 from `layout_preset.dart`), text zoom across TextZoom.minScale..maxScale (0.6-2.0) with a bubble-fits assertion (a Stack clips silently, so no-exception proves nothing), reduced motion settling, and the 266px bubble flip pinned exactly. Two golden sets. Full suite 8 + 4121 + 50 green.
+
+**Trap re-hit:** the default 800px test surface silently clamps a wider SizedBox, so the 1000px cases were passing at 800 until `surfaceAt()` drove `tester.view.physicalSize` (T-239/T-241).', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 03:00:32.981', '2026-08-09 08:55:38.949', NULL, 'f6eae3c414f3cc923dd150e8bbc39d9e', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY94EJJA4BFKCM729AVDY4V8', 'bug', '06FY73XR4NJEPDARY06397RVVC', 'Orbit arc does not read at strip aspect ratio', 'Found on first visual inspection of the T-525 goldens
+(`test/goldens/goldens/linux/clide_face_states.png`, the `effort` scenario).
+
+## Symptom
+
+The orbit arc — one of the two honest wait cues — is drawn with `drawArc` on a rect inset
+from the widget bounds (`face_painter.dart`, `_paintOrbit`). DeskLock draws it on an 800×800
+**round** panel, where a bezel sweep reads exactly as intended. The chosen placement is a
+short wide strip: at 320×120 the inset rect is so eccentric that the arc renders as a stray
+curve across the lower-left corner rather than as anything orbiting the face. At 1000×110 it
+is worse.
+
+It does not look like a wait cue. It looks like a rendering bug.
+
+## Constraint on the fix
+
+DeskLock''s rule is adopted verbatim in D-107 and must hold: **a wait always shows an
+alive-and-working cue, and never a fake progress bar.** So the arc cannot simply be deleted —
+`effort` would lose half its wait signalling, leaving only the `[ Ns ]` counter and max rain.
+And whatever replaces it must not imply completion, because nothing here knows how long the
+turn will take.
+
+## Options
+
+- **Bottom-edge sweep** — a short bright segment travelling along the strip''s bottom edge.
+  Reads as activity at any aspect ratio, and is not a progress bar because it loops rather
+  than filling.
+- **Circular orbit around the face only** — keep a true circle, sized to the face group rather
+  than the widget bounds, so eccentricity never enters into it.
+- **Drop the arc, strengthen the counter** — rely on `[ Ns ]` plus 40-stream rain. Simplest,
+  but thins the cue to one channel.
+
+The second is closest to DeskLock''s intent; the first probably reads best in a strip. Worth a
+quick visual comparison before choosing, since this is the state the user sees during every
+long turn.
+
+## Notes
+
+- Purely visual; no test currently fails. `effort` still draws, and the wait cue is still
+  present — it is the *form* that is wrong at this aspect ratio.
+- Whatever lands should be goldened at 220px, 500px and 1000px wide, the range already
+  covered by `clide_face_widths.png`.
+
+Resolved by removal (2026-08-09, in T-526).
+
+Not fixed — **deleted**. The arc encodes ''something is happening''; the rain already encodes exactly that, with more resolution (density is graded, the arc is binary). Two renderings of one fact, and the redundant one was the one that broke at strip proportions.
+
+`FaceSpec.orbit`, `_paintOrbit` and `_orbitPeriod` are gone rather than defaulted off, so there is no dormant flag to re-enable by accident. The honest-wait requirement is still met by dense rain + jitter + the `[ Ns ]` counter — the counter stays because it says something the rain cannot: how long.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-09 03:29:49.715', '2026-08-09 08:56:10.296', NULL, '7a766a093f8c19c46e7de6b2063b02e7', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XR4APSKWH94DNG00B51J4', 'task', '06FY73YPCJVWBXD9YF1JKZEK2W', 'C1: Clide strip surface — _ContextSlot becomes a Column, responsive 220-1000px', 'Done (2026-08-09).
+
+**Shipped.** `ClideStrip` (112px, fixed) at the bottom of the context column; `_ContextSlot` is now `Column(Expanded(view), ClideStrip())`. Face full-bleed behind, bubble beside it, dropped below 266px.
+
+**Contract amendments made while wiring it up** — the face was built and goldened at 320x120, and almost every one of these is the same failure: a constant tuned for a square box behaving differently at 5:1.
+
+- `ClideFace.faceAlignX` (new prop, amends T-521). Face sits left; **rain still spans the full width**. Density reads as how many columns are lit; penning it into a 116px gutter would cut ~78 columns to ~9 and undo the reason a strip beat a rail (T-514).
+- `clockLabel` moved out of the painter — `DateTime.now()` inside `paint` was neither pure nor goldenable.
+- Mouth, thought dots and clock now hang off the **eye group''s centre**, not off the box. Aligning each independently is identical while centred and puts a one-char mouth under the *left eye* once the face moves left.
+- Clock joined the elapsed counter in a shared bottom-edge cue slot. Stacked under the mouth it fell off a 112px strip.
+- **Vignette anchored on the face, radius off the height.** It was centred on the box at `max(w,h)*0.54`, so on a strip it became a full-width wash that erased the rain — the signal it exists to protect.
+- **Rain spawn stagger scaled to the grid** (`rows*0.6+1`, was a flat 14 rows). A stream waiting above the top is a live stream you cannot see; at the strip''s ~8 rows that left barely a third of effort''s forty streams on screen.
+
+**Orbit arc dropped, not fixed — closes T-531.** It encoded activity, and activity is the rain''s job. Two signals for one fact, one of which read as a pink smear at strip proportions. `FaceSpec.orbit` removed outright rather than defaulted off.
+
+**Tests** 25 in `clide_strip_test.dart`, incl. the real snap points (220/420/1000 from `layout_preset.dart`), text zoom across TextZoom.minScale..maxScale (0.6-2.0) with a bubble-fits assertion (a Stack clips silently, so no-exception proves nothing), reduced motion settling, and the 266px bubble flip pinned exactly. Two golden sets. Full suite 8 + 4121 + 50 green.
+
+**Trap re-hit:** the default 800px test surface silently clamps a wider SizedBox, so the 1000px cases were passing at 800 until `surfaceAt()` drove `tester.view.physicalSize` (T-239/T-241).', 'done', 'medium', NULL, NULL, NULL, '2026-08-09 03:00:32.981', '2026-08-09 08:56:14.044', NULL, '3e228773d454184557e10cfe4560814b', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY94EJJA4BFKCM729AVDY4V8', 'bug', '06FY73XR4NJEPDARY06397RVVC', 'Orbit arc does not read at strip aspect ratio', 'Found on first visual inspection of the T-525 goldens
+(`test/goldens/goldens/linux/clide_face_states.png`, the `effort` scenario).
+
+## Symptom
+
+The orbit arc — one of the two honest wait cues — is drawn with `drawArc` on a rect inset
+from the widget bounds (`face_painter.dart`, `_paintOrbit`). DeskLock draws it on an 800×800
+**round** panel, where a bezel sweep reads exactly as intended. The chosen placement is a
+short wide strip: at 320×120 the inset rect is so eccentric that the arc renders as a stray
+curve across the lower-left corner rather than as anything orbiting the face. At 1000×110 it
+is worse.
+
+It does not look like a wait cue. It looks like a rendering bug.
+
+## Constraint on the fix
+
+DeskLock''s rule is adopted verbatim in D-107 and must hold: **a wait always shows an
+alive-and-working cue, and never a fake progress bar.** So the arc cannot simply be deleted —
+`effort` would lose half its wait signalling, leaving only the `[ Ns ]` counter and max rain.
+And whatever replaces it must not imply completion, because nothing here knows how long the
+turn will take.
+
+## Options
+
+- **Bottom-edge sweep** — a short bright segment travelling along the strip''s bottom edge.
+  Reads as activity at any aspect ratio, and is not a progress bar because it loops rather
+  than filling.
+- **Circular orbit around the face only** — keep a true circle, sized to the face group rather
+  than the widget bounds, so eccentricity never enters into it.
+- **Drop the arc, strengthen the counter** — rely on `[ Ns ]` plus 40-stream rain. Simplest,
+  but thins the cue to one channel.
+
+The second is closest to DeskLock''s intent; the first probably reads best in a strip. Worth a
+quick visual comparison before choosing, since this is the state the user sees during every
+long turn.
+
+## Notes
+
+- Purely visual; no test currently fails. `effort` still draws, and the wait cue is still
+  present — it is the *form* that is wrong at this aspect ratio.
+- Whatever lands should be goldened at 220px, 500px and 1000px wide, the range already
+  covered by `clide_face_widths.png`.
+
+Resolved by removal (2026-08-09, in T-526).
+
+Not fixed — **deleted**. The arc encodes ''something is happening''; the rain already encodes exactly that, with more resolution (density is graded, the arc is binary). Two renderings of one fact, and the redundant one was the one that broke at strip proportions.
+
+`FaceSpec.orbit`, `_paintOrbit` and `_orbitPeriod` are gone rather than defaulted off, so there is no dormant flag to re-enable by accident. The honest-wait requirement is still met by dense rain + jitter + the `[ Ns ]` counter — the counter stays because it says something the rain cannot: how long.', 'done', 'medium', NULL, NULL, NULL, '2026-08-09 03:29:49.715', '2026-08-09 08:56:14.051', NULL, '6b5882b4bcf5ddca440c0402eb0700b1', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

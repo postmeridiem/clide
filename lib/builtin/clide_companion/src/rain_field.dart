@@ -173,8 +173,12 @@ class RainField {
   _Stream _spawn(double speed) => _Stream(
     column: _rng.nextInt(columns),
     // Start just above the grid, staggered so a burst does not arrive as a
-    // single rank.
-    row: -_rng.nextDouble() * 14,
+    // single rank. **Scaled to the grid, not a fixed number of rows**: a stream
+    // waiting above the top is a live stream you cannot see, so a stagger tuned
+    // for a tall field silently costs a short one most of its density — at the
+    // strip's ~8 rows a flat 14-row stagger left barely a third of `effort`'s
+    // forty streams on screen, and density is the whole signal (T-526).
+    row: -_rng.nextDouble() * (rows * 0.6 + 1),
     // Per-stream speed jitter, as DeskLock does it: ±30% around the state's
     // base speed, assigned at spawn. A state change therefore affects new
     // streams first, which makes the transition read as organic.

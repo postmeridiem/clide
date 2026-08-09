@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Clide companion strip.** A glyph face sits at the bottom of the context
+  panel, with a falling-glyph field behind it whose density shows how hard the
+  session is working. Silent, motion-gated, and dropped to face-only on a narrow
+  panel. (D-107, T-526)
+
 ### Changed
 
 ### Fixed

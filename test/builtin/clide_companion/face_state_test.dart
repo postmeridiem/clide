@@ -58,14 +58,13 @@ void main() {
   });
 
   group('wait cues', () {
-    test('effort is the only state showing both honest wait cues', () {
+    test('effort is the only state showing the elapsed counter', () {
       // DeskLock's hard requirement: a wait always shows alive-and-working
-      // signals, and never a fake progress bar.
+      // signals, and never a fake progress bar. Here that is the counter plus
+      // the rain — DeskLock's bezel arc is deliberately not ported (T-531), it
+      // would encode activity a second time and the rain already owns that.
       for (final state in FaceState.values) {
-        final spec = specFor(state);
-        final isEffort = state == FaceState.effort;
-        expect(spec.orbit, isEffort, reason: '$state orbit');
-        expect(spec.elapsed, isEffort, reason: '$state elapsed');
+        expect(specFor(state).elapsed, state == FaceState.effort, reason: '$state elapsed');
       }
     });
 

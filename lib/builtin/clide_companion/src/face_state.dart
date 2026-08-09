@@ -24,7 +24,7 @@ enum FaceState {
   /// Claude is thinking: busy, but no `partial-` item has arrived yet.
   pensive,
 
-  /// A long turn. Orbit arc plus elapsed counter — DeskLock's rule is that a
+  /// A long turn. Dense rain plus an elapsed counter — DeskLock's rule is that a
   /// wait always shows an honest cue, never a bare face and never a fake bar.
   effort,
 
@@ -83,7 +83,6 @@ class FaceSpec {
     this.thoughtDots = false,
     this.talkCycle = false,
     this.jitter = false,
-    this.orbit = false,
     this.elapsed = false,
     this.clock = false,
     this.opacity = 1,
@@ -108,10 +107,13 @@ class FaceSpec {
   /// ±1px shake on the face group.
   final bool jitter;
 
-  /// Sweeping arc on the bezel — a wait cue.
-  final bool orbit;
-
-  /// `[ Ns ]` counter — the other wait cue. Driven by the widget's `busyFor`.
+  /// `[ Ns ]` counter — the wait cue. Driven by the widget's `busyFor`.
+  ///
+  /// DeskLock pairs this with a sweeping bezel arc. That arc is **not** ported
+  /// (T-531): it encodes activity, and activity is already the rain's job — two
+  /// glyph-free pixels saying the same thing, one of which reads as a smear at
+  /// strip proportions. The counter stays because it says something the rain
+  /// cannot: *how long*.
   final bool elapsed;
 
   /// `HH:MM` under the face.
@@ -134,7 +136,7 @@ const _listening = FaceSpec(eyes: 'O   O', mouth: 'o', blink: true, rainStreams:
 
 const _pensive = FaceSpec(eyes: '·   ·', mouth: '~', thoughtDots: true, rainStreams: 7, rainSpeed: 5);
 
-const _effort = FaceSpec(eyes: '>   <', mouth: '~', jitter: true, orbit: true, elapsed: true, rainStreams: 40, rainSpeed: 16);
+const _effort = FaceSpec(eyes: '>   <', mouth: '~', jitter: true, elapsed: true, rainStreams: 40, rainSpeed: 16);
 
 const _speaking = FaceSpec(eyes: '^   ^', mouth: 'o', blink: true, talkCycle: true, rainStreams: 14, rainSpeed: 9);
 

@@ -136,7 +136,7 @@ void main() {
   group('the power ladder parks the loop', () {
     testWidgets('error over a drained field stops ticking', (tester) async {
       // D-107's contract: a continuously animated surface has to prove it stops.
-      // error has zero rain and no blink, talk, dots, jitter or orbit, so once
+      // error has zero rain and no blink, talk, dots or jitter, so once
       // the field drains there is nothing left to animate and the render loop
       // must park rather than repaint an unchanging image forever.
       await tester.pumpWidget(sized(const ClideFace(state: FaceState.error), width: 400, height: 120));

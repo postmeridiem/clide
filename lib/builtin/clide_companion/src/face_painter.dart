@@ -30,9 +30,6 @@ import 'package:flutter/widgets.dart';
 /// Average gap between blinks; the actual gap is jittered per cycle.
 const _blinkAverageGap = 4.4;
 
-/// Orbit arc period, seconds per revolution.
-const _orbitPeriod = 1.4;
-
 /// Jitter step — how often the shake flips sign.
 const _jitterStep = 0.16;
 
@@ -59,6 +56,7 @@ class ClideFacePainter extends CustomPainter {
     this.busyFor,
     this.lean,
     this.clockLabel,
+    this.faceAlignX = 0,
     this.rainFontSize = 11,
   }) : super(repaint: clock);
 
@@ -96,6 +94,16 @@ class ClideFacePainter extends CustomPainter {
   /// no clock, whatever the spec says.
   final String? clockLabel;
 
+  /// Where the face group sits horizontally: `-1` flush left, `0` centred,
+  /// `1` flush right. The **rain always spans the full box** regardless.
+  ///
+  /// That separation is the point. In the chosen placement the face sits at the
+  /// left of a wide strip with the speech bubble beside it, but the rain must
+  /// still use the whole width — density is read as how many columns are lit,
+  /// and confining it to a narrow face region would cut ~45 columns to ~9 and
+  /// undo the reason the strip was chosen over a rail (T-514).
+  final double faceAlignX;
+
   final double rainFontSize;
 
   double get _lean => lean ?? gaze.leanPx;
@@ -118,7 +126,6 @@ class ClideFacePainter extends CustomPainter {
     _paintRain(canvas, size);
     _paintVignette(canvas, size);
     _paintFace(canvas, size, spec, t);
-    if (spec.orbit) _paintOrbit(canvas, size, t);
     if (spec.elapsed) _paintElapsed(canvas, size);
   }
 
@@ -145,9 +152,14 @@ class ClideFacePainter extends CustomPainter {
 
   /// Radial darkening behind the face. At 40 streams this is load-bearing, not
   /// decoration — without it the glyphs compete with the rain for legibility.
+  ///
+  /// Anchored on the face and sized off the height, never off the width. Sizing
+  /// it to the box made it a local pool behind a square face and a full-width
+  /// wash across a strip — which erases the rain everywhere, including the
+  /// columns whose job is to show density (T-526).
   void _paintVignette(Canvas canvas, Size size) {
-    final centre = Offset(size.width / 2, size.height * 0.47);
-    final radius = math.max(size.width, size.height) * 0.54;
+    final centre = Offset(_faceCentreX(size), size.height * 0.47);
+    final radius = size.height * 0.85;
     if (radius <= 0) return;
     canvas.drawRect(
       Offset.zero & size,
@@ -161,8 +173,20 @@ class ClideFacePainter extends CustomPainter {
     );
   }
 
+  double _eyeSize(Size size) => (size.height * 0.22).clamp(8.0, 40.0);
+
+  /// Centre of the face group, without laying out any text.
+  ///
+  /// The eye row is five monospace cells at [_eyeSize]; a mono advance is close
+  /// enough to 0.6em that the vignette can be placed before the face is laid
+  /// out, which is what lets it be painted underneath.
+  double _faceCentreX(Size size) {
+    final width = _eyeSize(size) * 0.6 * 5;
+    return _alignX(size.width, width) + width / 2;
+  }
+
   void _paintFace(Canvas canvas, Size size, FaceSpec spec, double t) {
-    final eyeSize = (size.height * 0.22).clamp(8.0, 40.0);
+    final eyeSize = _eyeSize(size);
     final mouthSize = eyeSize * 0.62;
 
     // Breathe: 0 → amplitude → 0 over the period, applied to the whole group.
@@ -174,16 +198,23 @@ class ClideFacePainter extends CustomPainter {
 
     final eyes = _eyesNow(spec, t);
     final eyesPara = cache.paragraph(eyes, color: colour, fontSize: eyeSize, fontFamily: fontFamily, fontFamilyFallback: fontFamilyFallback);
-    final eyesX = (size.width - eyesPara.maxIntrinsicWidth) / 2 + jitter;
+    final eyesX = _alignX(size.width, eyesPara.maxIntrinsicWidth) + jitter;
     final eyesY = size.height * 0.30 + breathe + jitter;
     canvas.drawParagraph(eyesPara, Offset(eyesX, eyesY));
+
+    // Everything below the eyes hangs off the eye group's centre, not off the
+    // box. Aligning each element independently is the same thing only while the
+    // face is centred; once it sits left (faceAlignX: -1) a one-character mouth
+    // aligns to the same margin as the five-character eye row and ends up under
+    // the *left eye* instead of under the face.
+    final eyesCentre = eyesX + eyesPara.maxIntrinsicWidth / 2;
 
     final mouth = _mouthNow(spec, t);
     if (mouth.isNotEmpty) {
       final mouthPara = cache.paragraph(mouth, color: colour, fontSize: mouthSize, fontFamily: fontFamily, fontFamilyFallback: fontFamilyFallback);
       // The lean: the mouth slides off the eye axis. One number, and the reason
       // the face reads as attending to something rather than staring ahead.
-      final mouthX = (size.width - mouthPara.maxIntrinsicWidth) / 2 + _lean + jitter;
+      final mouthX = eyesCentre - mouthPara.maxIntrinsicWidth / 2 + _lean + jitter;
       canvas.drawParagraph(mouthPara, Offset(mouthX, eyesY + eyesPara.height * 0.9));
     }
 
@@ -196,8 +227,27 @@ class ClideFacePainter extends CustomPainter {
     final clock = clockLabel;
     if (spec.clock && clock != null) {
       final p = cache.paragraph(clock, color: muted, fontSize: mouthSize * 0.7, fontFamily: fontFamily, fontFamilyFallback: fontFamilyFallback);
-      canvas.drawParagraph(p, Offset((size.width - p.maxIntrinsicWidth) / 2, eyesY + eyesPara.height * 1.9));
+      _drawBottomCue(canvas, size, p);
     }
+  }
+
+  /// Draw a muted cue on the bottom edge, on the face's side of the box.
+  ///
+  /// The clock and the elapsed counter share this slot — they never appear
+  /// together (one is `idle`, the other `effort`). Stacking them under the mouth
+  /// instead worked at the 320×120 the face was prototyped at and clipped at the
+  /// 112px strip height (T-526); anchoring to the bottom edge holds at any height
+  /// the strip is later given.
+  void _drawBottomCue(Canvas canvas, Size size, ui.Paragraph p) {
+    canvas.drawParagraph(p, Offset(_alignX(size.width, p.maxIntrinsicWidth), size.height - p.height - 4));
+  }
+
+  /// Horizontal origin for a face element of [contentWidth] inside [boxWidth],
+  /// honouring [faceAlignX] with a margin so it never sits flush to the edge.
+  double _alignX(double boxWidth, double contentWidth) {
+    const margin = 12.0;
+    final available = (boxWidth - contentWidth - margin * 2).clamp(0.0, double.infinity);
+    return margin + available * ((faceAlignX.clamp(-1.0, 1.0) + 1) / 2);
   }
 
   /// The eye row for this instant — blinking replaces every non-space character.
@@ -215,25 +265,7 @@ class ClideFacePainter extends CustomPainter {
     return kTalkCycle[(t / (kTalkFrame.inMilliseconds / 1000)).floor() % kTalkCycle.length];
   }
 
-  /// Sweeping arc on the bezel — one half of the honest wait cue.
-  void _paintOrbit(Canvas canvas, Size size, double t) {
-    final inset = math.min(size.width, size.height) * 0.06;
-    final rect = Rect.fromLTWH(inset, inset, size.width - inset * 2, size.height - inset * 2);
-    if (rect.width <= 0 || rect.height <= 0) return;
-    final sweep = 2 * math.pi * ((t % _orbitPeriod) / _orbitPeriod);
-    canvas.drawArc(
-      rect,
-      sweep,
-      math.pi / 3,
-      false,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..color = tokens.globalFocus,
-    );
-  }
-
-  /// `[ 12s ]` — the other half. Honest: it counts up from real elapsed time and
+  /// `[ 12s ]` — the wait cue. Honest: it counts up from real elapsed time and
   /// never estimates a completion.
   void _paintElapsed(Canvas canvas, Size size) {
     final busy = busyFor;
@@ -241,7 +273,7 @@ class ClideFacePainter extends CustomPainter {
     final label = '[ ${busy.inSeconds}s ]';
     final fontSize = (size.height * 0.1).clamp(7.0, 16.0);
     final p = cache.paragraph(label, color: tokens.globalTextMuted, fontSize: fontSize, fontFamily: fontFamily, fontFamilyFallback: fontFamilyFallback);
-    canvas.drawParagraph(p, Offset((size.width - p.maxIntrinsicWidth) / 2, size.height - p.height - fontSize * 0.4));
+    _drawBottomCue(canvas, size, p);
   }
 
   @override
@@ -251,6 +283,7 @@ class ClideFacePainter extends CustomPainter {
       old.lean != lean ||
       old.busyFor != busyFor ||
       old.clockLabel != clockLabel ||
+      old.faceAlignX != faceAlignX ||
       old.rainFontSize != rainFontSize ||
       old.fontFamily != fontFamily ||
       // SurfaceTokens has no `==`, so identity is the correct comparison — a new
