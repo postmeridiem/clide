@@ -4,6 +4,7 @@ import 'package:clide/kernel/src/i18n/i18n.dart' show I18n, I18nReplacer;
 // the facade (via the widgets barrel) — the templated-lookup API is then
 // self-contained (T-462).
 export 'package:clide/kernel/src/i18n/i18n.dart' show I18nReplacer;
+import 'package:clide/kernel/src/settings.dart' show SettingsStore;
 import 'package:clide/kernel/src/theme/controller.dart' show ClideTheme, ClideThemeData;
 import 'package:clide/widgets/src/typography.dart';
 import 'package:flutter/widgets.dart';
@@ -25,6 +26,28 @@ abstract final class ClideSettings {
   static const fonts = _Fonts();
   static const theme = _Theme();
   static const i18n = _I18n();
+  static const values = _Values();
+}
+
+/// Arbitrary preference keys, for surfaces whose settings are their own rather
+/// than one of the three cross-cutting concerns above (T-527).
+///
+/// Deliberately read-only and deliberately not a listenable: [SettingsStore] is
+/// a `ChangeNotifier`, and a widget that must re-render when a key changes has
+/// to say so — wrap it in a `ListenableBuilder` on [storeOf]. Reading through
+/// here rather than reaching for `ClideKernel.of(context).settings` keeps every
+/// preference read on one path (D-101), which is what makes the facade worth
+/// having.
+class _Values {
+  const _Values();
+
+  /// The live store for [context], or null outside a kernel (isolated tests).
+  SettingsStore? storeOf(BuildContext context) => ClideKernel.maybeOf(context)?.settings;
+
+  /// [key]'s value, or null when unset or outside a kernel. Callers supply
+  /// their own default — an absent key and a kernel-less test look the same
+  /// here on purpose, so a widget renders either way.
+  T? get<T>(BuildContext context, String key) => storeOf(context)?.get<T>(key);
 }
 
 class _Fonts {

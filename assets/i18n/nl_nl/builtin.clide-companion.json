@@ -1,0 +1,23 @@
+{
+  "settings.title": { "translation": "Clide" },
+  "settings.section.companion": { "translation": "Metgezel" },
+  "settings.field.enabled.label": { "translation": "Clide inschakelen" },
+  "settings.field.enabled.help": {
+    "translation": "Draait voor deze repository een tweede Claude-sessie die het gesprek volgt en erop reageert. Die verbruikt hetzelfde abonnementstegoed als je hoofdsessie. Uit verwijdert hem volledig — geen sessie, geen balk."
+  },
+  "settings.field.frequency.label": { "translation": "Hoe vaak hij iets zegt" },
+  "settings.field.frequency.help": { "translation": "Nooit per bericht — dit bepaalt hoe opvallend een gebeurtenis moet zijn voordat Clide er iets over zegt." },
+  "settings.field.frequency.rare": { "translation": "Zelden — fouten en lange taken" },
+  "settings.field.frequency.notable": { "translation": "Opvallende gebeurtenissen" },
+  "settings.field.frequency.chatty": { "translation": "Spraakzaam" },
+  "settings.section.power": { "translation": "Energie" },
+  "settings.field.suspend.label": { "translation": "Pauzeren zolang het venster geminimaliseerd is" },
+  "settings.field.suspend.help": { "translation": "Stopt de animatie en breekt de sessie af zolang je er niet naar kijkt." },
+  "face.semantics.idle": { "translation": "Clide doet niets" },
+  "face.semantics.listening": { "translation": "Clide luistert" },
+  "face.semantics.thinking": { "translation": "Clide denkt na" },
+  "face.semantics.working": { "translation": "Clide is bezig" },
+  "face.semantics.replying": { "translation": "Clide antwoordt" },
+  "face.semantics.error": { "translation": "Clide liep tegen een fout aan" },
+  "face.semantics.disconnected": { "translation": "Clide is niet verbonden" }
+}

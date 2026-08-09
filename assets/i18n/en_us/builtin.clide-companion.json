@@ -1,0 +1,23 @@
+{
+  "settings.title": { "translation": "Clide" },
+  "settings.section.companion": { "translation": "Companion" },
+  "settings.field.enabled.label": { "translation": "Enable Clide" },
+  "settings.field.enabled.help": {
+    "translation": "Runs a second Claude session for this repository that watches the conversation and comments on it. It spends the same subscription quota as your main session. Off removes it entirely — no session, no strip."
+  },
+  "settings.field.frequency.label": { "translation": "How often it speaks" },
+  "settings.field.frequency.help": { "translation": "Never per message — this sets how notable an event has to be before Clide remarks on it." },
+  "settings.field.frequency.rare": { "translation": "Rarely — errors and long runs" },
+  "settings.field.frequency.notable": { "translation": "Notable events" },
+  "settings.field.frequency.chatty": { "translation": "Chatty" },
+  "settings.section.power": { "translation": "Power" },
+  "settings.field.suspend.label": { "translation": "Suspend while the window is minimised" },
+  "settings.field.suspend.help": { "translation": "Stops the animation and tears the session down while you are not looking at it." },
+  "face.semantics.idle": { "translation": "Clide is idle" },
+  "face.semantics.listening": { "translation": "Clide is listening" },
+  "face.semantics.thinking": { "translation": "Clide is thinking" },
+  "face.semantics.working": { "translation": "Clide is working" },
+  "face.semantics.replying": { "translation": "Clide is replying" },
+  "face.semantics.error": { "translation": "Clide hit an error" },
+  "face.semantics.disconnected": { "translation": "Clide is disconnected" }
+}

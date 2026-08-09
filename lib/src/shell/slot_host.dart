@@ -4,7 +4,7 @@
 /// app.dart (T-394).
 library;
 
-import 'package:clide/builtin/clide_companion/src/clide_strip.dart';
+import 'package:clide/builtin/clide_companion/src/strip_host.dart';
 import 'package:clide/extension/src/contribution.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
@@ -370,7 +370,7 @@ class _ContextSlot extends StatelessWidget {
           Expanded(
             child: Align(alignment: Alignment.topLeft, child: active.build(context)),
           ),
-          const ClideStrip(),
+          const ClideStripHost(),
         ],
       ),
     );

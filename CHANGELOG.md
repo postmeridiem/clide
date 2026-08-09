@@ -23,6 +23,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   session is working. Silent, motion-gated, and dropped to face-only on a narrow
   panel. (D-107, T-526, T-533)
 
+- **Clide settings.** Settings → Clide turns the companion on or off per
+  repository, tunes how often it speaks, and suspends it while the window is
+  minimised. Off removes it entirely — no session, no strip. (D-107, T-527)
+
 ### Changed
 
 ### Fixed

@@ -7,6 +7,7 @@ import 'package:clide/builtin/canvas/canvas.dart';
 import 'package:clide/builtin/claude/claude.dart';
 import 'package:clide/builtin/claude_control/claude_control.dart';
 import 'package:clide/builtin/cli_install/cli_install.dart';
+import 'package:clide/builtin/clide_companion/clide_companion.dart';
 import 'package:clide/builtin/decisions/decisions.dart';
 import 'package:clide/builtin/deeplink/deeplink.dart';
 import 'package:clide/builtin/default_layout/default_layout.dart';
@@ -629,6 +630,7 @@ Future<void> main() async {
     ..register(KeybindingsUiExtension())
     ..register(ClaudeControlExtension())
     ..register(ToolsSettingsExtension())
+    ..register(ClideCompanionExtension())
     ..register(CliInstallExtension());
 
   await services.extensions.activateAll();
