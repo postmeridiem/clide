@@ -11813,3 +11813,31 @@ Session-agnostic earned its keep immediately: this is the first consumer that is
 
 Full suite 8 + 4235 + 50. **Epic T-550 is 4/5** — only T-555 (the non-primary case, for Epic D) remains.', NULL, '2026-08-09 16:13:28', '2026-08-09 16:13:28.497', '2026-08-09 16:13:28.497', NULL, '3b55a03922faca8073f873c839819e97', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0MD03HG8PM86KTWRVKMQM', 'status', 'in_progress', 'review', NULL, '2026-08-09 16:13:28', '2026-08-09 16:13:28.524', '2026-08-09 16:13:28.524', NULL, '3eaf131fb5686edf3dcea19fbdb772aa', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0NH2EN95TQFW97FJT6Z2W', 'status', 'backlog', 'in_progress', NULL, '2026-08-09 16:15:42', '2026-08-09 16:15:42.907', '2026-08-09 16:15:42.907', NULL, 'fa0cad1dd6959c1739d90675e73d057f', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0NH2EN95TQFW97FJT6Z2W', 'status', 'in_progress', 'in_progress', NULL, '2026-08-09 16:15:49', '2026-08-09 16:15:49.404', '2026-08-09 16:15:49.404', NULL, 'fbdeda08706e55ecba5afd58f03b29ec', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0NH2EN95TQFW97FJT6Z2W', 'description', 'The consumer Epic D needs: a reader bound to the **companion''s own** session rather than the primary one.
+
+This is what proves requirement 1 of the epic. The first three consumers all read the primary session, so an interface that quietly assumed it would pass all of them and fail the moment Epic D arrived — which is the failure this epic exists to prevent, reproduced one layer up.
+
+Scope here is the binding, not the companion: prove the reader can follow an arbitrary session id through spawn, death and respawn, with tests. What is *done* with the companion''s items and state belongs to T-546 (digest) and T-548 (the reply seam), and T-545 owns the session''s lifecycle.
+
+Done when T-545 and T-548 can be written without touching the orchestrator directly.', 'The consumer Epic D needs: a reader bound to the **companion''s own** session rather than the primary one.
+
+This is what proves requirement 1 of the epic. The first three consumers all read the primary session, so an interface that quietly assumed it would pass all of them and fail the moment Epic D arrived — which is the failure this epic exists to prevent, reproduced one layer up.
+
+Scope here is the binding, not the companion: prove the reader can follow an arbitrary session id through spawn, death and respawn, with tests. What is *done* with the companion''s items and state belongs to T-546 (digest) and T-548 (the reply seam), and T-545 owns the session''s lifecycle.
+
+Done when T-545 and T-548 can be written without touching the orchestrator directly.
+
+Done (2026-08-09). `kCompanionSessionId` (namespaced `clide.companion`, matching the bus publisher by assertion) and `companionSessionReader()`, plus 7 tests for the binding contract Epic D depends on.
+
+**Requirement 1 of the epic is now proved rather than asserted.** The first three consumers all read the primary, so ''session-agnostic'' was untested by every migration; here a reader for the companion stays unattached while a `primary` session exists, and both readers run independently — closing the primary does not detach the companion, which is the ordinary state once Epic D ships.
+
+Covered through the whole life of a process on **one** subscription: spawn, death (via the fake exiting, so `_onExit` runs rather than a forced state), respawn under the same id, and binding *after* the companion has already died — which is ordinary rather than exotic, since ingest pauses while the strip is minimised (T-528).
+
+Also asserts the two T-557 signals arrive for a non-primary session: `phase` distinguishing thinking from answering (Haiku thinks on every turn and no flag stops it), and a failed turn carrying `api_error_status` — the only source `rage` can have.
+
+A function rather than a singleton: readers are cheap and each consumer disposes its own; what must not be duplicated is the id.
+
+**Done-when met:** T-545 and T-548 can be written without touching the orchestrator. Full suite 8 + 4242 + 50.', NULL, '2026-08-09 16:26:28', '2026-08-09 16:26:28.645', '2026-08-09 16:26:28.645', NULL, 'ee777862b15da87af917e2c1b36f4c6a', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0NH2EN95TQFW97FJT6Z2W', 'status', 'in_progress', 'review', NULL, '2026-08-09 16:26:28', '2026-08-09 16:26:28.670', '2026-08-09 16:26:28.670', NULL, '66f548471847da1893f10aea67365334', 2) ON CONFLICT(hash) DO NOTHING;
