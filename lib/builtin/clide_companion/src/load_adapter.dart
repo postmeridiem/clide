@@ -14,6 +14,7 @@ import 'dart:async';
 
 import 'package:clide/builtin/clide_companion/src/companion_channel.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
+import 'package:clide/builtin/claude/src/session_reader.dart';
 import 'package:clide/kernel/src/events/message_bus.dart';
 
 /// Binds the primary session and republishes its busy state as `companion.load`.
@@ -30,7 +31,7 @@ class CompanionLoadAdapter {
   /// Injectable so a test can assert the stamped instant instead of racing it.
   final DateTime Function() _now;
 
-  ClaudeSessionOrchestrator? _orchestrator;
+  SessionReader? _reader;
   StreamSubscription<bool>? _busySub;
   StreamSubscription<Message>? _asks;
 
@@ -40,49 +41,28 @@ class CompanionLoadAdapter {
 
   /// Start watching. Safe to call more than once.
   void start(ClaudeSessionOrchestrator? orchestrator) {
-    _orchestrator?.removeListener(_onOrchestratorChange);
-    _orchestrator = orchestrator;
-    _orchestrator?.addListener(_onOrchestratorChange);
+    _reader?.dispose();
+    // One subscription for the life of the adapter: the reader re-subscribes
+    // across respawns underneath, so the cancel/rebind dance this class used to
+    // own is gone (T-553). Absence still arrives here as `busy: false`, which
+    // is what keeps stale weather off the strip.
+    final reader = SessionReader.primary(orchestrator: orchestrator);
+    _reader = reader;
+    _busySub?.cancel();
+    _busySub = reader.busy.listen((busy) => _set(busy: busy));
     // Renderers mount long after this first announcement — extensions activate
     // before `runApp` — so they ask, and this answers.
     _asks ??= _messages.subscribe(publisher: clideCompanionPublisher, channel: companionLoadAskChannel).listen((_) => _publish());
-    _bindPrimary();
+    reader.start();
   }
 
   void dispose() {
-    _orchestrator?.removeListener(_onOrchestratorChange);
-    _orchestrator = null;
+    _reader?.dispose();
+    _reader = null;
     _busySub?.cancel();
     _busySub = null;
     _asks?.cancel();
     _asks = null;
-  }
-
-  void _onOrchestratorChange() => _bindPrimary();
-
-  /// (Re)bind to whatever is currently the primary session.
-  ///
-  /// The orchestrator notifies on spawn, close, show, hide, mute and session-id
-  /// resolution, so this runs often and must be idempotent — cancel before
-  /// subscribing or a session that is shown and then muted ends up with two
-  /// listeners and publishes everything twice.
-  void _bindPrimary() {
-    _busySub?.cancel();
-    _busySub = null;
-
-    final session = _orchestrator?.byId('primary')?.session;
-    if (session == null) {
-      // **No session is a normal state, not an error.** clide boots without one
-      // and the strip renders throughout, so absence has to say "not busy"
-      // rather than say nothing — silence would leave the last session's weather
-      // on screen forever.
-      _set(busy: false);
-      return;
-    }
-
-    // `busyStream` is replay-latest, so the current value arrives on subscribe
-    // and no separate seeding read is needed.
-    _busySub = session.busyStream.listen((busy) => _set(busy: busy));
   }
 
   void _set({required bool busy}) {

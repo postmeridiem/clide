@@ -13057,3 +13057,151 @@ Absence stays the sidebar''s decision, per T-551: the reader reports `attached`,
 **One real bug, caught by the tests rather than by review:** the cascade `SessionReader.primary(...)..addListener(...)..start()` reads well and is wrong — `start` binds synchronously and notifies, re-entering the listener while the `late final` field was still unassigned. Assignment now precedes `start`. A migration that had *edited* its tests to pass would have shipped this.
 
 Full suite 8 + 4235 + 50.', 'review', 'high', NULL, NULL, NULL, '2026-08-09 14:51:55.777', '2026-08-09 15:50:44.615', NULL, '9e82f83e940240770a6fa96dee24dcc5', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVWFCBT56EDZJCT7Z55ZV4', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'D2: Digest filter and observed/direct framing', 'What Clide is allowed to see, and how he is told who is talking. Blocked by
+**T-545** — there has to be a session to feed.
+
+## The filter is a privacy boundary, not a formatting choice
+
+Filter `session.items` to **`UserMessage` and `AssistantTextMessage` only**. Drop
+`AssistantToolUse`, `ToolResultMessage`, thinking, and the clide-injected
+image/drawing/icon cards. Item model: `transcript_reader.dart:41-267`.
+
+D-107 commitment 3 states this as a **scope and privacy boundary**: tool activity
+is where file contents, paths, credentials and command output live, and keeping
+it out means this surface structurally cannot leak what the main session touched.
+Any future feature requiring Clide to see tool activity **amends that record** —
+it is not a config flag, and it must not become one by accident here.
+
+So the filter should be written as an allow-list over item types, not a
+deny-list. A new item type appearing in the union must be invisible to Clide
+until someone decides otherwise; a deny-list would leak it silently.
+
+**Accepted consequence:** "what did that tool call do?" is unanswerable. Asking
+what Claude *said* works; asking what Claude *did* does not. Surface that in the
+UI rather than letting him bluff.
+
+## The wire format
+
+```
+[observed] <user>: <prompt text>
+[observed] claude: <assistant prose>
+[direct]   <user>: <question typed into Clide''s own input>
+```
+
+`observed` is a conversation he is watching; `direct` is addressed to him. The
+prompt text that explains the split is **T-532**, not here — this ticket owns
+producing the lines, that one owns what they mean to him.
+
+Open question for T-532 to settle and this ticket to implement: whether the real
+user name is used or a neutral label.
+
+## Watch for
+
+- **A partial-prefixed item is not necessarily still streaming.** The final
+  assistant event is rewritten to carry the same `partial-` uuid, so the prefix
+  means "came through the streaming path", not "arriving now" (found during
+  Epic B''s signal audit). Digesting on every partial update would send the same
+  message a dozen times.
+- Send one line per completed exchange, not per token.
+- The digest must **stop while the strip is minimised** (T-528 semantics, wired
+  in T-545): ingest is what pauses, so this is the thing being paused.
+
+**Absence is silence, not a line (2026-08-09).**
+
+Nothing goes into Clide''s prompt stream to describe a *lack* of activity. No ''no session is running'', no ''nothing happened'', no heartbeat. Every line we send him is an invitation to reply, and a line describing emptiness invites a remark about emptiness — which he would be right to make, because we told him something.
+
+This is a rule about the digest, not about the bus. `companion.load {busy: false}` is UI state that drives the rain and must keep firing on absence, or the strip shows stale weather (T-538 has a test for it). The two must not be conflated: one is a signal to a renderer, the other is text to a model.
+
+Concretely:
+
+- A session ending, a session not existing, an ingest pause (minimised, T-528) — none of these produce digest lines.
+- Discontinuities are **narrated on resume, not during** (T-532''s detach notice), and that is a different thing: it is context for the next real exchange, not an event to comment on.
+- A digest turn with nothing in it should not be sent at all. If the filter yields no lines, there is no prompt.
+
+The failure this prevents is a companion that talks about the tooling instead of the work — the surest way to make an ambient surface annoying.', 'backlog', 'high', NULL, NULL, 'D-107', '2026-08-09 14:31:27.330', '2026-08-09 15:55:20.209', NULL, 'd844e9040a361281c4fde91885134c63', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVZ67S9VM9Y5JZ0HNSMAN4', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'D3: Trigger policy — notable events, frequency, debounce', 'When Clide is *asked* to say something. Blocked by **T-546** — there has to be a
+digest before there is anything to remark on.
+
+## The trigger is the cost control
+
+D-107 fixes the shape: **notable events only, never per-token.** Turn finished,
+error, a long run crossing a threshold, a commit landing. Direct questions are
+always answered and are not subject to this.
+
+Under subscription auth the real currency is **quota drawn from the same pool
+already rate-limiting the primary session**, so a chatty trigger does not cost
+money so much as it costs the user their own session. That is the argument for
+keeping it stingy, and it is why this is its own ticket rather than a couple of
+lines inside the digest.
+
+`project.companion.frequency` (T-527) tunes the threshold within that shape:
+`rare` (errors and long runs only), `notable` (the default), `chatty` (also
+ordinary turns). It is already a setting with a UI and is read by nobody yet.
+
+## Watch for
+
+- **Debounce, and say what the debounce is.** "Turn finished" and "commit landed"
+  can arrive within a second of each other; two remarks about one event reads as
+  a malfunction.
+- A long run crossing a threshold should fire **once**, not once per check.
+- An error remark must not itself be triggered by the companion''s own failure —
+  that is a loop.
+- Cap what a single event can produce. `max_tokens` bounds one reply; nothing yet
+  bounds replies per minute, and that is this ticket''s job.
+
+## Worth measuring rather than assuming
+
+Once it runs, count what a realistic hour actually generates at each frequency
+setting before deciding the defaults are right. The initiative''s estimate was
+~50 comments per session, which is where the restart boundary came from — if the
+real number is 200, that boundary and the cost model both move.
+
+**Corollary of T-546''s ''absence is silence'':** state *changes* are not notable events.
+
+A session ending, starting, being minimised or coming back are things the tooling did, not things that happened in the work. None of them should trigger a remark. The notable-events list stays what D-107 says it is — turn finished, error, long run crossing a threshold, commit landed — all of which are events in the *conversation*.
+
+Worth stating because the signals are now conveniently available (T-557 surfaces turn outcome, T-551 forwards binding changes) and ''we can see it, so let us comment on it'' is exactly how an ambient surface becomes a nuisance. Availability is not a reason to speak.', 'backlog', 'medium', NULL, NULL, 'D-107', '2026-08-09 14:31:49.567', '2026-08-09 15:55:29.160', NULL, '63afe8b6399127244936a874e01e249f', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0K9R40T1948C780FKDAQ8', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R3: Move the companion load adapter onto the reader', '`clide_companion/src/load_adapter.dart` (T-538) — busy state via the orchestrator, published to the bus.
+
+The smallest of the three and the most recently written; it was produced by copying the meta sidebar, which is the clearest evidence the rule was spreading rather than being shared.
+
+Its nine tests cover the exact hazards the interface is meant to own — rebinding without double-subscribing, absence publishing rather than staying silent, the stamped turn-start surviving a mid-turn rebind. **They must pass unmodified**; they are the closest thing to a specification for the interface''s rebinding behaviour.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 14:52:02.881', '2026-08-09 15:55:48.799', NULL, 'eca3710188fc3e856e1ca6e6134340f0', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0K9R40T1948C780FKDAQ8', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R3: Move the companion load adapter onto the reader', '`clide_companion/src/load_adapter.dart` (T-538) — busy state via the orchestrator, published to the bus.
+
+The smallest of the three and the most recently written; it was produced by copying the meta sidebar, which is the clearest evidence the rule was spreading rather than being shared.
+
+Its nine tests cover the exact hazards the interface is meant to own — rebinding without double-subscribing, absence publishing rather than staying silent, the stamped turn-start surviving a mid-turn rebind. **They must pass unmodified**; they are the closest thing to a specification for the interface''s rebinding behaviour.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 14:52:02.881', '2026-08-09 15:55:54.724', NULL, 'dc49e710e087039def91abf1205e9a46', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0K9R40T1948C780FKDAQ8', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R3: Move the companion load adapter onto the reader', '`clide_companion/src/load_adapter.dart` (T-538) — busy state via the orchestrator, published to the bus.
+
+The smallest of the three and the most recently written; it was produced by copying the meta sidebar, which is the clearest evidence the rule was spreading rather than being shared.
+
+Its nine tests cover the exact hazards the interface is meant to own — rebinding without double-subscribing, absence publishing rather than staying silent, the stamped turn-start surviving a mid-turn rebind. **They must pass unmodified**; they are the closest thing to a specification for the interface''s rebinding behaviour.
+
+Done (2026-08-09). All nine tests pass **unmodified, first run**.
+
+The whole `_bindPrimary` method is gone — cancel, null-check, absence branch, replay comment — replaced by one `reader.busy.listen` that survives every respawn. The class keeps only what is actually its own: the turn-start stamp, the dedupe, and answering the `companion.load.ask` channel.
+
+**This was the fairest test of the interface**, and it was uncomfortable by design: these nine tests were written *against the hand-rolled version*, and three of them exist specifically because I nearly got the hand-rolled version wrong in T-538 — rebinding without double-subscribing, absence publishing rather than staying silent, the stamped start surviving a mid-turn rebind. If the reader had a different opinion about any of those, they would have failed rather than been quietly adjusted.
+
+They did not, which is the first real evidence the interface generalises rather than merely compiling: the sidebar migration proved it could express the *canonical* shape, and this proves it independently satisfies a set of assertions written before it existed.
+
+Note the layering that survived: absence still arrives here as `busy: false` and is still published. The reader reports absence without interpreting it, and ''publish not-busy'' is this consumer''s answer — different from the sidebar''s ''blank the panel''. That distinction is now load-bearing rather than incidental.
+
+Full suite 8 + 4235 + 50.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 14:52:02.881', '2026-08-09 16:00:35.322', NULL, 'ffb19e3c20cb96c2d9fe6b2e7de77583', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0K9R40T1948C780FKDAQ8', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R3: Move the companion load adapter onto the reader', '`clide_companion/src/load_adapter.dart` (T-538) — busy state via the orchestrator, published to the bus.
+
+The smallest of the three and the most recently written; it was produced by copying the meta sidebar, which is the clearest evidence the rule was spreading rather than being shared.
+
+Its nine tests cover the exact hazards the interface is meant to own — rebinding without double-subscribing, absence publishing rather than staying silent, the stamped turn-start surviving a mid-turn rebind. **They must pass unmodified**; they are the closest thing to a specification for the interface''s rebinding behaviour.
+
+Done (2026-08-09). All nine tests pass **unmodified, first run**.
+
+The whole `_bindPrimary` method is gone — cancel, null-check, absence branch, replay comment — replaced by one `reader.busy.listen` that survives every respawn. The class keeps only what is actually its own: the turn-start stamp, the dedupe, and answering the `companion.load.ask` channel.
+
+**This was the fairest test of the interface**, and it was uncomfortable by design: these nine tests were written *against the hand-rolled version*, and three of them exist specifically because I nearly got the hand-rolled version wrong in T-538 — rebinding without double-subscribing, absence publishing rather than staying silent, the stamped start surviving a mid-turn rebind. If the reader had a different opinion about any of those, they would have failed rather than been quietly adjusted.
+
+They did not, which is the first real evidence the interface generalises rather than merely compiling: the sidebar migration proved it could express the *canonical* shape, and this proves it independently satisfies a set of assertions written before it existed.
+
+Note the layering that survived: absence still arrives here as `busy: false` and is still published. The reader reports absence without interpreting it, and ''publish not-busy'' is this consumer''s answer — different from the sidebar''s ''blank the panel''. That distinction is now load-bearing rather than incidental.
+
+Full suite 8 + 4235 + 50.', 'review', 'medium', NULL, NULL, NULL, '2026-08-09 14:52:02.881', '2026-08-09 16:00:35.351', NULL, '30933db22d0e330d66c7d2409cd77acb', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
