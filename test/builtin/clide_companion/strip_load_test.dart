@@ -1,18 +1,56 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:clide/builtin/clide_companion/src/clide_face.dart';
-import 'package:clide/builtin/clide_companion/src/clide_strip.dart';
-import 'package:clide/builtin/clide_companion/src/companion_channel.dart';
 import 'package:clide/builtin/clide_companion/src/session_load.dart';
 import 'package:clide/builtin/clide_companion/src/strip_host.dart';
+import 'package:clide/builtin/claude/src/session_orchestrator.dart';
+import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
 
+class _FakeProc extends StreamJsonProcess {
+  final _ctl = StreamController<String>.broadcast();
+
+  @override
+  Stream<String> get lines => _ctl.stream;
+
+  @override
+  void writeLine(String line) {}
+
+  @override
+  Future<void> kill() async {}
+
+  /// End the turn the way the CLI does. Nothing here forces session state
+  /// directly — the `result` event runs the same path production takes.
+  void endTurn() => _ctl.add(jsonEncode({'type': 'result', 'is_error': false, 'stop_reason': 'end_turn'}));
+}
+
+/// The strip reads the primary session directly now (T-561) — no bus channel,
+/// no adapter — so these drive a real orchestrator instead of publishing
+/// messages at it. The behaviours asserted are the ones T-538/T-539 established
+/// and which had to survive the collapse.
 void main() {
   late KernelFixture f;
-  setUp(() async => f = await KernelFixture.create());
-  tearDown(() => f.dispose());
+  late _FakeProc proc;
+
+  ClaudeSessionOrchestrator orchestrator() =>
+      ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => proc = _FakeProc());
+
+  setUp(() async {
+    f = await KernelFixture.create();
+    activeSessionOrchestrator = orchestrator();
+  });
+
+  tearDown(() async {
+    activeSessionOrchestrator = null;
+    await f.dispose();
+  });
+
+  Future<ManagedSession> spawnPrimary() => activeSessionOrchestrator!.spawn(const SpawnSpec(id: 'primary', role: 'primary', sessionId: 'p-uuid', cwd: '/repo'));
 
   Widget host() => Directionality(
     textDirection: TextDirection.ltr,
@@ -42,141 +80,116 @@ void main() {
 
   ClideFace face(WidgetTester tester) => tester.widget<ClideFace>(find.byType(ClideFace));
 
-  group('the weather reaches the face', () {
-    testWidgets('a busy announcement raises the load', (tester) async {
-      await tester.pumpWidget(host());
-      await tester.pump();
+  /// Two pumps and a tick. The second pump is where the load event lands; the
+  /// tick drains the conversation controller's zero-duration debounce, which a
+  /// bare `pump()` schedules but does not fire.
+  Future<void> settle(WidgetTester tester) async {
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1));
+  }
 
-      publishCompanionLoad(f.services.messages, busy: true, busySinceMs: DateTime.now().millisecondsSinceEpoch);
-      await tester.pump();
-      await tester.pump();
+  group('the weather reaches the face', () {
+    testWidgets('a busy session raises the load', (tester) async {
+      final managed = await spawnPrimary();
+      await tester.pumpWidget(host());
+      await settle(tester);
+
+      managed.session.send('do the thing');
+      await settle(tester);
 
       expect(face(tester).load, SessionLoad.working);
       await tester.pumpWidget(const SizedBox());
     });
 
-    testWidgets('an idle announcement is calm, not absent', (tester) async {
-      // The adapter only publishes while it is watching, so an announcement is
-      // itself evidence a session exists. `absent` is the pre-answer default,
-      // never something announced.
+    testWidgets('an idle session is calm, not absent', (tester) async {
+      // A session that exists but is doing nothing still drips, so the surface
+      // reads as alive rather than dead.
+      await spawnPrimary();
       await tester.pumpWidget(host());
-      await tester.pump();
-
-      publishCompanionLoad(f.services.messages, busy: false);
-      await tester.pump();
-      await tester.pump();
-
+      await settle(tester);
       expect(face(tester).load, SessionLoad.calm);
       await tester.pumpWidget(const SizedBox());
     });
 
-    testWidgets('before any announcement the load is absent', (tester) async {
-      // Park-by-default: until the ask is answered we do not know, and a
-      // surface whose power behaviour is a contract should not animate on a
-      // guess (D-107 commitment 4).
+    testWidgets('no session at all is absent', (tester) async {
+      // The behaviour the deleted adapter existed to guarantee: nothing bound
+      // must not leave the previous session's weather on screen.
       await tester.pumpWidget(host());
-      await tester.pump();
+      await settle(tester);
       expect(face(tester).load, SessionLoad.absent);
       await tester.pumpWidget(const SizedBox());
     });
-  });
 
-  group('asking for the current load', () {
-    testWidgets('mounting asks, because the first announcement predates the widget', (tester) async {
-      // Extensions activate before `runApp`, so the adapter's opening
-      // announcement is always published into an empty room.
-      var asked = 0;
-      final sub = f.services.messages.subscribe(publisher: clideCompanionPublisher, channel: companionLoadAskChannel).listen((_) => asked++);
-      addTearDown(sub.cancel);
-
+    testWidgets('a session appearing after the strip is picked up', (tester) async {
+      // The case the ask/answer handshake was invented for. The reader follows
+      // the orchestrator, so mounting order no longer matters.
       await tester.pumpWidget(host());
-      await tester.pump();
-      await tester.pump();
+      await settle(tester);
+      expect(face(tester).load, SessionLoad.absent);
 
-      expect(asked, 1, reason: 'the strip mounted without asking what the session is doing');
+      final managed = await spawnPrimary();
+      await settle(tester);
+      managed.session.send('now');
+      await settle(tester);
+
+      expect(face(tester).load, SessionLoad.working, reason: 'the strip never noticed the session arrive');
       await tester.pumpWidget(const SizedBox());
     });
   });
 
   group('the elapsed counter', () {
-    testWidgets('runs from the stamped start, not from when the widget noticed', (tester) async {
-      // The instant comes from the adapter. A widget that started counting when
-      // it happened to see the prop change would under-report by however long
-      // noticing took — here, by a whole minute.
-      final startedAMinuteAgo = DateTime.now().subtract(const Duration(minutes: 1));
-      await tester.pumpWidget(host());
-      await tester.pump();
+    testWidgets('runs from the session\'s stamp, not from when the widget noticed', (tester) async {
+      // The stamp lives on the session now (T-561). A strip mounting mid-turn
+      // gets the real start, where one timing it itself would report zero.
+      final managed = await spawnPrimary();
+      managed.session.send('started before the strip existed');
+      // Real elapsed time, off the fake clock: the session stamps `busySince`
+      // with a real `DateTime.now()`, so a fake-clock advance would not move it.
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
 
-      publishCompanionLoad(f.services.messages, busy: true, busySinceMs: startedAMinuteAgo.millisecondsSinceEpoch);
-      await tester.pump();
-      await tester.pump();
+      await tester.pumpWidget(host());
+      await settle(tester);
 
       final busyFor = face(tester).busyFor;
-      expect(busyFor, isNotNull);
-      expect(busyFor!.inSeconds, greaterThanOrEqualTo(60), reason: 'the counter restarted instead of using the stamped start');
+      expect(busyFor, isNotNull, reason: 'a strip mounting mid-turn should show the turn already running');
+      expect(busyFor!, greaterThan(Duration.zero));
       await tester.pumpWidget(const SizedBox());
     });
 
     testWidgets('clears when the turn ends rather than freezing', (tester) async {
-      // A counter that stops but stays on screen reads as a turn still running.
+      final managed = await spawnPrimary();
       await tester.pumpWidget(host());
-      await tester.pump();
+      await settle(tester);
 
-      publishCompanionLoad(f.services.messages, busy: true, busySinceMs: DateTime.now().millisecondsSinceEpoch);
-      await tester.pump();
-      await tester.pump();
+      managed.session.send('a turn');
+      await settle(tester);
       expect(face(tester).busyFor, isNotNull);
 
-      publishCompanionLoad(f.services.messages, busy: false);
-      await tester.pump();
-      await tester.pump();
-      expect(face(tester).busyFor, isNull, reason: 'the counter froze instead of clearing');
+      proc.endTurn();
+      await settle(tester);
+      expect(face(tester).busyFor, isNull, reason: 'a counter left on screen reads as a turn still running');
+      expect(face(tester).load, SessionLoad.calm);
       await tester.pumpWidget(const SizedBox());
-    });
-
-    testWidgets('advances while the turn runs', (tester) async {
-      final start = DateTime.now();
-      await tester.pumpWidget(host());
-      await tester.pump();
-
-      publishCompanionLoad(f.services.messages, busy: true, busySinceMs: start.millisecondsSinceEpoch);
-      await tester.pump();
-      await tester.pump();
-      final first = face(tester).busyFor!;
-
-      // The host ticks once a second while busy — seconds are the counter's
-      // granularity, so anything faster would be redraws nobody can read.
-      await tester.pump(const Duration(seconds: 3));
-      expect(face(tester).busyFor!, greaterThanOrEqualTo(first), reason: 'the counter stalled mid-turn');
-      await tester.pumpWidget(const SizedBox());
-    });
-
-    testWidgets('runs no timer while idle', (tester) async {
-      // The other half of the same point: a 1Hz timer that ran all the time
-      // would be exactly the sort of thing the power ladder exists to forbid.
-      await tester.pumpWidget(host());
-      await tester.pump();
-      publishCompanionLoad(f.services.messages, busy: false);
-      await tester.pump();
-      await tester.pump();
-
-      // Completes only if nothing is scheduling repeating work.
-      await tester.pumpWidget(const SizedBox());
-      expect(tester.takeException(), isNull);
     });
   });
 
-  group('teardown', () {
-    testWidgets('a turn in flight does not leave a timer behind', (tester) async {
-      await tester.pumpWidget(host());
-      await tester.pump();
-      publishCompanionLoad(f.services.messages, busy: true, busySinceMs: DateTime.now().millisecondsSinceEpoch);
-      await tester.pump();
-      await tester.pump();
+  group('no bus involvement', () {
+    testWidgets('the strip publishes nothing to read the session', (tester) async {
+      // The collapse's point: load never spanned surfaces, so it should not
+      // touch the bus at all now.
+      final seen = <Message>[];
+      final sub = f.services.messages.subscribe(publisher: 'clide.companion').listen(seen.add);
+      addTearDown(sub.cancel);
 
-      // An uncancelled periodic Timer fails the test binding at teardown.
+      final managed = await spawnPrimary();
+      await tester.pumpWidget(host());
+      await settle(tester);
+      managed.session.send('work');
+      await settle(tester);
+
+      expect(seen.where((m) => m.channel.startsWith('companion.load')), isEmpty);
       await tester.pumpWidget(const SizedBox());
-      expect(find.byType(ClideStrip), findsNothing);
     });
   });
 }

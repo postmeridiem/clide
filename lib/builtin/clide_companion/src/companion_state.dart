@@ -16,6 +16,7 @@ import 'dart:async';
 import 'package:clide/builtin/clide_companion/src/companion_channel.dart';
 import 'package:clide/builtin/clide_companion/src/companion_settings.dart';
 import 'package:clide/builtin/clide_companion/src/session_load.dart';
+import 'package:clide/builtin/claude/src/session_reader.dart';
 import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/kernel/src/facade.dart' show ClideKernel;
 import 'package:clide/widgets/src/clide_settings.dart';
@@ -72,7 +73,8 @@ class CompanionStateBuilder extends StatefulWidget {
 
 class _CompanionStateBuilderState extends State<CompanionStateBuilder> {
   StreamSubscription<Message>? _sub;
-  StreamSubscription<Message>? _loadSub;
+  StreamSubscription<bool>? _loadSub;
+  SessionReader? _reader;
   MessageBus? _bus;
 
   bool _enabled = kCompanionEnabledDefault;
@@ -81,6 +83,15 @@ class _CompanionStateBuilderState extends State<CompanionStateBuilder> {
   DateTime? _busySince;
   bool _suspendWhenMinimised = kCompanionSuspendWhenMinimisedDefault;
   bool _seeded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Not in didChangeDependencies: the reader takes nothing from the tree, and
+    // binding it there would tie its lifetime to the bus rebind below — which
+    // is exactly the bug the collapse introduced once.
+    _bindLoad();
+  }
 
   @override
   void didChangeDependencies() {
@@ -98,7 +109,6 @@ class _CompanionStateBuilderState extends State<CompanionStateBuilder> {
     final bus = ClideKernel.maybeOf(context)?.messages;
     if (identical(bus, _bus)) return;
     _sub?.cancel();
-    _loadSub?.cancel();
     _bus = bus;
     if (bus == null) return;
 
@@ -114,30 +124,45 @@ class _CompanionStateBuilderState extends State<CompanionStateBuilder> {
         _open = open;
       });
     });
+  }
 
-    _loadSub = bus.subscribe(publisher: clideCompanionPublisher, channel: companionLoadChannel).listen((m) {
+  /// The primary session's load, read directly (T-561).
+  ///
+  /// This used to arrive over a `companion.load` bus channel with an
+  /// ask/answer handshake, because a widget this deep could not bind a session
+  /// and an extension had to do it. The session reader removed that constraint,
+  /// and with it a channel pair, an adapter, and the only request/response
+  /// pattern in the codebase.
+  ///
+  /// `companion.set`/`companion.state` stay on the bus, and rightly: they span
+  /// surfaces — a rail button in the status bar and this strip in the context
+  /// column — which is what a bus is for. Load never spanned anything; it went
+  /// out to the bus and came straight back to one widget.
+  void _bindLoad() {
+    _reader = SessionReader.primary()..start();
+    _loadSub = _reader!.busy.listen((busy) {
       if (!mounted) return;
-      final busy = m.data['busy'] as bool? ?? false;
-      final sinceMs = m.data['busySinceMs'] as int?;
-      // `calm` rather than `absent` when idle: the adapter only publishes at all
-      // when it is watching, so an announcement is itself evidence a session
-      // exists. `absent` is the pre-answer default, not an announced value.
-      final load = busy ? SessionLoad.working : SessionLoad.calm;
-      final since = sinceMs == null ? null : DateTime.fromMillisecondsSinceEpoch(sinceMs);
+      // `absent` only while nothing is bound. A session that exists and is idle
+      // is `calm` — a drip, so the surface reads as alive rather than dead.
+      final load = !_reader!.attached
+          ? SessionLoad.absent
+          : busy
+          ? SessionLoad.working
+          : SessionLoad.calm;
+      final since = _reader!.busySince;
       if (load == _load && since == _busySince) return;
       setState(() {
         _load = load;
         _busySince = since;
       });
     });
-
-    askCompanionLoad(bus);
   }
 
   @override
   void dispose() {
     _sub?.cancel();
     _loadSub?.cancel();
+    _reader?.dispose();
     super.dispose();
   }
 

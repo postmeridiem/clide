@@ -11841,3 +11841,55 @@ A function rather than a singleton: readers are cheap and each consumer disposes
 
 **Done-when met:** T-545 and T-548 can be written without touching the orchestrator. Full suite 8 + 4242 + 50.', NULL, '2026-08-09 16:26:28', '2026-08-09 16:26:28.645', '2026-08-09 16:26:28.645', NULL, 'ee777862b15da87af917e2c1b36f4c6a', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0NH2EN95TQFW97FJT6Z2W', 'status', 'in_progress', 'review', NULL, '2026-08-09 16:26:28', '2026-08-09 16:26:28.670', '2026-08-09 16:26:28.670', NULL, '66f548471847da1893f10aea67365334', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0MD03HG8PM86KTWRVKMQM', 'status', 'review', 'done', NULL, '2026-08-09 16:30:04', '2026-08-09 16:30:04.857', '2026-08-09 16:30:04.857', NULL, '43419992f7e7e9187471351c8b2e3f08', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0NH2EN95TQFW97FJT6Z2W', 'status', 'review', 'done', NULL, '2026-08-09 16:30:08', '2026-08-09 16:30:08.715', '2026-08-09 16:30:08.715', NULL, '7758ca60b1aa3b6889d156ab94ecd559', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYEPPFGKEWVTE5Q9K152905G', 'status', 'backlog', 'in_progress', NULL, '2026-08-09 16:31:45', '2026-08-09 16:31:45.722', '2026-08-09 16:31:45.722', NULL, 'fe6ac0be69d727f76f7097caf4349579', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYEPPFGKEWVTE5Q9K152905G', 'status', 'in_progress', 'in_progress', NULL, '2026-08-09 16:31:53', '2026-08-09 16:31:53.992', '2026-08-09 16:31:53.992', NULL, '3752dfa4a6907ce088dac0a8193effff', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYEPPFGKEWVTE5Q9K152905G', 'description', 'Enabled by T-551, and settled with the user on 2026-08-09 after a MessageBus audit.
+
+`companion.load` exists only because a widget deep in the context column needed the primary session''s busy state and could not bind it — an extension had to. **The session reader removed that constraint**, so the strip can hold a `SessionReader.primary()` itself.
+
+Deletes: `companion.load`, `companion.load.ask`, and `CompanionLoadAdapter` entirely. That is a channel pair, an adapter, and — the actual reason this is worth doing — **the only request/response pattern in the codebase**. Every other bus user is one-way fire-and-forget; the ask/answer handshake was invented here, when `FilterStateCache` already showed the house answer to ''the bus does not retain''.
+
+Survives untouched: `companion.set` / `companion.state`. Settings and open/closed genuinely span surfaces — a rail button in the status bar and a strip in the context column — and that pair matches `filter.set`/`filter.state` exactly.
+
+## The one real dependency
+
+`busySince`. A widget mounting mid-turn sees `busy: true` but not when it started, which is the whole reason the stamp lives in a long-lived adapter today. **Move it onto the session**, beside `phase` and `turnOutcome` (T-557): it is a fact about the session, `_setBusy(true)` has exactly one call site, and no consumer should be re-deriving it. Then the reader forwards it and the adapter has nothing left to own.
+
+## Scope
+
+Partially undoes T-538 and T-539 — deliberately, and their tests are the guide to what must keep working. The behaviour to preserve exactly:
+
+- absence still reads as not-busy, so the strip never shows stale weather;
+- the counter still runs from the stamped start, not from when the widget noticed;
+- the counter clears rather than freezing when a turn ends.
+
+Those are the assertions worth carrying across; the tests around the adapter and the ask channel go with the code they describe.', 'Enabled by T-551, and settled with the user on 2026-08-09 after a MessageBus audit.
+
+`companion.load` exists only because a widget deep in the context column needed the primary session''s busy state and could not bind it — an extension had to. **The session reader removed that constraint**, so the strip can hold a `SessionReader.primary()` itself.
+
+Deletes: `companion.load`, `companion.load.ask`, and `CompanionLoadAdapter` entirely. That is a channel pair, an adapter, and — the actual reason this is worth doing — **the only request/response pattern in the codebase**. Every other bus user is one-way fire-and-forget; the ask/answer handshake was invented here, when `FilterStateCache` already showed the house answer to ''the bus does not retain''.
+
+Survives untouched: `companion.set` / `companion.state`. Settings and open/closed genuinely span surfaces — a rail button in the status bar and a strip in the context column — and that pair matches `filter.set`/`filter.state` exactly.
+
+## The one real dependency
+
+`busySince`. A widget mounting mid-turn sees `busy: true` but not when it started, which is the whole reason the stamp lives in a long-lived adapter today. **Move it onto the session**, beside `phase` and `turnOutcome` (T-557): it is a fact about the session, `_setBusy(true)` has exactly one call site, and no consumer should be re-deriving it. Then the reader forwards it and the adapter has nothing left to own.
+
+## Scope
+
+Partially undoes T-538 and T-539 — deliberately, and their tests are the guide to what must keep working. The behaviour to preserve exactly:
+
+- absence still reads as not-busy, so the strip never shows stale weather;
+- the counter still runs from the stamped start, not from when the widget noticed;
+- the counter clears rather than freezing when a turn ends.
+
+Those are the assertions worth carrying across; the tests around the adapter and the ask channel go with the code they describe.
+
+Done 2026-08-09. companion.load + companion.load.ask + CompanionLoadAdapter deleted; the strip holds a SessionReader.primary() and derives SessionLoad from attached/busy. busySince moved onto StreamJsonSession (injectable clock) and read through by the reader.
+
+The three behaviours that had to survive are asserted in strip_load_test.dart, now driving a real orchestrator instead of publishing at the strip: absence reads absent, the counter runs from the session''s stamp for a strip that mounts mid-turn, and the counter clears rather than freezes at turn end. Two more added: a session appearing after the strip is picked up (the case the handshake was invented for), and the strip publishes nothing on companion.load.*.
+
+One bug worth recording: the load binding was left in didChangeDependencies, whose bus-rebind path cancels _loadSub — so the subscription died a microtask after it was created and the strip only ever showed the seeded value. Moved to initState; the reader takes nothing from the tree.', NULL, '2026-08-09 16:58:44', '2026-08-09 16:58:44.190', '2026-08-09 16:58:44.190', NULL, '0aa3ff84ac3a51972d8ebd72e1702110', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYEPPFGKEWVTE5Q9K152905G', 'status', 'in_progress', 'review', NULL, '2026-08-09 16:58:46', '2026-08-09 16:58:46.381', '2026-08-09 16:58:46.381', NULL, 'e5e7e81e81e17a7451b6e1a722de9dbe', 2) ON CONFLICT(hash) DO NOTHING;

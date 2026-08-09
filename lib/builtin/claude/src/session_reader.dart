@@ -110,6 +110,12 @@ class SessionReader extends ChangeNotifier {
   /// Latest busy state without subscribing.
   bool get isBusy => _busy.value;
 
+  /// When the bound session's current turn began, or null when idle (T-561).
+  ///
+  /// Read through rather than cached: the session owns the fact, and a copy
+  /// here would be one more thing to keep in step across a rebind.
+  DateTime? get busySince => _managed?.session.busySince;
+
   /// Begin following. Idempotent.
   ///
   /// [orchestrator] overrides the one given to the constructor, for callers that

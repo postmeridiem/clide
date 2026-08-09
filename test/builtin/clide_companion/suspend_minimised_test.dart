@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:clide/builtin/clide_companion/src/clide_strip.dart';
-import 'package:clide/builtin/clide_companion/src/companion_channel.dart';
 import 'package:clide/builtin/clide_companion/src/companion_settings.dart';
 import 'package:clide/builtin/clide_companion/src/strip_host.dart';
+import 'package:clide/builtin/claude/src/session_orchestrator.dart';
+import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
@@ -9,14 +12,32 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
 
+class _FakeProc extends StreamJsonProcess {
+  final _ctl = StreamController<String>.broadcast();
+
+  @override
+  Stream<String> get lines => _ctl.stream;
+
+  @override
+  void writeLine(String line) {}
+
+  @override
+  Future<void> kill() async {}
+}
+
 /// The `night` rung for a minimised window (T-541, D-107 commitment 4). The one
 /// case collapse and hide do not already cover, because a minimised window keeps
 /// its tree mounted and its tickers running.
 void main() {
   late KernelFixture f;
-  setUp(() async => f = await KernelFixture.create());
+
+  setUp(() async {
+    f = await KernelFixture.create();
+    activeSessionOrchestrator = ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => _FakeProc());
+  });
 
   tearDown(() async {
+    activeSessionOrchestrator = null;
     // Leave the app on screen for whatever runs next.
     f.services.lifecycle.didChangeAppLifecycleState(AppLifecycleState.resumed);
     await f.dispose();
@@ -51,12 +72,19 @@ void main() {
   bool ticking() => SchedulerBinding.instance.transientCallbackCount > 0;
 
   /// Put the strip in a state that is definitely animating.
+  ///
+  /// Drives a real session rather than publishing at the strip: since T-561 the
+  /// load comes from a `SessionReader`, not from the bus.
   Future<void> makeItRain(WidgetTester tester) async {
+    final managed = await activeSessionOrchestrator!.spawn(const SpawnSpec(id: 'primary', role: 'primary', sessionId: 'p-uuid', cwd: '/repo'));
     await tester.pumpWidget(host());
     await tester.pump();
-    publishCompanionLoad(f.services.messages, busy: true, busySinceMs: DateTime.now().millisecondsSinceEpoch);
+    managed.session.send('something long');
     await tester.pump();
     await tester.pump();
+    // Drains the conversation controller's zero-duration debounce, which a bare
+    // `pump()` schedules but does not fire — it would outlive the tree.
+    await tester.pump(const Duration(milliseconds: 1));
     expect(ticking(), isTrue, reason: 'the strip was not animating to begin with');
   }
 

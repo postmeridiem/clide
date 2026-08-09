@@ -319,7 +319,7 @@ class SessionEnd {
 }
 
 class StreamJsonSession {
-  StreamJsonSession(this._proc, {List<McpServer> mcpServers = const []}) : _mcpServers = mcpServers;
+  StreamJsonSession(this._proc, {List<McpServer> mcpServers = const [], DateTime Function()? now}) : _mcpServers = mcpServers, _now = now ?? DateTime.now;
 
   final StreamJsonProcess _proc;
 
@@ -451,9 +451,27 @@ class StreamJsonSession {
   bool get busy => _busy;
   Stream<bool> get busyStream => _busyCtl.stream;
 
+  DateTime? _busySince;
+
+  /// When the turn in flight began, or null when idle (T-561).
+  ///
+  /// A fact about the session, so it is recorded where the fact happens rather
+  /// than re-derived by whoever is watching. A consumer that stamped the rising
+  /// edge itself would be right only if it were listening at the time — one
+  /// binding mid-turn, or mounting after the app booted, would report elapsed
+  /// time from when it *noticed*, which is a different and always-shorter number.
+  DateTime? get busySince => _busySince;
+
+  /// Injectable clock, so a test can assert the stamped instant rather than
+  /// race it.
+  final DateTime Function() _now;
+
   void _setBusy(bool value) {
     if (_busy == value) return;
     _busy = value;
+    // Only the rising edge is stamped: a turn keeps the instant it began for as
+    // long as it runs, and idle has no turn to time.
+    _busySince = value ? _now() : null;
     _busyCtl.add(value);
   }
 

@@ -13451,3 +13451,221 @@ Also asserts the two T-557 signals arrive for a non-primary session: `phase` dis
 A function rather than a singleton: readers are cheap and each consumer disposes its own; what must not be duplicated is the id.
 
 **Done-when met:** T-545 and T-548 can be written without touching the orchestrator. Full suite 8 + 4242 + 50.', 'review', 'medium', NULL, NULL, NULL, '2026-08-09 14:52:21.139', '2026-08-09 16:26:28.670', NULL, '0d01c052affec0bdc5ed6b8542ac1f49', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYEPHMAWXG28R64PFV1GQN4M', 'task', NULL, 'Software-architecture skill at triage — check existing patterns before inventing one', 'Add a **software-architecture** skill, attached to the ticket triage step, and
+give the skill set a tidy while we are in there.
+
+## The trigger
+
+Raised 2026-08-09 after the companion feature accumulated four MessageBus
+channels — `companion.set`, `companion.state`, `companion.load`,
+`companion.load.ask` — where every other feature in the app uses one or two.
+Worse, `companion.load.ask` invented **request/response over a broadcast bus**,
+a pattern with no precedent here, when the codebase already had the answer to
+the problem it solved: `filter.state` has the identical "the bus does not
+retain" problem and is solved by `FilterStateCache`, a service that listens once
+and remembers.
+
+The mistake was not the design. It was designing without looking. Nobody was
+going to catch it either, until the user said "I have a sneaky feeling we are
+heading for complication" — which is not a review process.
+
+## What the skill should do
+
+Fire at **triage**, before the first line of a ticket''s implementation, and force
+the cheap question: *what already does something like this, and why did it do it
+that way?*
+
+Concretely it should make the reader go and look at:
+
+- **The bus** — the channel inventory, and which of the three shapes (command,
+  announce, drive/observe pair) a new need actually is.
+- **Kernel services** — several exist precisely because a naive approach fails
+  (`FilterStateCache` for retention, `ValueStream` for replay, `ReaderNav`,
+  `ToastService`). A new one duplicating an existing one is the failure mode.
+- **Widget primitives** — `lib/widgets/` before a bespoke control.
+- **Existing decisions** — a `D-NNN` that already settled the question.
+
+The output should be a sentence in the ticket: *"follows the X pattern"*, or
+*"deliberately does not, because Y"*. Both are fine; silence is not. This one
+would have been caught by writing either.
+
+## Also: the skill set needs a tidy
+
+Five skills, none obviously wrong, but drifting:
+
+| Skill | Lines | Note |
+|---|---|---|
+| `whats-next` | 275 | by far the largest; overlaps triage, which is where the new skill lands |
+| `git-commit` | 162 | |
+| `ui-design` | 115 | the only one with a `references/` split, and the pattern that works |
+| `testmode` | 90 | |
+| `clide` | 66 | |
+
+Worth checking as part of this: whether `whats-next` should hand off to the
+architecture skill rather than grow a section, whether the `ui-design`
+references split is the model the others should follow, and whether anything
+in them is stale after the last few weeks of work (several reference tickets and
+files that have since moved).
+
+## Not this ticket
+
+Rewriting the skills wholesale. The trigger is a concrete gap — nothing prompts
+an architecture check — and the tidy is opportunistic, not a licence to redesign
+the set.', 'backlog', 'high', NULL, NULL, NULL, '2026-08-09 16:27:56.375', '2026-08-09 16:27:56.375', NULL, '2d3ecc96e17495aaba24c9b121ed9fcd', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYEPPFGKEWVTE5Q9K152905G', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R6: Collapse the companion load channel — the strip reads a SessionReader directly', 'Enabled by T-551, and settled with the user on 2026-08-09 after a MessageBus audit.
+
+`companion.load` exists only because a widget deep in the context column needed the primary session''s busy state and could not bind it — an extension had to. **The session reader removed that constraint**, so the strip can hold a `SessionReader.primary()` itself.
+
+Deletes: `companion.load`, `companion.load.ask`, and `CompanionLoadAdapter` entirely. That is a channel pair, an adapter, and — the actual reason this is worth doing — **the only request/response pattern in the codebase**. Every other bus user is one-way fire-and-forget; the ask/answer handshake was invented here, when `FilterStateCache` already showed the house answer to ''the bus does not retain''.
+
+Survives untouched: `companion.set` / `companion.state`. Settings and open/closed genuinely span surfaces — a rail button in the status bar and a strip in the context column — and that pair matches `filter.set`/`filter.state` exactly.
+
+## The one real dependency
+
+`busySince`. A widget mounting mid-turn sees `busy: true` but not when it started, which is the whole reason the stamp lives in a long-lived adapter today. **Move it onto the session**, beside `phase` and `turnOutcome` (T-557): it is a fact about the session, `_setBusy(true)` has exactly one call site, and no consumer should be re-deriving it. Then the reader forwards it and the adapter has nothing left to own.
+
+## Scope
+
+Partially undoes T-538 and T-539 — deliberately, and their tests are the guide to what must keep working. The behaviour to preserve exactly:
+
+- absence still reads as not-busy, so the strip never shows stale weather;
+- the counter still runs from the stamped start, not from when the widget noticed;
+- the counter clears rather than freezing when a turn ends.
+
+Those are the assertions worth carrying across; the tests around the adapter and the ask channel go with the code they describe.', 'backlog', 'high', NULL, NULL, NULL, '2026-08-09 16:28:36.100', '2026-08-09 16:28:36.100', NULL, '959c808e6e2cccf06e7663b13fd235aa', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0MD03HG8PM86KTWRVKMQM', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R4: Move the Claude pane onto the reader', '`claude_pane.dart` — five subscriptions (busy, items, ended, model errors, pending prompt) and the most load-bearing surface in the app.
+
+Last of the three deliberately: by this point the interface has been proved against two smaller consumers, and the pane is where a subtle regression costs the most. It is also the only site that currently gets the `endedStream` seeding right (`:421-426`), so it is the reference for that part of the contract rather than a naive port.
+
+**Its tests must pass unmodified.**
+
+Landing this separately from R2/R3 is deliberate — a single commit spanning the pane and everything else would be hard to revert if it went wrong.
+
+Done (2026-08-09). Tests pass **unmodified**; also verified live, which for this surface matters more.
+
+Four subscriptions moved from per-spawn to once-for-the-pane''s-life. `_orchId` is derived from immutable widget props, so the reader follows this pane''s session — `primary` or `secondary-N` — through spawn, close and workspace switch without the pane re-subscribing at all.
+
+**Three cancel blocks disappeared**, not one: `_spawn`''s bind tail, `_rebindToActiveProject`, and the corresponding half of `dispose`. That is the clearest measure of what the epic bought — the pane was cancelling and re-subscribing the same four streams in three different places, each of which had to stay in step.
+
+**The `endedStream` seeding this ticket called out is gone from here, and that is the point.** This pane was the only site that got it right by hand (`final alreadyEnded = session.end; if (…) … else subscribe`). It is now one `_reader.ended.listen` — the reader replays an end that already happened, so the case this pane handled correctly is handled for every consumer, including the two that did not.
+
+Session-agnostic earned its keep immediately: this is the first consumer that is *not* the primary in the general case. A reader hardcoded to ''primary'' would have silently bound the wrong session for every secondary pane.
+
+**Live check** (`make run`): `pane primary bound session … connected to history (104 seeded item(s))` — a real resume against this session''s own transcript. Tests alone would not have shown the pane failing to bind.
+
+Full suite 8 + 4235 + 50. **Epic T-550 is 4/5** — only T-555 (the non-primary case, for Epic D) remains.', 'done', 'medium', NULL, NULL, NULL, '2026-08-09 14:52:11.904', '2026-08-09 16:30:04.857', NULL, 'bca85887205186f512e20dba228c16ba', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0NH2EN95TQFW97FJT6Z2W', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R5: The fourth consumer — reading a non-primary session', 'The consumer Epic D needs: a reader bound to the **companion''s own** session rather than the primary one.
+
+This is what proves requirement 1 of the epic. The first three consumers all read the primary session, so an interface that quietly assumed it would pass all of them and fail the moment Epic D arrived — which is the failure this epic exists to prevent, reproduced one layer up.
+
+Scope here is the binding, not the companion: prove the reader can follow an arbitrary session id through spawn, death and respawn, with tests. What is *done* with the companion''s items and state belongs to T-546 (digest) and T-548 (the reply seam), and T-545 owns the session''s lifecycle.
+
+Done when T-545 and T-548 can be written without touching the orchestrator directly.
+
+Done (2026-08-09). `kCompanionSessionId` (namespaced `clide.companion`, matching the bus publisher by assertion) and `companionSessionReader()`, plus 7 tests for the binding contract Epic D depends on.
+
+**Requirement 1 of the epic is now proved rather than asserted.** The first three consumers all read the primary, so ''session-agnostic'' was untested by every migration; here a reader for the companion stays unattached while a `primary` session exists, and both readers run independently — closing the primary does not detach the companion, which is the ordinary state once Epic D ships.
+
+Covered through the whole life of a process on **one** subscription: spawn, death (via the fake exiting, so `_onExit` runs rather than a forced state), respawn under the same id, and binding *after* the companion has already died — which is ordinary rather than exotic, since ingest pauses while the strip is minimised (T-528).
+
+Also asserts the two T-557 signals arrive for a non-primary session: `phase` distinguishing thinking from answering (Haiku thinks on every turn and no flag stops it), and a failed turn carrying `api_error_status` — the only source `rage` can have.
+
+A function rather than a singleton: readers are cheap and each consumer disposes its own; what must not be duplicated is the id.
+
+**Done-when met:** T-545 and T-548 can be written without touching the orchestrator. Full suite 8 + 4242 + 50.', 'done', 'medium', NULL, NULL, NULL, '2026-08-09 14:52:21.139', '2026-08-09 16:30:08.715', NULL, 'b2f42468243fc176169f8b5a461f2f37', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYEPPFGKEWVTE5Q9K152905G', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R6: Collapse the companion load channel — the strip reads a SessionReader directly', 'Enabled by T-551, and settled with the user on 2026-08-09 after a MessageBus audit.
+
+`companion.load` exists only because a widget deep in the context column needed the primary session''s busy state and could not bind it — an extension had to. **The session reader removed that constraint**, so the strip can hold a `SessionReader.primary()` itself.
+
+Deletes: `companion.load`, `companion.load.ask`, and `CompanionLoadAdapter` entirely. That is a channel pair, an adapter, and — the actual reason this is worth doing — **the only request/response pattern in the codebase**. Every other bus user is one-way fire-and-forget; the ask/answer handshake was invented here, when `FilterStateCache` already showed the house answer to ''the bus does not retain''.
+
+Survives untouched: `companion.set` / `companion.state`. Settings and open/closed genuinely span surfaces — a rail button in the status bar and a strip in the context column — and that pair matches `filter.set`/`filter.state` exactly.
+
+## The one real dependency
+
+`busySince`. A widget mounting mid-turn sees `busy: true` but not when it started, which is the whole reason the stamp lives in a long-lived adapter today. **Move it onto the session**, beside `phase` and `turnOutcome` (T-557): it is a fact about the session, `_setBusy(true)` has exactly one call site, and no consumer should be re-deriving it. Then the reader forwards it and the adapter has nothing left to own.
+
+## Scope
+
+Partially undoes T-538 and T-539 — deliberately, and their tests are the guide to what must keep working. The behaviour to preserve exactly:
+
+- absence still reads as not-busy, so the strip never shows stale weather;
+- the counter still runs from the stamped start, not from when the widget noticed;
+- the counter clears rather than freezing when a turn ends.
+
+Those are the assertions worth carrying across; the tests around the adapter and the ask channel go with the code they describe.', 'in_progress', 'high', NULL, NULL, NULL, '2026-08-09 16:28:36.100', '2026-08-09 16:31:45.722', NULL, '3f0c02fcd598b1c7e37aebdcd5d9370f', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYEPPFGKEWVTE5Q9K152905G', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R6: Collapse the companion load channel — the strip reads a SessionReader directly', 'Enabled by T-551, and settled with the user on 2026-08-09 after a MessageBus audit.
+
+`companion.load` exists only because a widget deep in the context column needed the primary session''s busy state and could not bind it — an extension had to. **The session reader removed that constraint**, so the strip can hold a `SessionReader.primary()` itself.
+
+Deletes: `companion.load`, `companion.load.ask`, and `CompanionLoadAdapter` entirely. That is a channel pair, an adapter, and — the actual reason this is worth doing — **the only request/response pattern in the codebase**. Every other bus user is one-way fire-and-forget; the ask/answer handshake was invented here, when `FilterStateCache` already showed the house answer to ''the bus does not retain''.
+
+Survives untouched: `companion.set` / `companion.state`. Settings and open/closed genuinely span surfaces — a rail button in the status bar and a strip in the context column — and that pair matches `filter.set`/`filter.state` exactly.
+
+## The one real dependency
+
+`busySince`. A widget mounting mid-turn sees `busy: true` but not when it started, which is the whole reason the stamp lives in a long-lived adapter today. **Move it onto the session**, beside `phase` and `turnOutcome` (T-557): it is a fact about the session, `_setBusy(true)` has exactly one call site, and no consumer should be re-deriving it. Then the reader forwards it and the adapter has nothing left to own.
+
+## Scope
+
+Partially undoes T-538 and T-539 — deliberately, and their tests are the guide to what must keep working. The behaviour to preserve exactly:
+
+- absence still reads as not-busy, so the strip never shows stale weather;
+- the counter still runs from the stamped start, not from when the widget noticed;
+- the counter clears rather than freezing when a turn ends.
+
+Those are the assertions worth carrying across; the tests around the adapter and the ask channel go with the code they describe.', 'in_progress', 'high', NULL, NULL, NULL, '2026-08-09 16:28:36.100', '2026-08-09 16:31:53.992', NULL, '762950370382f9b6c94651a7893472fc', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYEPPFGKEWVTE5Q9K152905G', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R6: Collapse the companion load channel — the strip reads a SessionReader directly', 'Enabled by T-551, and settled with the user on 2026-08-09 after a MessageBus audit.
+
+`companion.load` exists only because a widget deep in the context column needed the primary session''s busy state and could not bind it — an extension had to. **The session reader removed that constraint**, so the strip can hold a `SessionReader.primary()` itself.
+
+Deletes: `companion.load`, `companion.load.ask`, and `CompanionLoadAdapter` entirely. That is a channel pair, an adapter, and — the actual reason this is worth doing — **the only request/response pattern in the codebase**. Every other bus user is one-way fire-and-forget; the ask/answer handshake was invented here, when `FilterStateCache` already showed the house answer to ''the bus does not retain''.
+
+Survives untouched: `companion.set` / `companion.state`. Settings and open/closed genuinely span surfaces — a rail button in the status bar and a strip in the context column — and that pair matches `filter.set`/`filter.state` exactly.
+
+## The one real dependency
+
+`busySince`. A widget mounting mid-turn sees `busy: true` but not when it started, which is the whole reason the stamp lives in a long-lived adapter today. **Move it onto the session**, beside `phase` and `turnOutcome` (T-557): it is a fact about the session, `_setBusy(true)` has exactly one call site, and no consumer should be re-deriving it. Then the reader forwards it and the adapter has nothing left to own.
+
+## Scope
+
+Partially undoes T-538 and T-539 — deliberately, and their tests are the guide to what must keep working. The behaviour to preserve exactly:
+
+- absence still reads as not-busy, so the strip never shows stale weather;
+- the counter still runs from the stamped start, not from when the widget noticed;
+- the counter clears rather than freezing when a turn ends.
+
+Those are the assertions worth carrying across; the tests around the adapter and the ask channel go with the code they describe.
+
+Done 2026-08-09. companion.load + companion.load.ask + CompanionLoadAdapter deleted; the strip holds a SessionReader.primary() and derives SessionLoad from attached/busy. busySince moved onto StreamJsonSession (injectable clock) and read through by the reader.
+
+The three behaviours that had to survive are asserted in strip_load_test.dart, now driving a real orchestrator instead of publishing at the strip: absence reads absent, the counter runs from the session''s stamp for a strip that mounts mid-turn, and the counter clears rather than freezes at turn end. Two more added: a session appearing after the strip is picked up (the case the handshake was invented for), and the strip publishes nothing on companion.load.*.
+
+One bug worth recording: the load binding was left in didChangeDependencies, whose bus-rebind path cancels _loadSub — so the subscription died a microtask after it was created and the strip only ever showed the seeded value. Moved to initState; the reader takes nothing from the tree.', 'in_progress', 'high', NULL, NULL, NULL, '2026-08-09 16:28:36.100', '2026-08-09 16:58:44.190', NULL, '1f9c4be9425dd4207103d134cf361357', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYEPPFGKEWVTE5Q9K152905G', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R6: Collapse the companion load channel — the strip reads a SessionReader directly', 'Enabled by T-551, and settled with the user on 2026-08-09 after a MessageBus audit.
+
+`companion.load` exists only because a widget deep in the context column needed the primary session''s busy state and could not bind it — an extension had to. **The session reader removed that constraint**, so the strip can hold a `SessionReader.primary()` itself.
+
+Deletes: `companion.load`, `companion.load.ask`, and `CompanionLoadAdapter` entirely. That is a channel pair, an adapter, and — the actual reason this is worth doing — **the only request/response pattern in the codebase**. Every other bus user is one-way fire-and-forget; the ask/answer handshake was invented here, when `FilterStateCache` already showed the house answer to ''the bus does not retain''.
+
+Survives untouched: `companion.set` / `companion.state`. Settings and open/closed genuinely span surfaces — a rail button in the status bar and a strip in the context column — and that pair matches `filter.set`/`filter.state` exactly.
+
+## The one real dependency
+
+`busySince`. A widget mounting mid-turn sees `busy: true` but not when it started, which is the whole reason the stamp lives in a long-lived adapter today. **Move it onto the session**, beside `phase` and `turnOutcome` (T-557): it is a fact about the session, `_setBusy(true)` has exactly one call site, and no consumer should be re-deriving it. Then the reader forwards it and the adapter has nothing left to own.
+
+## Scope
+
+Partially undoes T-538 and T-539 — deliberately, and their tests are the guide to what must keep working. The behaviour to preserve exactly:
+
+- absence still reads as not-busy, so the strip never shows stale weather;
+- the counter still runs from the stamped start, not from when the widget noticed;
+- the counter clears rather than freezing when a turn ends.
+
+Those are the assertions worth carrying across; the tests around the adapter and the ask channel go with the code they describe.
+
+Done 2026-08-09. companion.load + companion.load.ask + CompanionLoadAdapter deleted; the strip holds a SessionReader.primary() and derives SessionLoad from attached/busy. busySince moved onto StreamJsonSession (injectable clock) and read through by the reader.
+
+The three behaviours that had to survive are asserted in strip_load_test.dart, now driving a real orchestrator instead of publishing at the strip: absence reads absent, the counter runs from the session''s stamp for a strip that mounts mid-turn, and the counter clears rather than freezes at turn end. Two more added: a session appearing after the strip is picked up (the case the handshake was invented for), and the strip publishes nothing on companion.load.*.
+
+One bug worth recording: the load binding was left in didChangeDependencies, whose bus-rebind path cancels _loadSub — so the subscription died a microtask after it was created and the strip only ever showed the seeded value. Moved to initState; the reader takes nothing from the tree.', 'review', 'high', NULL, NULL, NULL, '2026-08-09 16:28:36.100', '2026-08-09 16:58:46.381', NULL, '3046983b7906ace7b8ca1d2cac11015f', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
