@@ -12428,3 +12428,431 @@ Replay on phase (a widget mounting mid-turn is normal), no replay on outcome (it
 Test envelopes are copied from the real 2.1.226 capture rather than invented — hand-written shapes are how the old assumptions survived, and `system/thinking_tokens` is deliberately not surfaced at all: it is the CLI''s own estimate, counts the signature blob, and read 99 against an authoritative 36.
 
 13 tests. Full suite 8 + 4224 + 50, **every existing test unmodified** — the epic''s acceptance check, and here it is also the evidence these are additive rather than a behaviour change.', 'review', 'high', NULL, NULL, NULL, '2026-08-09 15:17:43.659', '2026-08-09 15:24:15.639', NULL, '886ae718711327cdd7a5638e5a72e8fc', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE8GBV5MVX2X928BTJ2399W', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'Changing the UI language restarts the companion session', 'Changing the UI language must restart the companion session.
+
+## The caveat does not apply — the change is live
+
+Checked before filing: `root_shell._applyLocale` reads `app.locale` on settings
+changes and calls `i18n.setLocale`, which reloads the catalogs and notifies. The
+UI relabels itself in place; **there is no restart to piggyback on**, so this
+needs handling explicitly.
+
+## Why a restart rather than a note mid-conversation
+
+The locale reaches Clide **through the prompt** — D-107 is explicit that his
+replies are model output, not catalog strings, and that the language is carried
+by the prompt rather than translated afterwards. So a language change is a change
+to his instructions, and there are three reasons that wants a fresh session
+rather than a mid-conversation correction:
+
+1. **The system prompt itself changes.** T-532 has the prompt templates resolving
+   through i18n; if that lands, the instruction text is different in the new
+   locale and cannot be retro-applied to a session that was started with the old
+   one.
+2. **"From now on, reply in Dutch" is weaker than starting in Dutch.** A session
+   whose entire history is English has a strong pull back toward it, and the
+   failure is quiet — the occasional English reply rather than an error.
+3. **The visible conversation would go bilingual.** The overlay shows one
+   conversation; half of it in the previous language reads as a bug.
+
+## Consequences to accept deliberately
+
+- **The visible history is lost.** Under the settled design the conversation *is*
+  the session''s transcript, so a restart starts a new one. Acceptable — switching
+  UI language is a deliberate, rare act — but it should be a decision here rather
+  than a surprise later.
+- **`app.locale` is app-scoped and the companion is per-repo.** One language
+  change restarts every workspace''s companion, not just the focused one. That is
+  correct, and worth being explicit about so it is not read as a bug.
+
+## Where it belongs
+
+The same place as the other lifecycle triggers (T-545): the kill switch tears
+down, `/clear` tears down, the primary''s clear/restart follows — and a locale
+change joins that list. Do not build a second mechanism for it.
+
+If T-532 concludes the prompt templates stay single-language after all, revisit:
+the argument in §1 weakens, though §2 and §3 stand on their own.', 'backlog', 'medium', NULL, NULL, 'D-107', '2026-08-09 15:26:35.993', '2026-08-09 15:26:35.993', NULL, '4d7c7506d65ab51303c07cebb277a194', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYBN0EJ3B59YWV2Z9S54PRGG', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'Clide prompt templates — system prompt, observed/direct framing, lifecycle notices', 'Clide''s prompt is the product. Everything else in Epic D is plumbing — this is
+where his voice, his restraint, and his sense of what is going on actually live.
+Split out of T-519 because "write the system prompt" buried in a plumbing epic
+gets three lines of attention and then ships as whatever the first draft was.
+
+## Deliverable
+
+A versioned set of prompt templates in one place, not string literals scattered
+across the session code. Each template documented with *why* it says what it
+says, because prompt text is the one part of this feature with no compiler, no
+type system and no test that can tell you it drifted.
+
+## Templates needed
+
+**1. System prompt.** Establishes:
+- Who Clide is — the IDE''s companion, watching a session he is not part of.
+- The observed/direct split (D-107): `[observed]` lines are a conversation
+  between the user and Claude that he is *watching* — remark rarely, briefly,
+  and never pretend to be a participant. `[direct]` lines are addressed to him —
+  always answer.
+- That he sees **prose only, never tool calls or results** (D-107). He must know
+  the shape of his own blindness, or he will confidently answer "what did that
+  tool do?" — the known v1 limitation. Better that he says he cannot see it.
+- Reply in the active locale (`app.locale`), one or two sentences, no preamble.
+- Silence is a valid response. This is the hardest thing to get a model to do
+  and deserves the most prompt real estate.
+
+**2. Turn digest.** How each observed exchange is framed:
+```
+[observed] <user>: <prompt text>
+[observed] claude: <assistant prose>
+```
+Open question the template has to answer: whether the user''s real name is used
+(it is available) or a neutral label, and whether Clide addresses them by it.
+
+**3. Direct address.** Distinguishing a question typed into Clide''s own input
+from the conversation he is watching. Same channel, different contract.
+
+**4. Lifecycle notices.** New, from the minimize design:
+- **Detach** — minimizing the strip stops the digest, so Clide *misses* that
+  stretch of conversation. On resume he is told he was detached and roughly how
+  long for. Explicitly worth playing with: an ambient companion that knows it
+  was away, and says something about it, is more alive than one that silently
+  has a gap. Try it before deciding whether it is charming or tiresome.
+- **Clear / restart** — the companion session tracks the primary''s clear and
+  restart windows so it lives alongside the main conversation rather than
+  accumulating context the user thinks they threw away.
+- **Session restart at ~50 comments** (cost control, per the initiative) is a
+  third kind of discontinuity. Decide whether Clide is told about this one at
+  all, or whether it should be seamless — it is our bookkeeping, not an event in
+  his world.
+
+## Constraints inherited
+
+- **Notable events only.** Turn finished, error, long run crossing a threshold,
+  commit landed. Never per-token. Direct questions always answered.
+- **Cap `max_tokens` ~100**, no thinking, and do **not** set `effort` — it errors
+  on Haiku 4.5.
+- **Cache shape matters more than brevity.** Haiku 4.5 has the highest prompt
+  cache minimum of any current model (4096 tokens); under that, `cache_control`
+  is silently ignored. A lean system prompt is therefore *uncached* for roughly
+  its first 20 comments — the opposite of the usual instinct. Weigh prompt
+  length against that threshold deliberately rather than trimming on reflex.
+
+## Not in scope
+
+Wiring, spawn, filtering and transport are T-519''s. This ticket owns the text
+and the rationale for the text.
+
+**Fifth template added — the mood side-channel (D-107 commitment 5, added
+2026-08-09).** This is now the highest-risk part of the prompt work, and it has
+an explicit kill condition.
+
+Clide declares his own emotional state on every reply; the face renders it. This
+is the only possible source for a reaction to *content* rather than to
+mechanics — "you have made this mistake before" — which is what the whole
+side-channel exists for, and which no derived signal can ever produce.
+
+## Requirement
+
+A demanded output template, not a hope. Two candidates to bake off against Haiku
+4.5 rather than choose on paper:
+
+- **Frontmatter-style** — a delimited header block before the prose.
+- **JSON** — `{"mood": "...", "say": "..."}`.
+
+Pick whichever Haiku follows most cleanly under the real system prompt, at the
+real reply length, across the real trigger events. This runs through the CLI in
+stream-json, so there is **no structured-output enforcement** — the model''s
+compliance is the only guarantee there is, which is why it is measured rather
+than assumed.
+
+## The kill condition, stated up front
+
+**If it is not very stable, it does not ship.** A malformed reply must never put
+scaffolding in the speech bubble; a user who sees `{"mood":` in Clide''s mouth has
+watched the illusion break, which costs more than the feature adds. So:
+
+- Parse defensively and **strip aggressively** — anything template-shaped that
+  survives parsing is removed from the displayed text, not passed through.
+- A missing or unparseable mood means **keep the previous expression**, never a
+  default reset and never a visible failure.
+- If the bake-off shows the format bleeding under any of the real triggers,
+  **drop the channel** and derive the expression mechanically from his session
+  lifecycle. That loses `rage` and the editorial states — accepted, versus
+  shipping something that visibly leaks.
+
+Measure it: run each candidate format over a realistic set of trigger events and
+count malformed replies. A format that is 95% clean is not clean — this renders
+on every remark, so a 1-in-20 failure is visible within minutes of use.
+
+## Vocabulary
+
+The mood values are the face states that have no mechanical source. Keep the set
+**small and closed**, and validate against it — an open vocabulary means the
+model invents a mood the face cannot render, which is a silent failure that looks
+like the channel working.
+
+**The templates themselves go through i18n** (raised 2026-08-09). Not just the
+chrome around them — the system prompt, the observed/direct framing and the
+lifecycle notices are all authored text, and authored text in this repo resolves
+through the catalog (D-21/D-102).
+
+Namespace `builtin.clide-companion`, alongside the settings labels that landed in
+T-527. Keys roughly `prompt.system`, `prompt.digest.observed`,
+`prompt.digest.direct`, `prompt.notice.detached`, `prompt.notice.cleared`.
+
+## This is in tension with D-107 and the tension should be resolved here
+
+D-107 currently says Clide''s replies "are model output and carry the locale via
+the prompt" — i.e. an English prompt containing an instruction to answer in the
+active locale. Localising the prompt itself is a different mechanism: a Dutch
+user gets a Dutch prompt, and the reply follows because the whole context is
+Dutch rather than because a line asked for it. The second usually produces better
+register and idiom; the first is easier to tune because there is one text.
+
+Whichever wins, say so explicitly in this ticket and amend D-107''s line if it
+changes — right now the record and this ticket describe two different designs.
+
+## The cost, stated plainly
+
+`test/a11y/i18n_coverage_test.dart` enforces **key parity between en_US and
+nl_NL** for every shipped catalog. Putting the system prompt in the catalog
+therefore obliges a Dutch system prompt, kept in sync, forever — and prompts are
+tuned iteratively, so every tuning pass is now two. That is a real recurring cost
+and worth weighing against the quality gain before committing to it, rather than
+discovering it on the first red build.
+
+A middle option exists: catalog the **user-visible** and register-carrying parts
+(the notices, the speaker labels) and keep the instruction body single-language.
+Weigh it; do not default into it silently.
+
+Cross-reference (2026-08-09): **T-558** — changing the UI language restarts the companion session, because the locale reaches Clide through the prompt rather than through a catalog.
+
+That ticket''s first argument depends on this one: if the prompt templates resolve through i18n as the user asked, the instruction text differs per locale and cannot be retro-applied to a running session. If the bake-off here concludes the templates stay single-language, say so on T-558 — its other two arguments (an English history pulls replies back to English; a half-translated overlay reads as a bug) stand without it, but the reasoning should not be left pointing at a decision that went the other way.', 'backlog', 'high', NULL, NULL, 'D-107', '2026-08-09 09:21:47.664', '2026-08-09 15:26:45.773', NULL, '1adca60207b29fa7c2539955d5c5d9ef', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0HHV0KW6HHDH4AEKK27Q4', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R1: The session reader interface — bind, rebind, seed, dispose', 'The interface itself, with nothing migrated onto it yet.
+
+Session-agnostic from the start: it reads **a** session, not **the** primary one. The fourth consumer (Epic D''s companion) binds a different id, and a design that hardcodes ''primary'' fails on day one — primary-tracking should fall out as a thin case of the general thing, not the other way round.
+
+Must encode the three hazards the existing copies each rediscovered:
+
+- seed before subscribe for the streams that do not replay (`endedStream`, `modelErrors`), so a late binder is not told a dead session is alive;
+- cancel before rebinding, because the orchestrator notifies on show/hide/mute as well as spawn/close and a missed cancel doubles every later event;
+- release everything on dispose, orchestrator listener included.
+
+Design it by reading the three existing call sites — `claude_pane.dart`, `claude_meta_sidebar.dart:205`, `load_adapter.dart` — rather than from the epic''s prose. They disagree in small ways and those disagreements are the specification.
+
+Done when it exists, is tested against a fake orchestrator (spawn, close, respawn, session-id resolution), and at least one consumer could plausibly move onto it — but no consumer has yet, so this lands green on its own.', 'in_progress', 'high', NULL, NULL, NULL, '2026-08-09 14:51:48.569', '2026-08-09 15:33:57.516', NULL, '22d9e23bee0754de7b8257385b36d287', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0HHV0KW6HHDH4AEKK27Q4', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R1: The session reader interface — bind, rebind, seed, dispose', 'The interface itself, with nothing migrated onto it yet.
+
+Session-agnostic from the start: it reads **a** session, not **the** primary one. The fourth consumer (Epic D''s companion) binds a different id, and a design that hardcodes ''primary'' fails on day one — primary-tracking should fall out as a thin case of the general thing, not the other way round.
+
+Must encode the three hazards the existing copies each rediscovered:
+
+- seed before subscribe for the streams that do not replay (`endedStream`, `modelErrors`), so a late binder is not told a dead session is alive;
+- cancel before rebinding, because the orchestrator notifies on show/hide/mute as well as spawn/close and a missed cancel doubles every later event;
+- release everything on dispose, orchestrator listener included.
+
+Design it by reading the three existing call sites — `claude_pane.dart`, `claude_meta_sidebar.dart:205`, `load_adapter.dart` — rather than from the epic''s prose. They disagree in small ways and those disagreements are the specification.
+
+Done when it exists, is tested against a fake orchestrator (spawn, close, respawn, session-id resolution), and at least one consumer could plausibly move onto it — but no consumer has yet, so this lands green on its own.', 'in_progress', 'high', NULL, NULL, NULL, '2026-08-09 14:51:48.569', '2026-08-09 15:34:03.257', NULL, '3f19cea63500a28779855d8744438c57', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Z35AYAJQZ4MZMT25DPWC', 'epic', '06FY73V6EVHP32P31NQRJCP104', 'Epic D: Clide companion session + observed/direct protocol', 'Stand up the Haiku companion session, feed it a filtered digest of the main conversation,
+and give it a protocol that distinguishes *watching* from *being spoken to*. Pure plumbing —
+**can start immediately, in parallel with Epic A**.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams** — publish the reply/state stream that Epic B (face reactions to
+   companion errors) and Epic E (answer rendering) consume, and coordinate with B on reading
+   `StreamJsonSession` so the two epics don''t each grow their own subscription layer.
+
+## Spawning — no new process plumbing needed
+
+`ClaudeSessionOrchestrator.spawn(SpawnSpec(..., visible: false))`
+(`lib/builtin/claude/src/session_orchestrator.dart:209`) already yields a live stream-json
+session with **no pane**, idempotent per `(id, cwd)`, serialized against races.
+`visible: false` is the intended primitive for a headless agent. Precedent for spawning
+outside a pane: `_forkMember` at `claude_meta_sidebar.dart:256-274`.
+
+- Spawn id `clide.companion`, `--model haiku`.
+- `--no-session-persistence` so it never pollutes `~/.claude/projects` (precedent:
+  `claude_config.dart:576`).
+- **There is no Anthropic API client in the repo** — grep for `anthropic` / `ANTHROPIC_API_KEY`
+  across `lib/` returns only comments. Everything goes through the `claude` CLI, so this runs
+  on subscription auth exactly like the main session.
+
+## Digest — what Clide sees
+
+Filter `session.items` to **`UserMessage` + `AssistantTextMessage` only**. Drop
+`AssistantToolUse`, `ToolResultMessage`, thinking, and the clide-injected image/drawing/icon
+cards. Item model: `transcript_reader.dart:41-267`.
+
+**Known limitation, accepted for v1:** with tool calls excluded, *"what did that tool call
+do?"* is unanswerable. Asking what Claude **said** works; asking what Claude **did** does
+not. Revisit if it bites in practice.
+
+## Protocol — observed vs direct
+
+```
+[observed] jeroen: <prompt text>
+[observed] claude: <assistant prose>
+[direct]   jeroen: <question typed into Clide''s own input>
+```
+
+The system prompt states the split explicitly: `observed` lines are a conversation between
+the user and Claude that Clide is watching — remark rarely and briefly; `direct` lines are
+addressed to Clide — always answer. Reply in the active locale (`app.locale`, carried into
+the prompt). One or two sentences.
+
+Trigger for unprompted remarks: **notable events only** — turn finished, error, long run
+crossing a threshold, commit landed. Never per-token.
+
+## Cost guards — the constraints that actually shape this
+
+- **Restart the session at ~50 comments.** Cost grows quadratically (history re-sends each
+  turn). A rolling window is the wrong fix: evicting the oldest event changes the cache
+  prefix, so every turn would pay full price. Grow-then-restart preserves cache hits within
+  an epoch and bounds growth.
+- **Haiku 4.5''s prompt-cache minimum is 4096 tokens — the highest of any current model.**
+  Below it `cache_control` is silently ignored (`cache_creation_input_tokens: 0`, no error).
+  A lean sidekick prompt is uncached for roughly its first 20 comments.
+- **Do not set `effort`** — it errors on Haiku 4.5.
+- Leave thinking off (latency and tokens for a one-line quip), and cap `max_tokens` ~100 so
+  a bad turn can''t produce an essay.
+- Budget: ~$0.002/comment at 50 comments. But under subscription auth the real cost is
+  **quota**, drawn from the same pool already rate-limiting the main session — keep the
+  trigger stingy.
+
+## Lifecycle
+
+Respect the settings kill switch (Epic C) and the power ladder (Epic B): a disabled or
+dormant Clide should not hold a live process open. Tear the session down, don''t just stop
+reading it.
+
+BLOCKED BY T-527 (kill switch) — added deliberately 2026-08-09. D-107 commits the companion to being user-disableable to zero, and this epic is the thing that spends subscription quota from the same pool that already rate-limits the primary session. Landing it before an off switch exists would leave a window with no way to stop it short of quitting the app. Note the requirement is a real teardown of the claude process, not just hiding the UI — a hidden face still spawning a process and burning quota is exactly the failure the blocker exists to prevent.
+
+Session lifecycle settled with the product owner (2026-08-09).
+
+**The companion session lives alongside the main conversation, not beside it in
+time.** It tracks the primary session''s clear and restart windows: when the user
+clears or restarts the main conversation, Clide''s session goes with it. Without
+that, Clide keeps context the user believes they threw away — which is both a
+surprise and a quiet privacy problem, and it defeats the "he is watching *this*
+conversation" framing.
+
+Clide already owns `/clear`, `/resume` and `/compact` rather than forwarding them
+(T-156), so there is an existing interception point to hang this on.
+
+**Ingest is gated on the strip being open.** The orchestrator only feeds the
+digest while the strip is visible; minimizing pauses the session and stops the
+feed (see T-528). A minimized stretch is conversation Clide did not see, by
+design — it is the honest privacy story and the cheapest power rung, stronger
+than Epic B''s `night` because it stops ingest rather than rendering.
+
+Three discontinuities therefore exist, and they are not the same thing:
+
+| | Cause | Does Clide know? |
+|---|---|---|
+| Detach | user minimized the strip | yes — tell him, see T-532 |
+| Clear / restart | user reset the main conversation | yes, implicitly — he is reset too |
+| ~50-comment restart | our cost control | open question, T-532 |
+
+Prompt text for all three is **T-532**, split out of this epic.
+
+Wiring gap left by T-528 (2026-08-09): **minimising must pause ingest**, and cannot yet, because there is no session to pause.
+
+`companion.state` already carries `open`, so this epic has everything it needs — subscribe, and stop feeding the digest while `open` is false. The semantics are settled and are not a limitation to paper over: a minimised period is conversation Clide genuinely did not see, which is simultaneously the honest privacy story (nothing goes to a second model while he is closed) and the cheapest power rung — stronger than Epic B''s `night`, which stops rendering but not ingest.
+
+The re-attach notice that follows from it ("you were away for N minutes") is T-532''s.
+
+Broken down 2026-08-09 into six leaves: **T-545** session lifecycle, **T-546** digest filter + observed/direct framing, **T-547** trigger policy, **T-548** the reply/state seam, plus the two already filed from asides — **T-532** prompt templates and **T-534** conversation log.
+
+Order: T-545 first (nothing works without a session), then T-546 and T-548 in parallel off it, then T-547 off T-546. T-532''s bake-off needs a live session, so it follows T-545 too. T-534 is independent of all of them but **opens with a governance question** — D-107 says the companion writes nothing to the workspace, and a durable log is a write; that decision is the user''s and blocks Epic E.
+
+Two notes recorded during breakdown rather than left to be rediscovered:
+
+- **The digest filter is written as an allow-list, not a deny-list** (T-546). D-107 commitment 3 makes it a privacy boundary, so a new item type appearing in the union must be invisible to Clide until someone decides otherwise. A deny-list would leak it silently.
+- **`speaking` cannot come from the `partial-` prefix** (T-548). Epic B''s audit found the final assistant event is rewritten to carry the same uuid, so the prefix means ''came through the streaming path'', not ''arriving now''. Both epics read the same class, so exposing a streaming signal is a joint decision rather than a patch either one makes alone.
+
+**Cost-guards section superseded 2026-08-09 (D-107 amended).** The companion is an ordinary persisted session, one per clide run, and the ~50-comment restart is deleted rather than deferred — the CLI''s autocompaction handles context growth and clide coordinates nothing. `--no-session-persistence` is dropped: Clide''s transcript is a strict subset of what the primary session already persists, so it was protecting nothing.
+
+Knock-on: **T-534 is largely dissolved** (the conversation is a transcript, so there is no bespoke buffer to build), and Epic E gets simpler with it — the answer surface reads a `ConversationController` like the main pane rather than inventing a renderer. The remaining cost guards stand unchanged: notable events only, no `effort`, thinking off, `max_tokens` ~100, and the kill switch.
+
+New work landing in T-545 from this: filter companion transcripts out of clide''s `/resume` picker, which lists the whole project dir.
+
+**Wire contract verified against claude 2.1.226 (2026-08-09)** — `docs/spikes/cc-stream-json-2.1.226.md`. Three things in this epic''s brief are now known to be wrong or unachievable:
+
+1. **''Do not set `effort` — it errors on Haiku 4.5'' is false at 2.1.226.** `--model haiku --effort low` was accepted and ran clean. The prohibition is lifted — but it buys nothing, see below.
+2. **''Leave thinking off'' is not achievable from the CLI.** Haiku 4.5 thinks by default and `--effort low` does not stop it; there is no flag that does. A one-line quip cost 36 thinking tokens. Either accept it or find another lever, but the brief''s instruction cannot be followed as written.
+3. **`--model haiku` works as a spawn flag** (`init.model` = `claude-haiku-4-5-20251001`), so the model can be selected at spawn rather than by a `set_model` control request afterwards — no window where the session exists on the wrong model.
+
+**Cost, measured:** a first turn in a fresh session cost $0.0346 and $0.0265 across two probes, dominated by cache creation for the repo context (16k tokens). That is a *per-session* cost, and with one session per clide run it amortises — but the steady-state per-comment figure is still **unmeasured**, and the initiative''s ~$0.002 was never verified. T-547 should measure it before anyone relies on the number.
+
+**Framing (2026-08-09):** the companion session is namespace-locked to clide and is **a pane you chat with directly** — a dock, the same kind of surface as the primary conversation panel, not a hidden headless process with a bubble bolted on.
+
+Consequences worth carrying into the leaves:
+
+- The orchestrator id lives in clide''s namespace (`clide.companion`), which also makes the `/resume` picker filter trivial — it is a namespace check, not a heuristic on transcript contents (T-545).
+- `visible: false` is about *where it is docked by default*, not about it being second-class. Epic E''s overlay is then a conversation surface like the Claude pane rather than a bespoke renderer, which is the same direction the persistence decision pushed T-534.
+- It reinforces the session-agnostic requirement on the reader epic (T-550/T-551): the companion is another session read the same way, not a special case.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-08 22:48:05.674', '2026-08-09 15:36:03.635', NULL, '219e2826b02ee88b7a4702a428c9e121', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0HHV0KW6HHDH4AEKK27Q4', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R1: The session reader interface — bind, rebind, seed, dispose', 'The interface itself, with nothing migrated onto it yet.
+
+Session-agnostic from the start: it reads **a** session, not **the** primary one. The fourth consumer (Epic D''s companion) binds a different id, and a design that hardcodes ''primary'' fails on day one — primary-tracking should fall out as a thin case of the general thing, not the other way round.
+
+Must encode the three hazards the existing copies each rediscovered:
+
+- seed before subscribe for the streams that do not replay (`endedStream`, `modelErrors`), so a late binder is not told a dead session is alive;
+- cancel before rebinding, because the orchestrator notifies on show/hide/mute as well as spawn/close and a missed cancel doubles every later event;
+- release everything on dispose, orchestrator listener included.
+
+Design it by reading the three existing call sites — `claude_pane.dart`, `claude_meta_sidebar.dart:205`, `load_adapter.dart` — rather than from the epic''s prose. They disagree in small ways and those disagreements are the specification.
+
+Done when it exists, is tested against a fake orchestrator (spawn, close, respawn, session-id resolution), and at least one consumer could plausibly move onto it — but no consumer has yet, so this lands green on its own.
+
+Done (2026-08-09).
+
+`SessionReader` — follows one session id, forwards everything it reports, and survives the session being replaced underneath. Consumers subscribe once and never touch the orchestrator.
+
+**Designed from the disagreements between the three call sites, as the ticket asked.** Each one settled a question:
+
+- **Absence.** The pane spawns, the sidebar clears its panel, the adapter publishes ''nothing is running''. Three answers, all correct for their surface — so the reader *reports* absence via `attached` and never interprets it. It does drop `busy` to false and the phase to idle, because a vanished session must not leave anything believing a turn is in flight.
+- **Seeding.** The pane seeds `end` by hand (`endedStream` has no replay); the sidebar seeds `status` by hand even though it does replay; the adapter seeds nothing. The reader seeds what needs it, so no caller has to know which streams replay — which is the hazard, since nothing in the type says.
+- **Rebinding.** Sidebar and adapter rebind on orchestrator notifications; the pane does not. Rebinding is correct and is built in, cancel-first.
+
+**Session-agnostic**, with a `SessionReader.primary` convenience over the general case rather than the reverse. Asserted directly: a reader for `clide.companion` stays unattached while a `primary` session exists.
+
+Also forwards T-557''s new `phase` and `turnOutcomes`, so Epic D gets them without touching the session class.
+
+11 tests against a fake orchestrator: spawn, close, respawn, hide/show churn, late binding to an already-dead session, no double-forwarding after a rebind, teardown. **No test seam was added to `StreamJsonSession`** — the fake process gained a `die()` that completes its `exitCode`, so the end path runs through `_onExit` in production code rather than being forced.
+
+Full suite 8 + 4235 + 50, everything else unmodified. **R2–R5 unblocked.**', 'in_progress', 'high', NULL, NULL, NULL, '2026-08-09 14:51:48.569', '2026-08-09 15:42:02.565', NULL, '39b3868be50b9ffa27e720380b338315', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0HHV0KW6HHDH4AEKK27Q4', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R1: The session reader interface — bind, rebind, seed, dispose', 'The interface itself, with nothing migrated onto it yet.
+
+Session-agnostic from the start: it reads **a** session, not **the** primary one. The fourth consumer (Epic D''s companion) binds a different id, and a design that hardcodes ''primary'' fails on day one — primary-tracking should fall out as a thin case of the general thing, not the other way round.
+
+Must encode the three hazards the existing copies each rediscovered:
+
+- seed before subscribe for the streams that do not replay (`endedStream`, `modelErrors`), so a late binder is not told a dead session is alive;
+- cancel before rebinding, because the orchestrator notifies on show/hide/mute as well as spawn/close and a missed cancel doubles every later event;
+- release everything on dispose, orchestrator listener included.
+
+Design it by reading the three existing call sites — `claude_pane.dart`, `claude_meta_sidebar.dart:205`, `load_adapter.dart` — rather than from the epic''s prose. They disagree in small ways and those disagreements are the specification.
+
+Done when it exists, is tested against a fake orchestrator (spawn, close, respawn, session-id resolution), and at least one consumer could plausibly move onto it — but no consumer has yet, so this lands green on its own.
+
+Done (2026-08-09).
+
+`SessionReader` — follows one session id, forwards everything it reports, and survives the session being replaced underneath. Consumers subscribe once and never touch the orchestrator.
+
+**Designed from the disagreements between the three call sites, as the ticket asked.** Each one settled a question:
+
+- **Absence.** The pane spawns, the sidebar clears its panel, the adapter publishes ''nothing is running''. Three answers, all correct for their surface — so the reader *reports* absence via `attached` and never interprets it. It does drop `busy` to false and the phase to idle, because a vanished session must not leave anything believing a turn is in flight.
+- **Seeding.** The pane seeds `end` by hand (`endedStream` has no replay); the sidebar seeds `status` by hand even though it does replay; the adapter seeds nothing. The reader seeds what needs it, so no caller has to know which streams replay — which is the hazard, since nothing in the type says.
+- **Rebinding.** Sidebar and adapter rebind on orchestrator notifications; the pane does not. Rebinding is correct and is built in, cancel-first.
+
+**Session-agnostic**, with a `SessionReader.primary` convenience over the general case rather than the reverse. Asserted directly: a reader for `clide.companion` stays unattached while a `primary` session exists.
+
+Also forwards T-557''s new `phase` and `turnOutcomes`, so Epic D gets them without touching the session class.
+
+11 tests against a fake orchestrator: spawn, close, respawn, hide/show churn, late binding to an already-dead session, no double-forwarding after a rebind, teardown. **No test seam was added to `StreamJsonSession`** — the fake process gained a `die()` that completes its `exitCode`, so the end path runs through `_onExit` in production code rather than being forced.
+
+Full suite 8 + 4235 + 50, everything else unmodified. **R2–R5 unblocked.**', 'review', 'high', NULL, NULL, NULL, '2026-08-09 14:51:48.569', '2026-08-09 15:42:02.591', NULL, '36b7c6a56d2c184f333bdb8d7060d5d9', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
