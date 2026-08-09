@@ -61,6 +61,9 @@ legacy/                  # Python Textual clide v1.2 (frozen)
 
 ```
 make run             # launch Flutter desktop app
+make reload          # hot-reload it   (only when `make run` had no tty)
+make restart         # hot-restart it  (ditto — prefer after a const change)
+make quit            # stop it         (ditto)
 make analyze         # flutter analyze
 make format          # dart format --set-exit-if-changed
 make test            # fast test suite (analyze + format + unit + widget + golden)
@@ -75,6 +78,8 @@ make clean           # remove build artefacts
 ```
 
 One-time setup on a fresh clone: `make hooks && flutter pub get` once Flutter is installed.
+
+**Driving a running app.** `flutter run` only reloads when someone presses `r` on its stdin, which an agent or background shell does not have — so `make run` detects the missing tty and feeds flutter from a control pipe (`tmp/clide-run.fifo`) that `make reload`/`restart`/`quit` write to. Iterating on visuals then costs a restart, not a rebuild. An interactive `make run` is unchanged and keeps the keyboard. Prefer `make restart` over `make reload` when the change is inside a `const` widget — const canonicalisation makes reload show stale pixels, which reads as "my edit did nothing".
 
 ### Tooling discipline
 

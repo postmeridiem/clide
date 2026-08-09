@@ -31,16 +31,69 @@ help: ## Show this help.
 
 # -- app (Flutter) -------------------------------------------------------
 
+# CLIDE_CLI_BIN points the in-app "Install clide command in PATH" affordance
+# (T-212) at the dev-tree C client; a packaged build finds it beside the GUI
+# runner in the bundle instead. Recursively expanded on purpose — CLIDE_CLI_BIN
+# is defined further down, and only the `$(...)` reference is a make variable;
+# the `CLIDE_CLI_BIN=` on the left is literal text handed to the shell.
+ifeq ($(FLUTTER_OS),linux)
+  FLUTTER_RUN = CLIDE_CLI_BIN=$(CURDIR)/$(CLIDE_CLI_BIN) GDK_BACKEND=x11 LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} flutter run -d linux --dart-define=CLIDE_PROJECT=$(CURDIR)
+else
+  FLUTTER_RUN = CLIDE_CLI_BIN=$(CURDIR)/$(CLIDE_CLI_BIN) flutter run -d $(FLUTTER_OS) --dart-define=CLIDE_PROJECT=$(CURDIR)
+endif
+
+# Control pipe for a `make run` with no terminal behind it — an agent, a
+# background shell, a CI-ish harness.
+#
+# `flutter run` only hot-reloads when someone presses `r` on its stdin. With a
+# tty that is the developer; without one there is nobody to press anything, and
+# the usual workaround is to kill and relaunch for every edit — a full rebuild
+# per iteration, which is slow enough that visual work stops being iterative.
+# So a non-interactive run feeds flutter from this FIFO and `make reload` /
+# `make restart` / `make quit` write to it. An interactive run is untouched and
+# keeps the keyboard.
+RUN_FIFO ?= tmp/clide-run.fifo
+
+# Write one key to the control pipe. Guarded twice: opening a FIFO for writing
+# blocks until something opens the read end, so a dead app would otherwise hang
+# the caller forever rather than failing.
+define run_key
+	@test -p $(RUN_FIFO) || { printf '==> no control pipe at %s — start the app with a non-interactive `make run` first\n' '$(RUN_FIFO)' >&2; exit 1; }
+	@if command -v timeout >/dev/null 2>&1; then \
+	  timeout 5 sh -c 'printf "%s\n" "$(1)" > "$(RUN_FIFO)"' \
+	    || { printf '==> nothing is reading %s — the app is not running\n' '$(RUN_FIFO)' >&2; exit 1; }; \
+	else \
+	  printf '%s\n' '$(1)' > $(RUN_FIFO); \
+	fi
+endef
+
 .PHONY: run
 run: gen-build-info clide-cli ## Launch the Flutter desktop app.
-	# CLIDE_CLI_BIN points the in-app "Install clide command in PATH"
-	# affordance (T-212) at the dev-tree C client; a packaged build finds it
-	# beside the GUI runner in the bundle instead.
-ifeq ($(FLUTTER_OS),linux)
-	CLIDE_CLI_BIN=$(CURDIR)/$(CLIDE_CLI_BIN) GDK_BACKEND=x11 LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} flutter run -d linux --dart-define=CLIDE_PROJECT=$(CURDIR)
-else
-	CLIDE_CLI_BIN=$(CURDIR)/$(CLIDE_CLI_BIN) flutter run -d $(FLUTTER_OS) --dart-define=CLIDE_PROJECT=$(CURDIR)
-endif
+	@if [ -t 0 ]; then \
+	  echo '==> run (interactive — r reloads, R restarts, q quits)'; \
+	  $(FLUTTER_RUN); \
+	else \
+	  echo '==> run (no tty — control pipe at $(RUN_FIFO); use make reload/restart/quit)'; \
+	  mkdir -p $(dir $(RUN_FIFO)); \
+	  rm -f $(RUN_FIFO); \
+	  mkfifo $(RUN_FIFO); \
+	  tail -f /dev/null > $(RUN_FIFO) & \
+	  holder=$$!; \
+	  trap 'kill $$holder 2>/dev/null; rm -f $(RUN_FIFO)' EXIT INT TERM; \
+	  $(FLUTTER_RUN) < $(RUN_FIFO); \
+	fi
+
+.PHONY: reload
+reload: ## Hot-reload the app launched by a non-interactive `make run`.
+	$(call run_key,r)
+
+.PHONY: restart
+restart: ## Hot-restart it. Prefer over reload after changing a const widget.
+	$(call run_key,R)
+
+.PHONY: quit
+quit: ## Stop it.
+	$(call run_key,q)
 
 TESTMODE_CATEGORY ?= all
 TESTMODE_TIMEOUT  ?= 60
