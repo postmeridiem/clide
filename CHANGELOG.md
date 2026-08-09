@@ -45,6 +45,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 - Settings controls bound to a per-project key no longer throw when no workspace
   is open; they explain instead. (T-527)
+- `clide` no longer hangs forever when an instance accepts a request but never
+  answers — it times out with a readable message. `CLIDE_TIMEOUT_MS` overrides
+  the 30s default. (T-542)
 
 ## [2.10.0] — 2026-07-13
 

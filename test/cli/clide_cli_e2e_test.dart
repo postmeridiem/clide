@@ -209,6 +209,78 @@ void main() {
       expect(r.stdout.toString().trim(), isEmpty, reason: 'must not return data from a different instance');
     });
 
+    test('an instance that accepts but never answers times out instead of hanging (T-542)', () async {
+      if (!hasCC) {
+        markTestSkipped('cc not available');
+        return;
+      }
+      // The failure this guards is worse than a crash. `connect()` succeeds
+      // against a wedged instance, the request is accepted, and the response
+      // never comes — so every verb blocked forever, with no output and no exit
+      // code. An agent or script driving `clide` had nothing to react to.
+      final wedgedPath = '${workspaceRoot.path}/wedged.sock';
+      final wedged = await ServerSocket.bind(InternetAddress(wedgedPath, type: InternetAddressType.unix), 0);
+      // Accept connections and deliberately never reply.
+      final accepted = <Socket>[];
+      wedged.listen(accepted.add);
+      addTearDown(() async {
+        for (final s in accepted) {
+          s.destroy();
+        }
+        await wedged.close();
+        final f = File(wedgedPath);
+        if (f.existsSync()) f.deleteSync();
+      });
+
+      final sw = Stopwatch()..start();
+      final r = await Process.run(
+        binaryPath,
+        ['ping'],
+        workingDirectory: workspaceRoot.path,
+        // Short deadline so the test asserts the mechanism, not the shipped
+        // 30s default — which is deliberately generous because a deadline
+        // cannot tell a wedged instance from a slow answer.
+        environment: {'CLIDE_SOCK': wedgedPath, 'CLIDE_TIMEOUT_MS': '750'},
+      );
+      sw.stop();
+
+      expect(r.exitCode, isNot(0), reason: 'stdout: ${r.stdout}');
+      expect(sw.elapsed, lessThan(const Duration(seconds: 15)), reason: 'the CLI blocked instead of giving up');
+      expect(r.stderr.toString(), contains('did not answer'), reason: 'the message must say what happened: ${r.stderr}');
+      expect(r.stdout.toString().trim(), isEmpty);
+    });
+
+    test('instances skips a wedged instance rather than blocking on it (T-542)', () async {
+      if (!hasCC) {
+        markTestSkipped('cc not available');
+        return;
+      }
+      // `instances` exists to find the live ones; an instance that cannot answer
+      // is exactly what the caller is trying to see past, so it must cost a
+      // moment and not the whole command.
+      // Beside the real one, so discovery enumerates both.
+      final wedgedPath = '${File(server.socketPath).parent.path}/wedged.sock';
+      final wedged = await ServerSocket.bind(InternetAddress(wedgedPath, type: InternetAddressType.unix), 0);
+      final accepted = <Socket>[];
+      wedged.listen(accepted.add);
+      addTearDown(() async {
+        for (final s in accepted) {
+          s.destroy();
+        }
+        await wedged.close();
+        final f = File(wedgedPath);
+        if (f.existsSync()) f.deleteSync();
+      });
+
+      final sw = Stopwatch()..start();
+      final r = await Process.run(binaryPath, ['instances'], workingDirectory: workspaceRoot.path, environment: const {'CLIDE_SOCK': ''});
+      sw.stop();
+
+      expect(r.exitCode, 0, reason: 'stderr: ${r.stderr}');
+      expect(sw.elapsed, lessThan(const Duration(seconds: 20)), reason: 'a wedged peer blocked the whole enumeration');
+      expect(r.stdout.toString(), contains(server.socketPath), reason: 'the live instance must still be listed');
+    });
+
     test('instances lists live instances with their identity (T-247)', () async {
       if (!hasCC) {
         markTestSkipped('cc not available');

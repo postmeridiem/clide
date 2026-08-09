@@ -47,6 +47,7 @@
 #include <dirent.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
@@ -94,6 +95,60 @@ static int net_errno(void) { return errno; }
 static const char *net_strerror(int e) { return strerror(e); }
 #define clide_getpid getpid
 #endif
+
+/* -- response deadline (T-542) ------------------------------------------- */
+
+/* `connect()` only fails fast when nothing is *listening*. A socket whose owner
+ * is alive but wedged accepts the connection, takes the request, and never
+ * answers — and with no deadline the response read blocks forever. Every verb
+ * hung that way, which is the worst failure mode for a CLI an agent or a script
+ * drives: no output, no exit code, no way to tell "working" from "stuck".
+ *
+ * Generous, because a deadline cannot distinguish a wedged instance from a slow
+ * answer — both are silence — and cutting a real answer short would be its own
+ * bug. Override with CLIDE_TIMEOUT_MS for a verb that legitimately takes longer;
+ * 0 waits forever, as before. */
+#define CLIDE_DEFAULT_TIMEOUT_MS 30000
+
+/* Probing every socket in the runtime dir has to stay quick: `instances` exists
+ * to find the live ones, and an instance that cannot answer is precisely what
+ * the caller is trying to see past. A live one replies in milliseconds. */
+#define CLIDE_PROBE_TIMEOUT_MS 2000
+
+static long clide_timeout_ms(long fallback) {
+    const char *raw = getenv("CLIDE_TIMEOUT_MS");
+    if (!raw || !*raw) return fallback;
+    char *end = NULL;
+    long v = strtol(raw, &end, 10);
+    if (end == raw || v < 0) return fallback;
+    return v;
+}
+
+/* Bound how long a read may block. 0 leaves the socket blocking. Best effort —
+ * a platform that refuses the option behaves as it did before. */
+static void set_read_timeout(sock_t fd, long ms) {
+    if (ms <= 0) return;
+#ifdef _WIN32
+    DWORD tv = (DWORD)ms;
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv));
+#else
+    struct timeval tv;
+    tv.tv_sec = (time_t)(ms / 1000);
+    tv.tv_usec = (suseconds_t)((ms % 1000) * 1000);
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+#endif
+}
+
+/* Distinguishes "it never answered" from "it hung up" — different things to
+ * tell the user, and the bare strerror for the first ("Resource temporarily
+ * unavailable") says nothing anyone can act on. */
+static int net_timed_out(int e) {
+#ifdef _WIN32
+    return e == WSAETIMEDOUT;
+#else
+    return e == EAGAIN || e == EWOULDBLOCK;
+#endif
+}
 
 static const uint64_t FNV_OFFSET = 0xcbf29ce484222325ULL;
 static const uint64_t FNV_PRIME  = 0x100000001b3ULL;
@@ -407,6 +462,10 @@ static int list_instances(void) {
         if (snprintf(path, sizeof(path), "%s/%s", dir, ent->d_name) >= (int)sizeof(path)) continue;
         sock_t fd = connect_unix(path);
         if (fd == NET_INVALID) continue; /* dead socket — skip */
+        /* A wedged instance must cost us two seconds, not the whole command:
+         * `instances` exists to find the live ones, and one that cannot answer
+         * is exactly what the caller is trying to see past. */
+        set_read_timeout(fd, CLIDE_PROBE_TIMEOUT_MS);
         char req[1024];
         if (build_request(1, qargv, (long long)clide_getpid(), req, sizeof(req), NULL) == 0 &&
             net_write(fd, req, (int)strlen(req)) == (int)strlen(req)) {
@@ -481,6 +540,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "clide: cannot connect to %s: %s\n", sock_path, net_strerror(net_errno()));
         return EX_UNAVAILABLE;
     }
+    set_read_timeout(fd, clide_timeout_ms(CLIDE_DEFAULT_TIMEOUT_MS));
 
     /* A `--stdin` flag anywhere in argv means slurp a piped JSON payload and
      * ship it alongside (T-315) — the structured peer of `--file`. */
@@ -511,8 +571,16 @@ int main(int argc, char **argv) {
     /* Read the response — one JSON line. */
     char resp[65536];
     if (read_line(fd, resp, sizeof(resp)) != 0) {
-        fprintf(stderr, "clide: response read failed: %s\n", net_strerror(net_errno()));
+        int err = net_errno();
         net_close(fd);
+        if (net_timed_out(err)) {
+            fprintf(stderr,
+                    "clide: %s accepted the request but did not answer within %lds\n"
+                    "       the instance is running but not responding; set CLIDE_TIMEOUT_MS to wait longer\n",
+                    sock_path, clide_timeout_ms(CLIDE_DEFAULT_TIMEOUT_MS) / 1000);
+            return EX_UNAVAILABLE;
+        }
+        fprintf(stderr, "clide: response read failed: %s\n", net_strerror(err));
         return EX_OSERR;
     }
 

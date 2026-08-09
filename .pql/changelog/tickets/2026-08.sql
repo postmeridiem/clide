@@ -8855,3 +8855,257 @@ filed as **T-542**.
 the counter, and both return to idle when the turn ends." That needs a real turn
 in a real session and has **not** been done. The tests prove the wiring; they
 cannot tell me it reads at a glance, which is the entire point of the feature.', 'in_progress', 'high', NULL, NULL, 'D-107', '2026-08-09 12:27:08.149', '2026-08-09 13:06:49.947', NULL, '1eeaf8645c545524f42de1713e3f8d0d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYD80NP2RJEREA6485BNFYC0', 'bug', NULL, 'clide CLI hangs on a stale discovered socket — every verb, no timeout', 'Found 2026-08-09 while investigating a `make test` failure. **Not the test''s
+fault** — `test/cli/clide_cli_e2e_test.dart` "instances lists live instances"
+times out at 30s because the CLI it drives hangs.
+
+## Reproduction
+
+```
+$ timeout 10 clide instances   ; echo $?   # 124
+$ timeout 10 clide pane list   ; echo $?   # 124
+$ timeout 10 clide files root  ; echo $?   # 124
+```
+
+Every verb, not one. `/run/user/1000/clide/` holds a single socket
+(`eeac4e3bc8a25fe3.sock`) that nothing is answering on.
+
+## What makes it a defect rather than a mess
+
+**The CLI blocks forever on a socket with no listener.** It should fail fast and
+say so. There is already a test asserting exactly that behaviour for the pinned
+path — "a dead `CLIDE_SOCK` fails loudly, never falling back to discovery"
+(T-247) — and it passes. The **discovery** path has no equivalent guarantee, and
+that is the gap: a stale socket found by discovery hangs instead of being skipped
+or reported.
+
+Consequences beyond the test: any agent or script calling `clide …` wedges until
+its own timeout, and `clide image show` — the sanctioned way to put an image in
+the conversation — stops working with no error.
+
+## How it likely got stale (unconfirmed)
+
+Several `make run` instances were launched during the session. At least one
+logged both
+
+```
+INFO  [ipc] swept orphaned socket /run/user/1000/clide/c6e32a7d38f8ba27.sock
+ERROR [ipc] server start failed | another clide IPC server is already listening
+            on /run/user/1000/clide/eeac4e3bc8a25fe3.sock
+```
+
+i.e. it failed to claim the socket, ran as a client, and later exited. Worth
+checking whether a **second instance''s shutdown can unlink or otherwise orphan
+the first instance''s socket** — the sweep logic is the obvious suspect, and if so
+that is the more serious half of this bug: a dev launching a second clide would
+silently break CLI access for the one already running.
+
+`clide image show` worked repeatedly earlier in the same session and stopped
+partway through, which is consistent with that ordering.
+
+## Suggested shape
+
+1. Discovery must **time out per candidate socket** and move on, rather than
+   blocking. A socket nobody answers is a dead instance, and the enumerator
+   already tolerates other instances existing.
+2. Every verb needs an overall deadline with a non-zero exit and a readable
+   message. Hanging is the worst failure mode for a CLI an agent drives.
+3. Establish whether instance shutdown can damage another instance''s socket, and
+   if it can, stop it.
+
+## Note on the test
+
+Once the CLI fails fast, the existing e2e test should pass unchanged — it already
+tolerates other live instances and asserts only that its own socket is listed. No
+test change is expected to be needed, which is a good sign the test was right.
+
+Fixed (2026-08-09).
+
+## Cause
+
+`connect()` only fails fast when nothing is **listening**. A socket whose owner
+is alive but wedged accepts the connection, takes the request, and never
+answers — and `read_line` had no deadline, so it blocked forever. That is why
+*every* verb hung, not just `instances`: they share the response read.
+
+The dead-socket case was always handled (connect refuses, the instance is
+skipped). The alive-but-silent case had no path at all.
+
+## Fix
+
+`SO_RCVTIMEO` on the socket after connect, in two flavours:
+
+- **30s** for a normal verb, overridable with `CLIDE_TIMEOUT_MS`, `0` to wait
+  forever as before. Generous deliberately: a deadline cannot distinguish a
+  wedged instance from a slow answer — both are silence — and cutting a real
+  answer short would be its own bug.
+- **2s** when probing sockets for `instances`. That verb exists to find the live
+  instances, and one that cannot answer is precisely what the caller is trying
+  to see past, so it costs a moment rather than the whole command.
+
+A timeout is reported as itself rather than as `strerror(EAGAIN)` ("Resource
+temporarily unavailable", which tells a caller nothing) — it names the socket,
+says the instance accepted but did not answer, and points at the override. Exit
+is `EX_UNAVAILABLE`, not `EX_OSERR`: the instance is unreachable, not broken.
+
+## The sweep suspicion was wrong
+
+The ticket suspected a second instance''s shutdown of orphaning the first''s
+socket. Checked, and it does not: `_sweepStaleSockets` probes each candidate with
+a 200ms timeout, leaves a live instance alone, and on `TimeoutException`
+explicitly declines to clobber an unresponsive one; `_unlinkStale` refuses to
+bind when anything answers and refuses to delete an unresponsive node. The
+defensive behaviour is already there.
+
+So the wedged socket was the host app not answering — a separate question, and
+not one the CLI can do anything about beyond failing usefully, which it now does.
+
+## Tests
+
+Two regressions in `clide_cli_e2e_test.dart`, both standing up a real socket that
+accepts and never replies:
+
+- a verb against a wedged instance exits non-zero, quickly, with a message that
+  says what happened;
+- `instances` skips the wedged peer and still lists the live one.
+
+Both complete in ~1–2s where the old behaviour was indefinite. The previously
+failing `instances` test now passes untouched, which is the sign it was right all
+along — it already tolerated other live instances and only ever asserted its own
+was listed.
+
+Full suite 8 + 4187 + 50, green.
+
+## Not fixed here
+
+Why the host app stopped answering IPC in the first place. It also stopped
+serving permission prompts at the same moment, so the two are almost certainly
+one fault in the app rather than two. Nothing in this change addresses that; it
+makes the CLI survive it.', 'backlog', 'high', NULL, NULL, NULL, '2026-08-09 13:04:38.832', '2026-08-09 13:19:41.237', NULL, '8631fb9dfefea68f78e38d5cc242db44', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYD80NP2RJEREA6485BNFYC0', 'bug', NULL, 'clide CLI hangs on a stale discovered socket — every verb, no timeout', 'Found 2026-08-09 while investigating a `make test` failure. **Not the test''s
+fault** — `test/cli/clide_cli_e2e_test.dart` "instances lists live instances"
+times out at 30s because the CLI it drives hangs.
+
+## Reproduction
+
+```
+$ timeout 10 clide instances   ; echo $?   # 124
+$ timeout 10 clide pane list   ; echo $?   # 124
+$ timeout 10 clide files root  ; echo $?   # 124
+```
+
+Every verb, not one. `/run/user/1000/clide/` holds a single socket
+(`eeac4e3bc8a25fe3.sock`) that nothing is answering on.
+
+## What makes it a defect rather than a mess
+
+**The CLI blocks forever on a socket with no listener.** It should fail fast and
+say so. There is already a test asserting exactly that behaviour for the pinned
+path — "a dead `CLIDE_SOCK` fails loudly, never falling back to discovery"
+(T-247) — and it passes. The **discovery** path has no equivalent guarantee, and
+that is the gap: a stale socket found by discovery hangs instead of being skipped
+or reported.
+
+Consequences beyond the test: any agent or script calling `clide …` wedges until
+its own timeout, and `clide image show` — the sanctioned way to put an image in
+the conversation — stops working with no error.
+
+## How it likely got stale (unconfirmed)
+
+Several `make run` instances were launched during the session. At least one
+logged both
+
+```
+INFO  [ipc] swept orphaned socket /run/user/1000/clide/c6e32a7d38f8ba27.sock
+ERROR [ipc] server start failed | another clide IPC server is already listening
+            on /run/user/1000/clide/eeac4e3bc8a25fe3.sock
+```
+
+i.e. it failed to claim the socket, ran as a client, and later exited. Worth
+checking whether a **second instance''s shutdown can unlink or otherwise orphan
+the first instance''s socket** — the sweep logic is the obvious suspect, and if so
+that is the more serious half of this bug: a dev launching a second clide would
+silently break CLI access for the one already running.
+
+`clide image show` worked repeatedly earlier in the same session and stopped
+partway through, which is consistent with that ordering.
+
+## Suggested shape
+
+1. Discovery must **time out per candidate socket** and move on, rather than
+   blocking. A socket nobody answers is a dead instance, and the enumerator
+   already tolerates other instances existing.
+2. Every verb needs an overall deadline with a non-zero exit and a readable
+   message. Hanging is the worst failure mode for a CLI an agent drives.
+3. Establish whether instance shutdown can damage another instance''s socket, and
+   if it can, stop it.
+
+## Note on the test
+
+Once the CLI fails fast, the existing e2e test should pass unchanged — it already
+tolerates other live instances and asserts only that its own socket is listed. No
+test change is expected to be needed, which is a good sign the test was right.
+
+Fixed (2026-08-09).
+
+## Cause
+
+`connect()` only fails fast when nothing is **listening**. A socket whose owner
+is alive but wedged accepts the connection, takes the request, and never
+answers — and `read_line` had no deadline, so it blocked forever. That is why
+*every* verb hung, not just `instances`: they share the response read.
+
+The dead-socket case was always handled (connect refuses, the instance is
+skipped). The alive-but-silent case had no path at all.
+
+## Fix
+
+`SO_RCVTIMEO` on the socket after connect, in two flavours:
+
+- **30s** for a normal verb, overridable with `CLIDE_TIMEOUT_MS`, `0` to wait
+  forever as before. Generous deliberately: a deadline cannot distinguish a
+  wedged instance from a slow answer — both are silence — and cutting a real
+  answer short would be its own bug.
+- **2s** when probing sockets for `instances`. That verb exists to find the live
+  instances, and one that cannot answer is precisely what the caller is trying
+  to see past, so it costs a moment rather than the whole command.
+
+A timeout is reported as itself rather than as `strerror(EAGAIN)` ("Resource
+temporarily unavailable", which tells a caller nothing) — it names the socket,
+says the instance accepted but did not answer, and points at the override. Exit
+is `EX_UNAVAILABLE`, not `EX_OSERR`: the instance is unreachable, not broken.
+
+## The sweep suspicion was wrong
+
+The ticket suspected a second instance''s shutdown of orphaning the first''s
+socket. Checked, and it does not: `_sweepStaleSockets` probes each candidate with
+a 200ms timeout, leaves a live instance alone, and on `TimeoutException`
+explicitly declines to clobber an unresponsive one; `_unlinkStale` refuses to
+bind when anything answers and refuses to delete an unresponsive node. The
+defensive behaviour is already there.
+
+So the wedged socket was the host app not answering — a separate question, and
+not one the CLI can do anything about beyond failing usefully, which it now does.
+
+## Tests
+
+Two regressions in `clide_cli_e2e_test.dart`, both standing up a real socket that
+accepts and never replies:
+
+- a verb against a wedged instance exits non-zero, quickly, with a message that
+  says what happened;
+- `instances` skips the wedged peer and still lists the live one.
+
+Both complete in ~1–2s where the old behaviour was indefinite. The previously
+failing `instances` test now passes untouched, which is the sign it was right all
+along — it already tolerated other live instances and only ever asserted its own
+was listed.
+
+Full suite 8 + 4187 + 50, green.
+
+## Not fixed here
+
+Why the host app stopped answering IPC in the first place. It also stopped
+serving permission prompts at the same moment, so the two are almost certainly
+one fault in the app rather than two. Nothing in this change addresses that; it
+makes the CLI survive it.', 'done', 'high', NULL, NULL, NULL, '2026-08-09 13:04:38.832', '2026-08-09 13:19:45.674', NULL, '414c24831b07aac77fc56d769859a799', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
