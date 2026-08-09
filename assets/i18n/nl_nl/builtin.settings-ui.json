@@ -7,6 +7,7 @@
   "panel.empty": { "translation": "Er zijn nog geen instellingscategorieën geregistreerd." },
   "search.hint": { "translation": "Instellingen zoeken…" },
   "search.empty": { "translation": "Geen instellingen komen overeen met je zoekopdracht." },
+  "scope.needsProject": { "translation": "Open een project om deze instelling te wijzigen." },
   "scope.project": { "translation": "Dit project" },
   "scope.always": { "translation": "Heel clide" },
   "scope.default": { "translation": "Standaard" },

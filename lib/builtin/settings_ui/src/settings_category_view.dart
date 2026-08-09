@@ -253,13 +253,32 @@ class _Control extends StatelessWidget {
   /// Owning category's i18n namespace (T-462); null for key-less categories.
   final String? i18nNamespace;
 
-  void _set(Object? v) => store.set<Object?>(field.key, v);
+  /// Write, unless the key has nowhere to go.
+  ///
+  /// A `project.*` key with no project open makes `set` throw, and this runs
+  /// from an `onChanged` where a throw is an unhandled exception rather than a
+  /// message. Say so instead (T-527).
+  void _set(BuildContext context, Object? v) {
+    if (!store.canSet(field.key)) {
+      final kernel = ClideKernel.maybeOf(context);
+      if (kernel != null) {
+        publishToast(
+          kernel.messages,
+          'settings',
+          ClideSettings.i18n.string(context, 'scope.needsProject', namespace: _settingsNs, placeholder: 'Open a workspace to change this setting.'),
+          severity: ToastSeverity.warning,
+        );
+      }
+      return;
+    }
+    store.set<Object?>(field.key, v);
+  }
 
   @override
   Widget build(BuildContext context) {
     switch (field.kind) {
       case SettingsFieldKind.toggle:
-        return _ToggleControl(checked: value == true, onChanged: _set);
+        return _ToggleControl(checked: value == true, onChanged: (v) => _set(context, v));
       case SettingsFieldKind.select:
         return _SelectControl(
           field: field,
@@ -271,14 +290,14 @@ class _Control extends StatelessWidget {
               // Value selects a command (the subsystem applies + persists).
               ClideKernel.of(context).commands.execute('$prefix$v');
             } else {
-              _set(v);
+              _set(context, v);
             }
           },
         );
       case SettingsFieldKind.text:
-        return _EditControl(field: field, value: value?.toString() ?? '', numeric: false, i18nNamespace: i18nNamespace, onCommit: _set);
+        return _EditControl(field: field, value: value?.toString() ?? '', numeric: false, i18nNamespace: i18nNamespace, onCommit: (v) => _set(context, v));
       case SettingsFieldKind.number:
-        return _EditControl(field: field, value: value?.toString() ?? '', numeric: true, i18nNamespace: i18nNamespace, onCommit: _set);
+        return _EditControl(field: field, value: value?.toString() ?? '', numeric: true, i18nNamespace: i18nNamespace, onCommit: (v) => _set(context, v));
       case SettingsFieldKind.file:
         return _FileControl(field: field, i18nNamespace: i18nNamespace);
       case SettingsFieldKind.custom:

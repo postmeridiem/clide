@@ -6209,3 +6209,665 @@ inherits this**: check the rain glyphs against both fonts, not just JetBrains.
 Amended by D-107 commitment 5 (2026-08-09): the state table''s *sources* change, the table itself does not. `listening`, `pensive`, `speaking` and `error` are now driven by **Clide''s own session**, not the primary''s; `rage` (and any other editorial expression) comes from a mood he declares himself on each reply (T-532). Rain density remains the **primary** session''s load, moved conceptually from readout to ambient weather, and the elapsed counter moves with it.
 
 Nothing in `face_state.dart` needs to change for this — the contract was always ''here is a state, render it'', and it stays that. What changes is who computes the state, which was never this ticket''s business. Worth knowing when reading the per-state doc comments, several of which still describe the old primary-session triggers (e.g. `pensive`: ''busy, but no partial- item has arrived yet''). Those comments are stale as *sources*; the visual contract they describe is intact.', NULL, '2026-08-09 10:05:54', '2026-08-09 10:05:54.501', '2026-08-09 10:05:54.501', NULL, '437b8babb76a9b4e4d5cf9280839daa7', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73XR4NJEPDARY06397RVVC', 'description', 'The pure rendering core: a `ClideFace` widget that draws DeskLock''s glyph face and rain
+field from a plain state enum. **No session wiring** — it takes a state in and paints. That
+keeps it independently testable and lets it start immediately, in parallel with Epic D.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets once picked up, with the codebase fresh.
+2. **Own the seam with Epic B** — B drives this widget. Define and publish the state enum +
+   props contract early so B is not blocked on internals, and keep it stable.
+
+## Scope
+
+- `FaceState` enum + the per-state glyph/rain table, ported from DeskLock''s `STATES`
+  (`sim/face/index.html`). Eyes, mouth, blink, thought-dots, talk cycle, rain
+  streams/speed, orbit arc, elapsed counter, jitter, kaomoji frames.
+- `CustomPainter` for face + rain, driven by one `Ticker`.
+- Rain field simulation (spawn / fall / cull) with density and speed as inputs.
+- Glyph set: **ASCII + symbols + box-drawing only — no katakana** (see the initiative;
+  bundled fonts have zero kana coverage, verified with `fc-query`).
+
+## Rendering discipline — three firsts for this repo
+
+None of these have a house pattern to copy; establish them here.
+
+1. **`CustomPainter(repaint: controller)`** — zero uses of `repaint:` exist in `lib/`. Both
+   existing painters (`graph_painter`, `canvas_painter`) repaint via `setState`, which
+   rebuilds the widget subtree every frame. Don''t copy that for a continuous animation.
+2. **`RepaintBoundary`** — used exactly once in the repo
+   (`lib/src/terminal/src/ui/render.dart:174`). This would be the second.
+3. **`ParagraphCache`** (`lib/src/terminal/src/ui/paragraph_cache.dart`) — an LRU of
+   `ui.Paragraph`, already used by the terminal painter. Build one paragraph per distinct
+   glyph and `canvas.drawParagraph` per particle. **Never a `TextPainter` per particle per
+   frame** — the existing painters do allocate per paint; that is fine for static painters
+   and wrong here. Not exported from any barrel, so import directly or lift it.
+
+## Mandatory reduced-motion gate
+
+`MediaQuery.maybeOf(context)?.disableAnimations` checked in `didChangeDependencies`, ticker
+stopped when true. This is not optional: `test/widgets/src/clide_marquee_test.dart:50`
+asserts `pumpAndSettle()` completes under reduced motion, so a perpetual ticker that ignores
+the flag hangs the suite for ~10 minutes. Reference implementations: `clide_marquee.dart`
+(raw `Ticker`, closest structural match), `clide_spinner.dart`, `running_indicator.dart`.
+
+## Tokens, not hex
+
+`ClideSettings.theme.of(context).surface`. `SurfaceTokens` has **no `==` override**, so
+`shouldRepaint` compares by identity — match the existing painters rather than deep-comparing.
+Fonts via `ClideSettings.fonts.monoOf(context)` + `clideMonoFamilyFallback`, never the
+`clideMonoFamily` const (D-101).
+
+## Testing
+
+- `hasInk` picture-recorder pattern (`test/builtin/graph/graph_painter_test.dart:35-43`)
+  under `tester.runAsync` — `toImage`/`toByteData` is real engine async and must run off the
+  fake clock.
+- `shouldRepaint` unit-tested per field (`test/builtin/canvas/canvas_painter_test.dart:103-111`).
+- Bounded pumps; tear down by pumping an empty tree so the infinite ticker disposes.
+- Alchemist goldens at a **pinned ticker value** — a live animation is a bad golden.
+
+## Breakdown (2026-08-09) — both first-job items done
+
+**1. Broken down** into five leaf tickets:
+
+| | Ticket | Blocked by |
+|---|---|---|
+| A1 | T-521 — `FaceState` contract: enum, gaze/lean axis, per-state glyph table | — |
+| A2 | T-522 — Rain field simulation: deterministic spawn/fall/cull | — |
+| A3 | T-523 — Glyph paragraph cache for per-particle drawing | — |
+| A4 | T-524 — `ClideFacePainter`: CustomPainter for face + rain | A1, A2, A3 |
+| A5 | T-525 — `ClideFace` widget: ticker, reduced-motion gate, RepaintBoundary | A4 |
+
+**A1, A2 and A3 are all unblocked and mutually independent** — the contract, the simulation
+and the cache have no dependencies on each other. A4 composes all three; A5 wraps A4.
+
+No separate testing ticket: per repo convention tests ride along with the work that needs
+them, and each leaf ticket carries its own "done when" assertions.
+
+**2. Contract published** to Epic B on T-517 — the enum, the three widget props, and the two
+consequences that affect B''s mapping (`busyFor` is B-owned; lean is derived from `gaze`, not
+a prop). B can code against it without waiting for T-521 to land.
+
+## Decision taken during breakdown: `rage` drops the kaomoji
+
+DeskLock renders `rage` as a 3-frame table-flip pushed as whole lines through the eye slot.
+Not ported. Two reasons:
+
+1. **Two glyphs are missing from the bundled fonts** — `︵` (U+FE35) and `ノ` (U+30CE). The
+   kaomoji contains katakana, which the initiative''s font finding did not catch because it
+   only examined the *rain* glyph set. **Second instance of the same bug class**, which is why
+   T-521''s "done when" includes a test asserting every glyph in the table against the covered
+   set — so the third instance fails the suite instead of the render.
+2. **It needed a second render path.** Whole-line text through the eye slot is not the
+   eyes+mouth model every other state uses, so it dragged a `KaomojiFrame` class, a frame
+   timer and a painter branch into the contract — for the least-seen state.
+
+`rage` now uses the ordinary grammar: `▼   ▼` / `━` with jitter and rain spiking to 34 @ 20,
+both glyphs verified covered. Semantics unchanged, so Epic B''s mapping is unaffected.
+D-107 never committed to the kaomoji (checked), so no amendment is needed.
+
+## Verified during breakdown
+
+- `ParagraphCache` (`lib/src/terminal/src/ui/paragraph_cache.dart`) is a ~50-line LRU of
+  `ui.Paragraph` keyed on `int` — directly reusable, not exported from a barrel. T-523 records
+  the import-vs-lift decision.
+- `clide_marquee.dart` is the closest structural precedent for the ticker: raw `Ticker`, dt
+  from elapsed `Duration`, reduced-motion gate in `didChangeDependencies`, explicit
+  start/stop, disposal.
+- Font coverage checked with `fc-query` for every glyph in the proposed table, including the
+  replacements: `▼` U+25BC, `━` U+2501, `▲` U+25B2, `·` U+00B7 all present.', 'The pure rendering core: a `ClideFace` widget that draws DeskLock''s glyph face and rain
+field from a plain state enum. **No session wiring** — it takes a state in and paints. That
+keeps it independently testable and lets it start immediately, in parallel with Epic D.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets once picked up, with the codebase fresh.
+2. **Own the seam with Epic B** — B drives this widget. Define and publish the state enum +
+   props contract early so B is not blocked on internals, and keep it stable.
+
+## Scope
+
+- `FaceState` enum + the per-state glyph/rain table, ported from DeskLock''s `STATES`
+  (`sim/face/index.html`). Eyes, mouth, blink, thought-dots, talk cycle, rain
+  streams/speed, orbit arc, elapsed counter, jitter, kaomoji frames.
+- `CustomPainter` for face + rain, driven by one `Ticker`.
+- Rain field simulation (spawn / fall / cull) with density and speed as inputs.
+- Glyph set: **ASCII + symbols + box-drawing only — no katakana** (see the initiative;
+  bundled fonts have zero kana coverage, verified with `fc-query`).
+
+## Rendering discipline — three firsts for this repo
+
+None of these have a house pattern to copy; establish them here.
+
+1. **`CustomPainter(repaint: controller)`** — zero uses of `repaint:` exist in `lib/`. Both
+   existing painters (`graph_painter`, `canvas_painter`) repaint via `setState`, which
+   rebuilds the widget subtree every frame. Don''t copy that for a continuous animation.
+2. **`RepaintBoundary`** — used exactly once in the repo
+   (`lib/src/terminal/src/ui/render.dart:174`). This would be the second.
+3. **`ParagraphCache`** (`lib/src/terminal/src/ui/paragraph_cache.dart`) — an LRU of
+   `ui.Paragraph`, already used by the terminal painter. Build one paragraph per distinct
+   glyph and `canvas.drawParagraph` per particle. **Never a `TextPainter` per particle per
+   frame** — the existing painters do allocate per paint; that is fine for static painters
+   and wrong here. Not exported from any barrel, so import directly or lift it.
+
+## Mandatory reduced-motion gate
+
+`MediaQuery.maybeOf(context)?.disableAnimations` checked in `didChangeDependencies`, ticker
+stopped when true. This is not optional: `test/widgets/src/clide_marquee_test.dart:50`
+asserts `pumpAndSettle()` completes under reduced motion, so a perpetual ticker that ignores
+the flag hangs the suite for ~10 minutes. Reference implementations: `clide_marquee.dart`
+(raw `Ticker`, closest structural match), `clide_spinner.dart`, `running_indicator.dart`.
+
+## Tokens, not hex
+
+`ClideSettings.theme.of(context).surface`. `SurfaceTokens` has **no `==` override**, so
+`shouldRepaint` compares by identity — match the existing painters rather than deep-comparing.
+Fonts via `ClideSettings.fonts.monoOf(context)` + `clideMonoFamilyFallback`, never the
+`clideMonoFamily` const (D-101).
+
+## Testing
+
+- `hasInk` picture-recorder pattern (`test/builtin/graph/graph_painter_test.dart:35-43`)
+  under `tester.runAsync` — `toImage`/`toByteData` is real engine async and must run off the
+  fake clock.
+- `shouldRepaint` unit-tested per field (`test/builtin/canvas/canvas_painter_test.dart:103-111`).
+- Bounded pumps; tear down by pumping an empty tree so the infinite ticker disposes.
+- Alchemist goldens at a **pinned ticker value** — a live animation is a bad golden.
+
+## Breakdown (2026-08-09) — both first-job items done
+
+**1. Broken down** into five leaf tickets:
+
+| | Ticket | Blocked by |
+|---|---|---|
+| A1 | T-521 — `FaceState` contract: enum, gaze/lean axis, per-state glyph table | — |
+| A2 | T-522 — Rain field simulation: deterministic spawn/fall/cull | — |
+| A3 | T-523 — Glyph paragraph cache for per-particle drawing | — |
+| A4 | T-524 — `ClideFacePainter`: CustomPainter for face + rain | A1, A2, A3 |
+| A5 | T-525 — `ClideFace` widget: ticker, reduced-motion gate, RepaintBoundary | A4 |
+
+**A1, A2 and A3 are all unblocked and mutually independent** — the contract, the simulation
+and the cache have no dependencies on each other. A4 composes all three; A5 wraps A4.
+
+No separate testing ticket: per repo convention tests ride along with the work that needs
+them, and each leaf ticket carries its own "done when" assertions.
+
+**2. Contract published** to Epic B on T-517 — the enum, the three widget props, and the two
+consequences that affect B''s mapping (`busyFor` is B-owned; lean is derived from `gaze`, not
+a prop). B can code against it without waiting for T-521 to land.
+
+## Decision taken during breakdown: `rage` drops the kaomoji
+
+DeskLock renders `rage` as a 3-frame table-flip pushed as whole lines through the eye slot.
+Not ported. Two reasons:
+
+1. **Two glyphs are missing from the bundled fonts** — `︵` (U+FE35) and `ノ` (U+30CE). The
+   kaomoji contains katakana, which the initiative''s font finding did not catch because it
+   only examined the *rain* glyph set. **Second instance of the same bug class**, which is why
+   T-521''s "done when" includes a test asserting every glyph in the table against the covered
+   set — so the third instance fails the suite instead of the render.
+2. **It needed a second render path.** Whole-line text through the eye slot is not the
+   eyes+mouth model every other state uses, so it dragged a `KaomojiFrame` class, a frame
+   timer and a painter branch into the contract — for the least-seen state.
+
+`rage` now uses the ordinary grammar: `▼   ▼` / `━` with jitter and rain spiking to 34 @ 20,
+both glyphs verified covered. Semantics unchanged, so Epic B''s mapping is unaffected.
+D-107 never committed to the kaomoji (checked), so no amendment is needed.
+
+## Verified during breakdown
+
+- `ParagraphCache` (`lib/src/terminal/src/ui/paragraph_cache.dart`) is a ~50-line LRU of
+  `ui.Paragraph` keyed on `int` — directly reusable, not exported from a barrel. T-523 records
+  the import-vs-lift decision.
+- `clide_marquee.dart` is the closest structural precedent for the ticker: raw `Ticker`, dt
+  from elapsed `Duration`, reduced-motion gate in `didChangeDependencies`, explicit
+  start/stop, disposal.
+- Font coverage checked with `fc-query` for every glyph in the proposed table, including the
+  replacements: `▼` U+25BC, `━` U+2501, `▲` U+25B2, `·` U+00B7 all present.
+
+Epic complete (2026-08-09). All seven children done: T-521 state contract, T-522 rain field, T-523 glyph cache, T-524 painter, T-525 widget, plus T-531 (orbit arc removed) and T-533 (trails + column-relative density) which came out of the first live look at the strip.
+
+Three patterns established with no local precedent, as the epic set out to: `CustomPainter(repaint:)` driven by a `ValueListenable<Duration>` (the repo''s first), `RepaintBoundary` around an animating layer (second use in the tree), and glyph-level `ui.Paragraph` caching reusing the terminal''s `ParagraphCache`.
+
+What the epic got wrong and had to correct twice, both worth carrying forward: the face was built and goldened at 320x120 and nearly every constant in it silently assumed a roughly square box. Mounting it in a 5:1 strip broke the vignette (a full-width wash that erased the rain), the mouth/clock alignment (a one-char mouth under the left eye), the orbit arc (a horizontal smear) and the rain stagger (two thirds of the streams off-grid). None of these were visible in the unit tests; all were obvious in the first rendered image. **Render the thing at its real aspect ratio before believing it works.**
+
+Scope note: D-107 commitment 5 later moved the face''s *source* from the primary session to Clide''s own. `face_state.dart` did not change — the seam held, which is the outcome the contract was published for.', NULL, '2026-08-09 10:31:35', '2026-08-09 10:31:35.090', '2026-08-09 10:31:35.090', NULL, '362659e7cfa1386d59f83cd6ace0e7c5', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73XR4NJEPDARY06397RVVC', 'status', 'in_progress', 'done', NULL, '2026-08-09 10:31:38', '2026-08-09 10:31:38.930', '2026-08-09 10:31:38.930', NULL, '93f001fac7bf5f5a696413366dde2cfe', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XRM7XGNMSGTRB1CNZAA8R', 'status', 'backlog', 'in_progress', NULL, '2026-08-09 10:34:06', '2026-08-09 10:34:06.140', '2026-08-09 10:34:06.140', NULL, '86e7c46f43229c560f672019ae0fea07', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XRM7XGNMSGTRB1CNZAA8R', 'status', 'in_progress', 'in_progress', NULL, '2026-08-09 10:34:16', '2026-08-09 10:34:16.310', '2026-08-09 10:34:16.310', NULL, 'c13766b80e15585745ee29e5ef1f01ca', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYBN0EJ3B59YWV2Z9S54PRGG', 'description', 'Clide''s prompt is the product. Everything else in Epic D is plumbing — this is
+where his voice, his restraint, and his sense of what is going on actually live.
+Split out of T-519 because "write the system prompt" buried in a plumbing epic
+gets three lines of attention and then ships as whatever the first draft was.
+
+## Deliverable
+
+A versioned set of prompt templates in one place, not string literals scattered
+across the session code. Each template documented with *why* it says what it
+says, because prompt text is the one part of this feature with no compiler, no
+type system and no test that can tell you it drifted.
+
+## Templates needed
+
+**1. System prompt.** Establishes:
+- Who Clide is — the IDE''s companion, watching a session he is not part of.
+- The observed/direct split (D-107): `[observed]` lines are a conversation
+  between the user and Claude that he is *watching* — remark rarely, briefly,
+  and never pretend to be a participant. `[direct]` lines are addressed to him —
+  always answer.
+- That he sees **prose only, never tool calls or results** (D-107). He must know
+  the shape of his own blindness, or he will confidently answer "what did that
+  tool do?" — the known v1 limitation. Better that he says he cannot see it.
+- Reply in the active locale (`app.locale`), one or two sentences, no preamble.
+- Silence is a valid response. This is the hardest thing to get a model to do
+  and deserves the most prompt real estate.
+
+**2. Turn digest.** How each observed exchange is framed:
+```
+[observed] <user>: <prompt text>
+[observed] claude: <assistant prose>
+```
+Open question the template has to answer: whether the user''s real name is used
+(it is available) or a neutral label, and whether Clide addresses them by it.
+
+**3. Direct address.** Distinguishing a question typed into Clide''s own input
+from the conversation he is watching. Same channel, different contract.
+
+**4. Lifecycle notices.** New, from the minimize design:
+- **Detach** — minimizing the strip stops the digest, so Clide *misses* that
+  stretch of conversation. On resume he is told he was detached and roughly how
+  long for. Explicitly worth playing with: an ambient companion that knows it
+  was away, and says something about it, is more alive than one that silently
+  has a gap. Try it before deciding whether it is charming or tiresome.
+- **Clear / restart** — the companion session tracks the primary''s clear and
+  restart windows so it lives alongside the main conversation rather than
+  accumulating context the user thinks they threw away.
+- **Session restart at ~50 comments** (cost control, per the initiative) is a
+  third kind of discontinuity. Decide whether Clide is told about this one at
+  all, or whether it should be seamless — it is our bookkeeping, not an event in
+  his world.
+
+## Constraints inherited
+
+- **Notable events only.** Turn finished, error, long run crossing a threshold,
+  commit landed. Never per-token. Direct questions always answered.
+- **Cap `max_tokens` ~100**, no thinking, and do **not** set `effort` — it errors
+  on Haiku 4.5.
+- **Cache shape matters more than brevity.** Haiku 4.5 has the highest prompt
+  cache minimum of any current model (4096 tokens); under that, `cache_control`
+  is silently ignored. A lean system prompt is therefore *uncached* for roughly
+  its first 20 comments — the opposite of the usual instinct. Weigh prompt
+  length against that threshold deliberately rather than trimming on reflex.
+
+## Not in scope
+
+Wiring, spawn, filtering and transport are T-519''s. This ticket owns the text
+and the rationale for the text.
+
+**Fifth template added — the mood side-channel (D-107 commitment 5, added
+2026-08-09).** This is now the highest-risk part of the prompt work, and it has
+an explicit kill condition.
+
+Clide declares his own emotional state on every reply; the face renders it. This
+is the only possible source for a reaction to *content* rather than to
+mechanics — "you have made this mistake before" — which is what the whole
+side-channel exists for, and which no derived signal can ever produce.
+
+## Requirement
+
+A demanded output template, not a hope. Two candidates to bake off against Haiku
+4.5 rather than choose on paper:
+
+- **Frontmatter-style** — a delimited header block before the prose.
+- **JSON** — `{"mood": "...", "say": "..."}`.
+
+Pick whichever Haiku follows most cleanly under the real system prompt, at the
+real reply length, across the real trigger events. This runs through the CLI in
+stream-json, so there is **no structured-output enforcement** — the model''s
+compliance is the only guarantee there is, which is why it is measured rather
+than assumed.
+
+## The kill condition, stated up front
+
+**If it is not very stable, it does not ship.** A malformed reply must never put
+scaffolding in the speech bubble; a user who sees `{"mood":` in Clide''s mouth has
+watched the illusion break, which costs more than the feature adds. So:
+
+- Parse defensively and **strip aggressively** — anything template-shaped that
+  survives parsing is removed from the displayed text, not passed through.
+- A missing or unparseable mood means **keep the previous expression**, never a
+  default reset and never a visible failure.
+- If the bake-off shows the format bleeding under any of the real triggers,
+  **drop the channel** and derive the expression mechanically from his session
+  lifecycle. That loses `rage` and the editorial states — accepted, versus
+  shipping something that visibly leaks.
+
+Measure it: run each candidate format over a realistic set of trigger events and
+count malformed replies. A format that is 95% clean is not clean — this renders
+on every remark, so a 1-in-20 failure is visible within minutes of use.
+
+## Vocabulary
+
+The mood values are the face states that have no mechanical source. Keep the set
+**small and closed**, and validate against it — an open vocabulary means the
+model invents a mood the face cannot render, which is a silent failure that looks
+like the channel working.', 'Clide''s prompt is the product. Everything else in Epic D is plumbing — this is
+where his voice, his restraint, and his sense of what is going on actually live.
+Split out of T-519 because "write the system prompt" buried in a plumbing epic
+gets three lines of attention and then ships as whatever the first draft was.
+
+## Deliverable
+
+A versioned set of prompt templates in one place, not string literals scattered
+across the session code. Each template documented with *why* it says what it
+says, because prompt text is the one part of this feature with no compiler, no
+type system and no test that can tell you it drifted.
+
+## Templates needed
+
+**1. System prompt.** Establishes:
+- Who Clide is — the IDE''s companion, watching a session he is not part of.
+- The observed/direct split (D-107): `[observed]` lines are a conversation
+  between the user and Claude that he is *watching* — remark rarely, briefly,
+  and never pretend to be a participant. `[direct]` lines are addressed to him —
+  always answer.
+- That he sees **prose only, never tool calls or results** (D-107). He must know
+  the shape of his own blindness, or he will confidently answer "what did that
+  tool do?" — the known v1 limitation. Better that he says he cannot see it.
+- Reply in the active locale (`app.locale`), one or two sentences, no preamble.
+- Silence is a valid response. This is the hardest thing to get a model to do
+  and deserves the most prompt real estate.
+
+**2. Turn digest.** How each observed exchange is framed:
+```
+[observed] <user>: <prompt text>
+[observed] claude: <assistant prose>
+```
+Open question the template has to answer: whether the user''s real name is used
+(it is available) or a neutral label, and whether Clide addresses them by it.
+
+**3. Direct address.** Distinguishing a question typed into Clide''s own input
+from the conversation he is watching. Same channel, different contract.
+
+**4. Lifecycle notices.** New, from the minimize design:
+- **Detach** — minimizing the strip stops the digest, so Clide *misses* that
+  stretch of conversation. On resume he is told he was detached and roughly how
+  long for. Explicitly worth playing with: an ambient companion that knows it
+  was away, and says something about it, is more alive than one that silently
+  has a gap. Try it before deciding whether it is charming or tiresome.
+- **Clear / restart** — the companion session tracks the primary''s clear and
+  restart windows so it lives alongside the main conversation rather than
+  accumulating context the user thinks they threw away.
+- **Session restart at ~50 comments** (cost control, per the initiative) is a
+  third kind of discontinuity. Decide whether Clide is told about this one at
+  all, or whether it should be seamless — it is our bookkeeping, not an event in
+  his world.
+
+## Constraints inherited
+
+- **Notable events only.** Turn finished, error, long run crossing a threshold,
+  commit landed. Never per-token. Direct questions always answered.
+- **Cap `max_tokens` ~100**, no thinking, and do **not** set `effort` — it errors
+  on Haiku 4.5.
+- **Cache shape matters more than brevity.** Haiku 4.5 has the highest prompt
+  cache minimum of any current model (4096 tokens); under that, `cache_control`
+  is silently ignored. A lean system prompt is therefore *uncached* for roughly
+  its first 20 comments — the opposite of the usual instinct. Weigh prompt
+  length against that threshold deliberately rather than trimming on reflex.
+
+## Not in scope
+
+Wiring, spawn, filtering and transport are T-519''s. This ticket owns the text
+and the rationale for the text.
+
+**Fifth template added — the mood side-channel (D-107 commitment 5, added
+2026-08-09).** This is now the highest-risk part of the prompt work, and it has
+an explicit kill condition.
+
+Clide declares his own emotional state on every reply; the face renders it. This
+is the only possible source for a reaction to *content* rather than to
+mechanics — "you have made this mistake before" — which is what the whole
+side-channel exists for, and which no derived signal can ever produce.
+
+## Requirement
+
+A demanded output template, not a hope. Two candidates to bake off against Haiku
+4.5 rather than choose on paper:
+
+- **Frontmatter-style** — a delimited header block before the prose.
+- **JSON** — `{"mood": "...", "say": "..."}`.
+
+Pick whichever Haiku follows most cleanly under the real system prompt, at the
+real reply length, across the real trigger events. This runs through the CLI in
+stream-json, so there is **no structured-output enforcement** — the model''s
+compliance is the only guarantee there is, which is why it is measured rather
+than assumed.
+
+## The kill condition, stated up front
+
+**If it is not very stable, it does not ship.** A malformed reply must never put
+scaffolding in the speech bubble; a user who sees `{"mood":` in Clide''s mouth has
+watched the illusion break, which costs more than the feature adds. So:
+
+- Parse defensively and **strip aggressively** — anything template-shaped that
+  survives parsing is removed from the displayed text, not passed through.
+- A missing or unparseable mood means **keep the previous expression**, never a
+  default reset and never a visible failure.
+- If the bake-off shows the format bleeding under any of the real triggers,
+  **drop the channel** and derive the expression mechanically from his session
+  lifecycle. That loses `rage` and the editorial states — accepted, versus
+  shipping something that visibly leaks.
+
+Measure it: run each candidate format over a realistic set of trigger events and
+count malformed replies. A format that is 95% clean is not clean — this renders
+on every remark, so a 1-in-20 failure is visible within minutes of use.
+
+## Vocabulary
+
+The mood values are the face states that have no mechanical source. Keep the set
+**small and closed**, and validate against it — an open vocabulary means the
+model invents a mood the face cannot render, which is a silent failure that looks
+like the channel working.
+
+**The templates themselves go through i18n** (raised 2026-08-09). Not just the
+chrome around them — the system prompt, the observed/direct framing and the
+lifecycle notices are all authored text, and authored text in this repo resolves
+through the catalog (D-21/D-102).
+
+Namespace `builtin.clide-companion`, alongside the settings labels that landed in
+T-527. Keys roughly `prompt.system`, `prompt.digest.observed`,
+`prompt.digest.direct`, `prompt.notice.detached`, `prompt.notice.cleared`.
+
+## This is in tension with D-107 and the tension should be resolved here
+
+D-107 currently says Clide''s replies "are model output and carry the locale via
+the prompt" — i.e. an English prompt containing an instruction to answer in the
+active locale. Localising the prompt itself is a different mechanism: a Dutch
+user gets a Dutch prompt, and the reply follows because the whole context is
+Dutch rather than because a line asked for it. The second usually produces better
+register and idiom; the first is easier to tune because there is one text.
+
+Whichever wins, say so explicitly in this ticket and amend D-107''s line if it
+changes — right now the record and this ticket describe two different designs.
+
+## The cost, stated plainly
+
+`test/a11y/i18n_coverage_test.dart` enforces **key parity between en_US and
+nl_NL** for every shipped catalog. Putting the system prompt in the catalog
+therefore obliges a Dutch system prompt, kept in sync, forever — and prompts are
+tuned iteratively, so every tuning pass is now two. That is a real recurring cost
+and worth weighing against the quality gain before committing to it, rather than
+discovering it on the first red build.
+
+A middle option exists: catalog the **user-visible** and register-carrying parts
+(the notices, the speaker labels) and keep the instruction body single-language.
+Weigh it; do not default into it silently.', NULL, '2026-08-09 11:33:59', '2026-08-09 11:33:59.551', '2026-08-09 11:33:59.551', NULL, '497143b4473842c7c6f728a1ce3bd383', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XRM7XGNMSGTRB1CNZAA8R', 'description', 'The off switch. **Blocks Epic D (T-519)** — deliberately, so the thing that spends
+subscription quota cannot land before the thing that stops it.
+
+## Why this is a blocker and not a nicety
+
+D-107 commits to the companion being **"user-disableable to zero"**, and is explicit that
+this is part of the decision rather than tuning, because the companion runs on subscription
+auth and draws from the same pool that already rate-limits the primary session. Without this
+ticket there is a window in which a second model session runs with no way to stop it short of
+quitting the app.
+
+**Disable must tear the process down, not just hide the UI.** A hidden face that is still
+spawning a `claude` process and consuming quota is precisely the failure this exists to
+prevent. Epic D''s session lifecycle honours this key; wire it as a real teardown.
+
+## Deliberately independent of the rest of Epic C
+
+This ticket has **no blockers** and must stay that way. A settings key plus a
+`SettingsCategoryContribution` is self-contained and does not need the strip, the collapse
+affordance, the CLI verbs or the i18n catalog to exist first. If it were sequenced behind
+C1, Epic D would be queued behind the entire surface for no reason.
+
+## Scope
+
+- Settings category for Clide with, at minimum:
+  - **enable/disable** — the kill switch. Default off is the safer choice given it spends
+    quota; confirm the default with the user rather than assuming.
+  - **comment frequency** — how eagerly it speaks (D-107: notable events only, but the
+    threshold is tunable).
+  - **suspend when minimised** — the power-ladder `night` rung (T-517 owns the lifecycle
+    capability itself; this is just the preference).
+- Registration template: `lib/builtin/output/src/extension.dart` — tab + status toggle +
+  command, with `dependsOn: [''builtin.default-layout'']`.
+- Contribution types: `SettingsCategoryContribution` / `SettingsControlContribution`
+  (`lib/extension/src/contribution.dart`).
+- Read through `ClideSettings` (D-101), never a bare settings lookup.
+
+## Done when
+
+- The key exists, persists, and is readable without the strip being mounted.
+- A test asserts that disabling produces a state in which no companion session may run —
+  written so it still passes before Epic D exists, and becomes meaningful once it does.
+- Labels are catalog strings (D-21/D-102), not literals; coordinate the namespace with C5.', 'The off switch. **Blocks Epic D (T-519)** — deliberately, so the thing that spends
+subscription quota cannot land before the thing that stops it.
+
+## Why this is a blocker and not a nicety
+
+D-107 commits to the companion being **"user-disableable to zero"**, and is explicit that
+this is part of the decision rather than tuning, because the companion runs on subscription
+auth and draws from the same pool that already rate-limits the primary session. Without this
+ticket there is a window in which a second model session runs with no way to stop it short of
+quitting the app.
+
+**Disable must tear the process down, not just hide the UI.** A hidden face that is still
+spawning a `claude` process and consuming quota is precisely the failure this exists to
+prevent. Epic D''s session lifecycle honours this key; wire it as a real teardown.
+
+## Deliberately independent of the rest of Epic C
+
+This ticket has **no blockers** and must stay that way. A settings key plus a
+`SettingsCategoryContribution` is self-contained and does not need the strip, the collapse
+affordance, the CLI verbs or the i18n catalog to exist first. If it were sequenced behind
+C1, Epic D would be queued behind the entire surface for no reason.
+
+## Scope
+
+- Settings category for Clide with, at minimum:
+  - **enable/disable** — the kill switch. Default off is the safer choice given it spends
+    quota; confirm the default with the user rather than assuming.
+  - **comment frequency** — how eagerly it speaks (D-107: notable events only, but the
+    threshold is tunable).
+  - **suspend when minimised** — the power-ladder `night` rung (T-517 owns the lifecycle
+    capability itself; this is just the preference).
+- Registration template: `lib/builtin/output/src/extension.dart` — tab + status toggle +
+  command, with `dependsOn: [''builtin.default-layout'']`.
+- Contribution types: `SettingsCategoryContribution` / `SettingsControlContribution`
+  (`lib/extension/src/contribution.dart`).
+- Read through `ClideSettings` (D-101), never a bare settings lookup.
+
+## Done when
+
+- The key exists, persists, and is readable without the strip being mounted.
+- A test asserts that disabling produces a state in which no companion session may run —
+  written so it still passes before Epic D exists, and becomes meaningful once it does.
+- Labels are catalog strings (D-21/D-102), not literals; coordinate the namespace with C5.
+
+Done (2026-08-09).
+
+## Shipped
+
+`builtin.clide-companion` extension: a settings category (enable, comment
+frequency, suspend-while-minimised) and the kill switch behind it.
+
+**Per repository, not per machine** — the user''s call, and the reason the default
+could stay *on*: a repo may be under terms where a second stream out is not
+allowed while the next one over is fine, and a machine-wide switch would impose
+the strictest repo''s answer on all of them. `project.companion.enabled`,
+`.open`, `.frequency`; only `app.companion.suspendWhenMinimised` is machine-wide,
+because power is a property of the box.
+
+**Off is off**: disabled removes the strip from the tree entirely and the detail
+views get their 112px back. `mayRunSession` is the gate Epic D consults before
+spawning — named for the question rather than the key, so the call site reads as
+a permission check.
+
+## Comms go over the MessageBus, not through props
+
+At the user''s direction, and it is the right shape here. Two channels under
+publisher `clide.companion`, mirroring the filter-box drive/observe split
+(T-270):
+
+- `companion.set` — anyone may ask for a change.
+- `companion.state` — only the extension announces, and only after persisting.
+
+So the settings panel, the rail button (T-528), the CLI verbs (T-529) and the
+session (T-519) each know one channel instead of needing a handle on a widget
+buried in the context column. The extension is the single adapter between the
+store and the bus: it announces on `companion.set` **and** on any direct store
+write, so the panel writing the key directly still moves the UI.
+
+The bus has no retention, so renderers seed from the store once and follow the
+bus after — the store holds initial truth, the bus carries change.
+
+## Two things found on the way, both fixed here
+
+**The settings panel would have thrown.** This is the app''s first
+project-scoped `SettingsField`, and `SettingsStore.set` throws for a `project.*`
+key with no project open — from inside an `onChanged`, i.e. an unhandled
+exception rather than a message. Added `SettingsStore.canSet` and a toast in the
+settings-ui control. Anyone adding the second project-scoped field would have hit
+this too.
+
+**A live view is not a snapshot.** The extension held its last-announced state as
+a `ClideCompanionSettings`, which is a live view over the store — so after a
+write it compared the store against itself, found no change, and suppressed
+*every* announcement. Caught by the round-trip test, invisible to the unit tests.
+Now stored as values.
+
+## i18n came with it, not after
+
+`test/a11y/i18n_coverage_test.dart` enforces en_US/nl_NL key parity for every
+shipped catalog, so shipping en_US alone turns the build red. Both catalogs
+landed here, including the seven `face.semantics.*` keys that had been warning on
+every boot since T-525. **T-530 shrinks accordingly** — the companion catalog
+exists; what remains there is whatever later tickets add.
+
+## Tests
+
+11 unit (the gate, defaults, scope prefixes, frequency parsing), 8 widget (seed
+from store, follow the bus, ignore other publishers, partial announcements,
+subscription teardown), 10 extension (set→persist→announce round trip, direct
+writes announced, no-op sets silent, deactivation stops it, schema keys and i18n
+coverage). Full suite 8 + 4155 + 50.
+
+The ticket asked for a test that "still passes before Epic D exists and becomes
+meaningful once it does" — that is the `mayRunSession` group, written against the
+gate rather than against any session machinery.
+
+## Note for T-528
+
+`project.companion.open` already exists and is honoured by the strip host: the
+minimise button''s job is to publish `companion.set {open: false}`. No new key, no
+new wiring — just the affordance.', NULL, '2026-08-09 11:34:29', '2026-08-09 11:34:29.230', '2026-08-09 11:34:29.230', NULL, '7a55cb887cedc966cbf2c8218fe4ebc2', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XTDQ9HXXA1PA6KRG5FFHM', 'description', NULL, 'Scope reduced by T-527 (2026-08-09). The companion catalog now exists in **both** locales — `assets/i18n/{en_us,nl_nl}/builtin.clide-companion.json` — because `test/a11y/i18n_coverage_test.dart` enforces en_US/nl_NL key parity for every shipped catalog, so there was no way to land the settings labels without landing the Dutch too. The seven `face.semantics.*` keys that had been warning on every boot since T-525 went in with them; the boot log is quiet.
+
+What is left here is whatever later tickets add — and per T-532, the prompt templates may want to live in this namespace as well, which is a much larger translation surface than chrome strings. Read T-532''s i18n note before sizing this.', NULL, '2026-08-09 11:34:36', '2026-08-09 11:34:36.052', '2026-08-09 11:34:36.052', NULL, 'fddbb4ee41b88875aa49ba78d6c339ad', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XRM7XGNMSGTRB1CNZAA8R', 'status', 'in_progress', 'done', NULL, '2026-08-09 11:34:42', '2026-08-09 11:34:42.951', '2026-08-09 11:34:42.951', NULL, '02afe7da44deeb84a324b9e0bfd03e98', 2) ON CONFLICT(hash) DO NOTHING;

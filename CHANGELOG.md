@@ -27,6 +27,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Settings controls bound to a per-project key no longer throw when no workspace
+  is open; they explain instead. (T-527)
+
 ## [2.10.0] — 2026-07-13
 
 ### Added

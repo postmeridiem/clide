@@ -7,6 +7,7 @@
   "panel.empty": { "translation": "No settings categories are registered yet." },
   "search.hint": { "translation": "Search settings…" },
   "search.empty": { "translation": "No settings match your search." },
+  "scope.needsProject": { "translation": "Open a workspace to change this setting." },
   "scope.project": { "translation": "This project" },
   "scope.always": { "translation": "All clide" },
   "scope.default": { "translation": "Default" },

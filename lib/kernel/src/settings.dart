@@ -97,6 +97,15 @@ class SettingsStore extends ChangeNotifier {
     _safeNotify();
   }
 
+  /// Whether [set] would succeed for [key] right now.
+  ///
+  /// Project-scoped keys have nowhere to be written with no project open, and
+  /// [set] throws rather than silently discarding the value. A UI offering the
+  /// control has to ask first — a `project.*` toggle on the welcome screen would
+  /// otherwise throw out of its `onChanged` (T-527, the first project-scoped
+  /// settings field in the app).
+  bool canSet(String key) => _scopeOf(key) != SettingsScope.project || projectDir != null;
+
   // --- Scope-explicit access (per-field scope tags, T-449) ---------------
   //
   // [get]/[set] resolve a key by its prefix; the settings panel's scope tag
