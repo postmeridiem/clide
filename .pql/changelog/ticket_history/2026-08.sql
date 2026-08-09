@@ -11441,3 +11441,30 @@ Also forwards T-557''s new `phase` and `turnOutcomes`, so Epic D gets them witho
 
 Full suite 8 + 4235 + 50, everything else unmodified. **R2–R5 unblocked.**', NULL, '2026-08-09 15:42:02', '2026-08-09 15:42:02.565', '2026-08-09 15:42:02.565', NULL, 'c422de70205722717c2fc9bc0789fe11', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0HHV0KW6HHDH4AEKK27Q4', 'status', 'in_progress', 'review', NULL, '2026-08-09 15:42:02', '2026-08-09 15:42:02.591', '2026-08-09 15:42:02.591', NULL, '44a306a98d42529c573decd07aff5240', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0HHV0KW6HHDH4AEKK27Q4', 'status', 'review', 'done', NULL, '2026-08-09 15:43:15', '2026-08-09 15:43:15.421', '2026-08-09 15:43:15.421', NULL, 'e24733010ba0ced6527f3e7288ffd3ec', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZXXPSAJWDTGX0Y3H2WMP0', 'status', 'review', 'done', NULL, '2026-08-09 15:43:33', '2026-08-09 15:43:33.539', '2026-08-09 15:43:33.539', NULL, '68126145dd389de954d2878f234f0819', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE6FCDATNHD4DKFW33JTDN0', 'status', 'review', 'done', NULL, '2026-08-09 15:43:44', '2026-08-09 15:43:44.875', '2026-08-09 15:43:44.875', NULL, 'b287d0f6e45193a51fa84c10ae06f214', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0JE00Z8KD783CKCREYS44', 'status', 'backlog', 'in_progress', NULL, '2026-08-09 15:43:52', '2026-08-09 15:43:52.351', '2026-08-09 15:43:52.351', NULL, 'ac5a713584338277cd64ce92324b2d4e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0JE00Z8KD783CKCREYS44', 'status', 'in_progress', 'in_progress', NULL, '2026-08-09 15:43:59', '2026-08-09 15:43:59.011', '2026-08-09 15:43:59.011', NULL, '4f5fd12337912e25461dfc6173c0f57e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0JE00Z8KD783CKCREYS44', 'description', '`claude_meta_sidebar.dart:205` `_bindPrimary()` — the canonical cancel/rebind/seed dance, and the one every other site was told to copy. Migrating it first is the fairest test of the interface: if the shape cannot express the original cleanly, the shape is wrong.
+
+Reads status, items and workflows.
+
+**Its tests must pass unmodified.** Any that need editing mean behaviour moved rather than code — stop and investigate rather than updating the test.', '`claude_meta_sidebar.dart:205` `_bindPrimary()` — the canonical cancel/rebind/seed dance, and the one every other site was told to copy. Migrating it first is the fairest test of the interface: if the shape cannot express the original cleanly, the shape is wrong.
+
+Reads status, items and workflows.
+
+**Its tests must pass unmodified.** Any that need editing mean behaviour moved rather than code — stop and investigate rather than updating the test.
+
+Done (2026-08-09). All 43 sidebar tests pass **unmodified**.
+
+The cancel/rebind/seed dance is gone: three `listen` calls that outlive any number of session swaps, because the reader re-subscribes underneath. `_bindPrimary` went from ~40 lines of lifecycle to three subscriptions.
+
+**The migration was not one-for-one, and the difference is worth recording.** The old `_onOrchestratorChange` did two jobs at once — re-bind the primary, and rebuild so the roster rows reflect the session set. Only the first belongs to the reader. The roster is drawn from *every* session, not from the primary, so the sidebar still listens to the orchestrator directly; what it no longer does is bind through it. Anyone reading this as ''the reader replaced the orchestrator listener'' would be wrong.
+
+Absence stays the sidebar''s decision, per T-551: the reader reports `attached`, and clearing `_primaryStatus`/`_workflows` on detach is this surface''s answer (a stale status would read as a live session). The pane and the companion adapter give different answers to the same question, which is why the reader does not pick one.
+
+**One real bug, caught by the tests rather than by review:** the cascade `SessionReader.primary(...)..addListener(...)..start()` reads well and is wrong — `start` binds synchronously and notifies, re-entering the listener while the `late final` field was still unassigned. Assignment now precedes `start`. A migration that had *edited* its tests to pass would have shipped this.
+
+Full suite 8 + 4235 + 50.', NULL, '2026-08-09 15:50:44', '2026-08-09 15:50:44.590', '2026-08-09 15:50:44.590', NULL, '6efd12c01c0c1a745965e92ededfe606', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0JE00Z8KD783CKCREYS44', 'status', 'in_progress', 'review', NULL, '2026-08-09 15:50:44', '2026-08-09 15:50:44.615', '2026-08-09 15:50:44.615', NULL, '3f2bfb9d20010ee491c4b82cba408dba', 2) ON CONFLICT(hash) DO NOTHING;

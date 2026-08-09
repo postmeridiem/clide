@@ -12856,3 +12856,204 @@ Also forwards T-557''s new `phase` and `turnOutcomes`, so Epic D gets them witho
 11 tests against a fake orchestrator: spawn, close, respawn, hide/show churn, late binding to an already-dead session, no double-forwarding after a rebind, teardown. **No test seam was added to `StreamJsonSession`** — the fake process gained a `die()` that completes its `exitCode`, so the end path runs through `_onExit` in production code rather than being forced.
 
 Full suite 8 + 4235 + 50, everything else unmodified. **R2–R5 unblocked.**', 'review', 'high', NULL, NULL, NULL, '2026-08-09 14:51:48.569', '2026-08-09 15:42:02.591', NULL, '36b7c6a56d2c184f333bdb8d7060d5d9', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0HHV0KW6HHDH4AEKK27Q4', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R1: The session reader interface — bind, rebind, seed, dispose', 'The interface itself, with nothing migrated onto it yet.
+
+Session-agnostic from the start: it reads **a** session, not **the** primary one. The fourth consumer (Epic D''s companion) binds a different id, and a design that hardcodes ''primary'' fails on day one — primary-tracking should fall out as a thin case of the general thing, not the other way round.
+
+Must encode the three hazards the existing copies each rediscovered:
+
+- seed before subscribe for the streams that do not replay (`endedStream`, `modelErrors`), so a late binder is not told a dead session is alive;
+- cancel before rebinding, because the orchestrator notifies on show/hide/mute as well as spawn/close and a missed cancel doubles every later event;
+- release everything on dispose, orchestrator listener included.
+
+Design it by reading the three existing call sites — `claude_pane.dart`, `claude_meta_sidebar.dart:205`, `load_adapter.dart` — rather than from the epic''s prose. They disagree in small ways and those disagreements are the specification.
+
+Done when it exists, is tested against a fake orchestrator (spawn, close, respawn, session-id resolution), and at least one consumer could plausibly move onto it — but no consumer has yet, so this lands green on its own.
+
+Done (2026-08-09).
+
+`SessionReader` — follows one session id, forwards everything it reports, and survives the session being replaced underneath. Consumers subscribe once and never touch the orchestrator.
+
+**Designed from the disagreements between the three call sites, as the ticket asked.** Each one settled a question:
+
+- **Absence.** The pane spawns, the sidebar clears its panel, the adapter publishes ''nothing is running''. Three answers, all correct for their surface — so the reader *reports* absence via `attached` and never interprets it. It does drop `busy` to false and the phase to idle, because a vanished session must not leave anything believing a turn is in flight.
+- **Seeding.** The pane seeds `end` by hand (`endedStream` has no replay); the sidebar seeds `status` by hand even though it does replay; the adapter seeds nothing. The reader seeds what needs it, so no caller has to know which streams replay — which is the hazard, since nothing in the type says.
+- **Rebinding.** Sidebar and adapter rebind on orchestrator notifications; the pane does not. Rebinding is correct and is built in, cancel-first.
+
+**Session-agnostic**, with a `SessionReader.primary` convenience over the general case rather than the reverse. Asserted directly: a reader for `clide.companion` stays unattached while a `primary` session exists.
+
+Also forwards T-557''s new `phase` and `turnOutcomes`, so Epic D gets them without touching the session class.
+
+11 tests against a fake orchestrator: spawn, close, respawn, hide/show churn, late binding to an already-dead session, no double-forwarding after a rebind, teardown. **No test seam was added to `StreamJsonSession`** — the fake process gained a `die()` that completes its `exitCode`, so the end path runs through `_onExit` in production code rather than being forced.
+
+Full suite 8 + 4235 + 50, everything else unmodified. **R2–R5 unblocked.**', 'done', 'high', NULL, NULL, NULL, '2026-08-09 14:51:48.569', '2026-08-09 15:43:15.420', NULL, '43635bc055c0d8bf2903f93fb76ae5d4', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZXXPSAJWDTGX0Y3H2WMP0', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B5: App lifecycle observation — suspend while the window is minimised', 'The `night` rung for a **minimised window** — the one case collapse and hide do
+not already cover, because a minimised window keeps its widget tree mounted and
+its tickers running.
+
+## This is a new capability for the codebase, and should be reviewed as one
+
+There is no `WidgetsBindingObserver`, `didChangeAppLifecycleState`, or
+`AppLifecycleState` handling anywhere in `lib/` — zero hits — and `TickerMode` is
+unused. `main.dart` carries a comment noting lifecycle is not wired.
+
+So this is **not** a companion detail smuggled in as a widget change. Add it at
+the kernel, where anything else that should quiesce when the window is not
+visible can reach it: a terminal repaint, a future poll, the graph''s simulation.
+Its own commit, reviewed on its own terms.
+
+Guidance from D-107, which chose the CLI over an API partly on "no new
+capability without a reason": the reason here is that an IDE which spins the GPU
+while minimised is a defect the user feels as fan noise and battery, and "we will
+optimise later" has no test.
+
+## Also honour the preference
+
+`app.companion.suspendWhenMinimised` already exists (T-527) and is currently read
+by nobody. This ticket is what makes it mean something. Default is on; off means
+the companion keeps animating while minimised, which is a choice someone may
+legitimately make on a desktop machine.
+
+## Watch for
+
+- Linux/X11 lifecycle reporting is not uniform across desktop environments —
+  verify what actually arrives rather than trusting the enum. A rung that never
+  triggers is worse than no rung, because it reads as done.
+- Resuming must restore, not restart: coming back from minimised should not look
+  like the field being seeded from scratch.
+- Test through the binding''s lifecycle hook rather than a real minimise.
+
+Done (2026-08-09).
+
+## Shipped
+
+`AppLifecycle` in the kernel (`lib/kernel/src/lifecycle.dart`) — the codebase''s
+first `WidgetsBindingObserver`. A `ChangeNotifier` reporting `visible`, wired
+into `KernelServices` so a terminal repaint, the graph''s simulation or a future
+poll can reach it without each inventing its own. It reports; it does not decide.
+
+The companion consumes it in `_Suspendable` and honours
+`app.companion.suspendWhenMinimised`, which had existed since T-527 and was read
+by nobody.
+
+## Verified on the platform rather than trusted
+
+The ticket warned that a rung which never fires reads as done. Checked by
+minimising the real window with `xdotool` and watching the transitions:
+
+```
+minimise: resumed -> inactive -> hidden
+restore:  hidden  -> inactive -> resumed
+```
+
+So `hidden` does arrive on Linux/GTK (X11 under XWayland, which is what
+`make run` selects). It also showed something worth more than the confirmation:
+**`inactive` appears in transit on both edges.** That is a second, independent
+reason it must not count as hidden — beyond "clicking another app leaves clide
+visible", treating `inactive` as hidden would flicker the surface off and on
+every time the window is restored.
+
+## `TickerMode`, not unmount or stop
+
+The requirement was restore-not-restart. Muting leaves the element — and so the
+rain field — exactly where it was, so coming back continues instead of reseeding
+and looking like the rain just started. Freezing mid-fall is right here precisely
+because nobody can see it while minimised; dormancy (T-540) drains instead,
+because there the user may be watching when it happens. Asserted by identity: the
+strip element must be the same object across a minimise/restore cycle.
+
+## One regression, caught by the suite
+
+Starting the observer during `KernelServices.boot` made the kernel require a
+widget binding — 183 tests failed, every plain `test()` that boots the fixture.
+That was a real defect, not a test problem: the kernel boots headless (IPC
+server, CLI paths) and must not need a widget layer. `start()` now resolves the
+binding defensively and no-ops without one, leaving `visible` true — headless
+clide has no window, so nothing should suspend on its account.
+
+The guarded read is deliberate ugliness: Flutter offers no non-throwing accessor
+for `WidgetsBinding.instance`, and the alternative was a kernel that cannot boot
+without a window.
+
+## Tests
+
+8 kernel (`test/kernel/lifecycle_test.dart`) and 6 companion
+(`suspend_minimised_test.dart`), driven through the binding''s lifecycle hook as
+the ticket specified rather than a real minimise. Full suite 8 + 4211 + 50.
+
+**Epic B is complete** with this — T-537 through T-541 all done.', 'done', 'medium', NULL, NULL, 'D-107', '2026-08-09 12:29:19.158', '2026-08-09 15:43:33.538', NULL, '92f638335253f507e116cf9e06c80ff0', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE6FCDATNHD4DKFW33JTDN0', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R0: Surface the signals the parser already discards — thinking, turn outcome', 'Precedes R1. The reader is shaped around what a session reports, so what it reports has to be right first.
+
+Verified on the wire at claude 2.1.226 (`docs/spikes/cc-stream-json-2.1.226.md`) and dropped by `_onStreamEvent`, which handles `message_start`, `content_block_delta` **gated on `text_delta`**, and `message_stop`:
+
+- **Thinking, live.** `content_block_start` with `content_block.type: ''thinking''`, then `thinking_delta` deltas, then `signature_delta`. Gives a real in-progress signal rather than the completed-block-only `AssistantThinkingMessage` we surface today.
+- **Turn outcome.** `result` carries `is_error`, `stop_reason`, `terminal_reason`, `api_error_status`; `_statusFromEvent` reads only `total_cost_usd` and the context window.
+
+Both are additions to `StreamJsonSession`, which this epic originally excluded — see the epic''s redesign note for why that boundary moved. Keep the licence narrow: surface what already arrives and is discarded, nothing speculative.
+
+**Traps to honour:**
+- `system/thinking_tokens` is the CLI''s own estimate from delta sizes, counts the signature blob as thinking, and read 99 against an authoritative 36. Do not surface it as a count; if surfaced at all, name it so nobody sums it.
+- Do not derive ''is streaming'' from the `partial-` uuid prefix — the final assistant event is rewritten to carry it. That is what the new signals replace.
+
+**Existing consumers must not change behaviour.** Nothing reads these today, so every existing test passes unmodified — same acceptance check as the migrations.
+
+Done (2026-08-09).
+
+`TurnPhase` (idle / thinking / answering) as a replay-latest stream, and `TurnOutcome` (isError, stopReason, terminalReason, apiErrorStatus) as a per-turn event. Both parsed from envelopes clide was already receiving and discarding.
+
+**Phase comes from `content_block_start`**, not from the deltas. That is the piece that makes thinking observable: the deltas carry only `thinking_delta`/`text_delta` and the thinking ones were dropped by the `text_delta` gate, but the block announces its own type before any of them arrive.
+
+Two edges worth naming:
+
+- **`message_stop` resets the phase, not just `result`.** An interrupt or a dropped process ends a turn without a result, and the phase would otherwise stay stuck wherever it was.
+- **The phase is set to idle *before* the outcome is announced.** A listener reacting to a failure must not find the session still claiming to be answering.
+
+Replay on phase (a widget mounting mid-turn is normal), no replay on outcome (it is an event; a missed one is missed).
+
+Test envelopes are copied from the real 2.1.226 capture rather than invented — hand-written shapes are how the old assumptions survived, and `system/thinking_tokens` is deliberately not surfaced at all: it is the CLI''s own estimate, counts the signature blob, and read 99 against an authoritative 36.
+
+13 tests. Full suite 8 + 4224 + 50, **every existing test unmodified** — the epic''s acceptance check, and here it is also the evidence these are additive rather than a behaviour change.', 'done', 'high', NULL, NULL, NULL, '2026-08-09 15:17:43.659', '2026-08-09 15:43:44.875', NULL, '7e6bcb004a4c06719e5f02fda3804b8e', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0JE00Z8KD783CKCREYS44', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R2: Move the meta sidebar onto the reader', '`claude_meta_sidebar.dart:205` `_bindPrimary()` — the canonical cancel/rebind/seed dance, and the one every other site was told to copy. Migrating it first is the fairest test of the interface: if the shape cannot express the original cleanly, the shape is wrong.
+
+Reads status, items and workflows.
+
+**Its tests must pass unmodified.** Any that need editing mean behaviour moved rather than code — stop and investigate rather than updating the test.', 'in_progress', 'high', NULL, NULL, NULL, '2026-08-09 14:51:55.777', '2026-08-09 15:43:52.350', NULL, 'eba196b709efe7faf1a63e042f42fffb', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0JE00Z8KD783CKCREYS44', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R2: Move the meta sidebar onto the reader', '`claude_meta_sidebar.dart:205` `_bindPrimary()` — the canonical cancel/rebind/seed dance, and the one every other site was told to copy. Migrating it first is the fairest test of the interface: if the shape cannot express the original cleanly, the shape is wrong.
+
+Reads status, items and workflows.
+
+**Its tests must pass unmodified.** Any that need editing mean behaviour moved rather than code — stop and investigate rather than updating the test.', 'in_progress', 'high', NULL, NULL, NULL, '2026-08-09 14:51:55.777', '2026-08-09 15:43:59.011', NULL, '1cc075eee37bf3cbc383f8f0e94267b8', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0JE00Z8KD783CKCREYS44', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R2: Move the meta sidebar onto the reader', '`claude_meta_sidebar.dart:205` `_bindPrimary()` — the canonical cancel/rebind/seed dance, and the one every other site was told to copy. Migrating it first is the fairest test of the interface: if the shape cannot express the original cleanly, the shape is wrong.
+
+Reads status, items and workflows.
+
+**Its tests must pass unmodified.** Any that need editing mean behaviour moved rather than code — stop and investigate rather than updating the test.
+
+Done (2026-08-09). All 43 sidebar tests pass **unmodified**.
+
+The cancel/rebind/seed dance is gone: three `listen` calls that outlive any number of session swaps, because the reader re-subscribes underneath. `_bindPrimary` went from ~40 lines of lifecycle to three subscriptions.
+
+**The migration was not one-for-one, and the difference is worth recording.** The old `_onOrchestratorChange` did two jobs at once — re-bind the primary, and rebuild so the roster rows reflect the session set. Only the first belongs to the reader. The roster is drawn from *every* session, not from the primary, so the sidebar still listens to the orchestrator directly; what it no longer does is bind through it. Anyone reading this as ''the reader replaced the orchestrator listener'' would be wrong.
+
+Absence stays the sidebar''s decision, per T-551: the reader reports `attached`, and clearing `_primaryStatus`/`_workflows` on detach is this surface''s answer (a stale status would read as a live session). The pane and the companion adapter give different answers to the same question, which is why the reader does not pick one.
+
+**One real bug, caught by the tests rather than by review:** the cascade `SessionReader.primary(...)..addListener(...)..start()` reads well and is wrong — `start` binds synchronously and notifies, re-entering the listener while the `late final` field was still unassigned. Assignment now precedes `start`. A migration that had *edited* its tests to pass would have shipped this.
+
+Full suite 8 + 4235 + 50.', 'in_progress', 'high', NULL, NULL, NULL, '2026-08-09 14:51:55.777', '2026-08-09 15:50:44.590', NULL, '7437c2051b923aa8071a23733ed69601', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0JE00Z8KD783CKCREYS44', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R2: Move the meta sidebar onto the reader', '`claude_meta_sidebar.dart:205` `_bindPrimary()` — the canonical cancel/rebind/seed dance, and the one every other site was told to copy. Migrating it first is the fairest test of the interface: if the shape cannot express the original cleanly, the shape is wrong.
+
+Reads status, items and workflows.
+
+**Its tests must pass unmodified.** Any that need editing mean behaviour moved rather than code — stop and investigate rather than updating the test.
+
+Done (2026-08-09). All 43 sidebar tests pass **unmodified**.
+
+The cancel/rebind/seed dance is gone: three `listen` calls that outlive any number of session swaps, because the reader re-subscribes underneath. `_bindPrimary` went from ~40 lines of lifecycle to three subscriptions.
+
+**The migration was not one-for-one, and the difference is worth recording.** The old `_onOrchestratorChange` did two jobs at once — re-bind the primary, and rebuild so the roster rows reflect the session set. Only the first belongs to the reader. The roster is drawn from *every* session, not from the primary, so the sidebar still listens to the orchestrator directly; what it no longer does is bind through it. Anyone reading this as ''the reader replaced the orchestrator listener'' would be wrong.
+
+Absence stays the sidebar''s decision, per T-551: the reader reports `attached`, and clearing `_primaryStatus`/`_workflows` on detach is this surface''s answer (a stale status would read as a live session). The pane and the companion adapter give different answers to the same question, which is why the reader does not pick one.
+
+**One real bug, caught by the tests rather than by review:** the cascade `SessionReader.primary(...)..addListener(...)..start()` reads well and is wrong — `start` binds synchronously and notifies, re-entering the listener while the `late final` field was still unassigned. Assignment now precedes `start`. A migration that had *edited* its tests to pass would have shipped this.
+
+Full suite 8 + 4235 + 50.', 'review', 'high', NULL, NULL, NULL, '2026-08-09 14:51:55.777', '2026-08-09 15:50:44.615', NULL, '9e82f83e940240770a6fa96dee24dcc5', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

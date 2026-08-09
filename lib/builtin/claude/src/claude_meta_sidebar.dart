@@ -36,6 +36,7 @@ import 'package:clide/builtin/claude/src/meta_sidebar/models.dart';
 import 'package:clide/builtin/claude/src/meta_sidebar/tab_strip.dart';
 import 'package:clide/builtin/claude/src/meta_sidebar/team_tab.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
+import 'package:clide/builtin/claude/src/session_reader.dart';
 import 'package:clide/builtin/claude/src/team_broker.dart' show TeamBroker, TeamTask;
 import 'package:clide/builtin/claude/src/claude_status.dart' show ClaudeUsage, parseUsageText;
 import 'package:clide/builtin/claude/src/transcript_publisher.dart' show ClaudeConversation;
@@ -100,6 +101,12 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
   late SidebarTab _tab = widget.initialTab;
   ClaudeConfig? _config;
   ClaudeSessionOrchestrator? _orchestrator;
+
+  /// Follows the primary session across respawns so this class never has to
+  /// (T-552). The roster still watches the orchestrator directly — that is a
+  /// different question, about every session rather than one.
+  late final SessionReader _reader;
+
   SessionStatus? _primaryStatus;
 
   // T-183: Config accordion expansion state — each section starts collapsed.
@@ -119,7 +126,14 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     _orchestrator = widget.orchestrator ?? activeSessionOrchestrator;
     _config?.addListener(_onConfigChange);
     _orchestrator?.addListener(_onOrchestratorChange);
+    // Assigned before `start()`, deliberately: start binds synchronously and
+    // notifies, and a cascade would re-enter `_onPrimaryBindingChanged` while
+    // `_reader` was still uninitialised.
+    _reader = SessionReader.primary(orchestrator: _orchestrator);
     _bindPrimary();
+    _reader
+      ..addListener(_onPrimaryBindingChanged)
+      ..start();
     _subscribeBroker();
     unawaited(_refreshStats());
     if (widget.pollInterval > Duration.zero) {
@@ -194,50 +208,51 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
 
   /// (Re)bind to the primary managed session's status as the orchestrator's set
   /// changes — the Activity runtime row reflects the live session.
-  /// The orchestrator notifies on any session change (spawn/close, and the
-  /// visible/muted toggles the cockpit controls drive). Re-bind the primary
-  /// status stream and rebuild so the roster rows reflect the new state.
+  ///
+  /// The **roster** still needs this: the orchestrator notifies on any session
+  /// change (spawn/close, and the visible/muted toggles the cockpit controls
+  /// drive), and the roster rows are drawn from the whole session set, not from
+  /// the primary. Binding to the primary is no longer this method's job — the
+  /// [SessionReader] owns that (T-552) — so all that remains here is the
+  /// rebuild.
   void _onOrchestratorChange() {
-    _bindPrimary();
     if (mounted) setState(() {});
   }
 
-  void _bindPrimary() {
-    final session = _orchestrator?.byId('primary')?.session;
-    _primarySub?.cancel();
-    _primarySub = null;
-    _primaryItemsSub?.cancel();
-    _primaryItemsSub = null;
-    _primaryWorkflowsSub?.cancel();
-    _primaryWorkflowsSub = null;
-    if (session == null) {
-      if (mounted && (_primaryStatus != null || _workflows.isNotEmpty)) {
-        setState(() {
-          _primaryStatus = null;
-          _workflows = const {};
-        });
-      }
+  /// The primary's binding changed: attached, detached, or swapped for a new
+  /// process. Only the *binding* — the reader does not notify per event, so
+  /// this does not fire on every status tick.
+  void _onPrimaryBindingChanged() {
+    if (!mounted) return;
+    // Absence is reported, not interpreted (T-551), so clearing is the
+    // sidebar's decision to make: an unbound primary has no status and no
+    // workflows, and stale ones would read as a live session.
+    if (!_reader.attached && (_primaryStatus != null || _workflows.isNotEmpty)) {
+      setState(() {
+        _primaryStatus = null;
+        _workflows = const {};
+      });
       return;
     }
-    final seed = session.status;
-    if (mounted) {
-      setState(() {
-        _primaryStatus = seed;
-        _workflows = session.workflows;
-      });
-    }
-    _primarySub = session.statusStream.listen((s) {
+    setState(() {});
+  }
+
+  /// Subscribe once. The reader re-subscribes underneath across respawns, so
+  /// these three outlive any number of session swaps — which is what removed
+  /// the cancel/rebind/seed dance this class used to own.
+  void _bindPrimary() {
+    _primarySub = _reader.status.listen((s) {
       if (mounted) setState(() => _primaryStatus = s);
     });
     // The Activity tab's WORKFLOWS section tracks the primary session's live
     // workflow runs (T-416).
-    _primaryWorkflowsSub = session.workflowsStream.listen((w) {
+    _primaryWorkflowsSub = _reader.workflows.listen((w) {
       if (mounted) setState(() => _workflows = w);
     });
     // Watch for /usage responses: CLI-local output arrives as synthetic
     // assistant text; when it parses as usage, the Activity block updates
     // (T-415). Driven by the refresh control publishing '/usage'.
-    _primaryItemsSub = session.items.listen((item) {
+    _primaryItemsSub = _reader.items.listen((item) {
       if (item is! AssistantTextMessage || !item.synthetic) return;
       final parsed = parseUsageText(item.text);
       if (parsed != null && mounted) setState(() => _usage = parsed);
@@ -297,6 +312,9 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     _injectCtl.dispose();
     _config?.removeListener(_onConfigChange);
     _orchestrator?.removeListener(_onOrchestratorChange);
+    _reader
+      ..removeListener(_onPrimaryBindingChanged)
+      ..dispose();
     super.dispose();
   }
 
