@@ -16,6 +16,7 @@ export 'src/events/filter_state.dart';
 export 'src/events/message_bus.dart';
 export 'src/events/types.dart';
 export 'src/ipc/client.dart';
+export 'src/lifecycle.dart';
 export 'src/log.dart';
 export 'src/file_log_sink.dart';
 export 'src/watchdog.dart';

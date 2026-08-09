@@ -8365,3 +8365,135 @@ several tickets this session needed visual corrections that no test caught
 Confirmed 2026-08-09: **`review` is already a valid pql status** — `pql ticket status <id> review` is accepted and reads back. So the open question at the bottom of this ticket resolves cleanly and the change really is just prompt text plus its test.
 
 Adopted immediately by hand on T-540 while this ticket waits: work recorded on the ticket, `/git-commit` run, status left at `review` rather than `done`, and a two-sentence summary put to the user. Worth checking the board renders a `review` column sensibly before this lands, since it will start appearing routinely.', NULL, '2026-08-09 13:49:42', '2026-08-09 13:49:42.565', '2026-08-09 13:49:42.565', NULL, '46ed46cad9460f46f6f988756304e5e7', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZHT6CG6NY0W2Y9AAGMCCG', 'status', 'review', 'done', NULL, '2026-08-09 13:57:56', '2026-08-09 13:57:56.848', '2026-08-09 13:57:56.848', NULL, '78b0cc32aa838f5a1f56359b8feefce9', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZXXPSAJWDTGX0Y3H2WMP0', 'status', 'backlog', 'in_progress', NULL, '2026-08-09 13:58:10', '2026-08-09 13:58:10.551', '2026-08-09 13:58:10.551', NULL, 'c31d2a0fb77b3c1462aff6c2dc865796', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZXXPSAJWDTGX0Y3H2WMP0', 'status', 'in_progress', 'in_progress', NULL, '2026-08-09 13:58:18', '2026-08-09 13:58:18.017', '2026-08-09 13:58:18.017', NULL, 'b3753ca6d8a03669212125464fd8acbc', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZXXPSAJWDTGX0Y3H2WMP0', 'description', 'The `night` rung for a **minimised window** — the one case collapse and hide do
+not already cover, because a minimised window keeps its widget tree mounted and
+its tickers running.
+
+## This is a new capability for the codebase, and should be reviewed as one
+
+There is no `WidgetsBindingObserver`, `didChangeAppLifecycleState`, or
+`AppLifecycleState` handling anywhere in `lib/` — zero hits — and `TickerMode` is
+unused. `main.dart` carries a comment noting lifecycle is not wired.
+
+So this is **not** a companion detail smuggled in as a widget change. Add it at
+the kernel, where anything else that should quiesce when the window is not
+visible can reach it: a terminal repaint, a future poll, the graph''s simulation.
+Its own commit, reviewed on its own terms.
+
+Guidance from D-107, which chose the CLI over an API partly on "no new
+capability without a reason": the reason here is that an IDE which spins the GPU
+while minimised is a defect the user feels as fan noise and battery, and "we will
+optimise later" has no test.
+
+## Also honour the preference
+
+`app.companion.suspendWhenMinimised` already exists (T-527) and is currently read
+by nobody. This ticket is what makes it mean something. Default is on; off means
+the companion keeps animating while minimised, which is a choice someone may
+legitimately make on a desktop machine.
+
+## Watch for
+
+- Linux/X11 lifecycle reporting is not uniform across desktop environments —
+  verify what actually arrives rather than trusting the enum. A rung that never
+  triggers is worse than no rung, because it reads as done.
+- Resuming must restore, not restart: coming back from minimised should not look
+  like the field being seeded from scratch.
+- Test through the binding''s lifecycle hook rather than a real minimise.', 'The `night` rung for a **minimised window** — the one case collapse and hide do
+not already cover, because a minimised window keeps its widget tree mounted and
+its tickers running.
+
+## This is a new capability for the codebase, and should be reviewed as one
+
+There is no `WidgetsBindingObserver`, `didChangeAppLifecycleState`, or
+`AppLifecycleState` handling anywhere in `lib/` — zero hits — and `TickerMode` is
+unused. `main.dart` carries a comment noting lifecycle is not wired.
+
+So this is **not** a companion detail smuggled in as a widget change. Add it at
+the kernel, where anything else that should quiesce when the window is not
+visible can reach it: a terminal repaint, a future poll, the graph''s simulation.
+Its own commit, reviewed on its own terms.
+
+Guidance from D-107, which chose the CLI over an API partly on "no new
+capability without a reason": the reason here is that an IDE which spins the GPU
+while minimised is a defect the user feels as fan noise and battery, and "we will
+optimise later" has no test.
+
+## Also honour the preference
+
+`app.companion.suspendWhenMinimised` already exists (T-527) and is currently read
+by nobody. This ticket is what makes it mean something. Default is on; off means
+the companion keeps animating while minimised, which is a choice someone may
+legitimately make on a desktop machine.
+
+## Watch for
+
+- Linux/X11 lifecycle reporting is not uniform across desktop environments —
+  verify what actually arrives rather than trusting the enum. A rung that never
+  triggers is worse than no rung, because it reads as done.
+- Resuming must restore, not restart: coming back from minimised should not look
+  like the field being seeded from scratch.
+- Test through the binding''s lifecycle hook rather than a real minimise.
+
+Done (2026-08-09).
+
+## Shipped
+
+`AppLifecycle` in the kernel (`lib/kernel/src/lifecycle.dart`) — the codebase''s
+first `WidgetsBindingObserver`. A `ChangeNotifier` reporting `visible`, wired
+into `KernelServices` so a terminal repaint, the graph''s simulation or a future
+poll can reach it without each inventing its own. It reports; it does not decide.
+
+The companion consumes it in `_Suspendable` and honours
+`app.companion.suspendWhenMinimised`, which had existed since T-527 and was read
+by nobody.
+
+## Verified on the platform rather than trusted
+
+The ticket warned that a rung which never fires reads as done. Checked by
+minimising the real window with `xdotool` and watching the transitions:
+
+```
+minimise: resumed -> inactive -> hidden
+restore:  hidden  -> inactive -> resumed
+```
+
+So `hidden` does arrive on Linux/GTK (X11 under XWayland, which is what
+`make run` selects). It also showed something worth more than the confirmation:
+**`inactive` appears in transit on both edges.** That is a second, independent
+reason it must not count as hidden — beyond "clicking another app leaves clide
+visible", treating `inactive` as hidden would flicker the surface off and on
+every time the window is restored.
+
+## `TickerMode`, not unmount or stop
+
+The requirement was restore-not-restart. Muting leaves the element — and so the
+rain field — exactly where it was, so coming back continues instead of reseeding
+and looking like the rain just started. Freezing mid-fall is right here precisely
+because nobody can see it while minimised; dormancy (T-540) drains instead,
+because there the user may be watching when it happens. Asserted by identity: the
+strip element must be the same object across a minimise/restore cycle.
+
+## One regression, caught by the suite
+
+Starting the observer during `KernelServices.boot` made the kernel require a
+widget binding — 183 tests failed, every plain `test()` that boots the fixture.
+That was a real defect, not a test problem: the kernel boots headless (IPC
+server, CLI paths) and must not need a widget layer. `start()` now resolves the
+binding defensively and no-ops without one, leaving `visible` true — headless
+clide has no window, so nothing should suspend on its account.
+
+The guarded read is deliberate ugliness: Flutter offers no non-throwing accessor
+for `WidgetsBinding.instance`, and the alternative was a kernel that cannot boot
+without a window.
+
+## Tests
+
+8 kernel (`test/kernel/lifecycle_test.dart`) and 6 companion
+(`suspend_minimised_test.dart`), driven through the binding''s lifecycle hook as
+the ticket specified rather than a real minimise. Full suite 8 + 4211 + 50.
+
+**Epic B is complete** with this — T-537 through T-541 all done.', NULL, '2026-08-09 14:22:19', '2026-08-09 14:22:19.780', '2026-08-09 14:22:19.780', NULL, '98e6ba0de5d090330aef15e2b70dc76f', 2) ON CONFLICT(hash) DO NOTHING;

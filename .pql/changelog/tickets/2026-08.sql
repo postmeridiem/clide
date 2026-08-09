@@ -9695,3 +9695,271 @@ several tickets this session needed visual corrections that no test caught
 Confirmed 2026-08-09: **`review` is already a valid pql status** — `pql ticket status <id> review` is accepted and reads back. So the open question at the bottom of this ticket resolves cleanly and the change really is just prompt text plus its test.
 
 Adopted immediately by hand on T-540 while this ticket waits: work recorded on the ticket, `/git-commit` run, status left at `review` rather than `done`, and a two-sentence summary put to the user. Worth checking the board renders a `review` column sensibly before this lands, since it will start appearing routinely.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-09 13:41:51.402', '2026-08-09 13:49:42.564', NULL, 'ce45ee94aea1e915ef6c09712b2a9d71', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZHT6CG6NY0W2Y9AAGMCCG', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B4: Power ladder — ambient and dormant rungs, each proved to park the loop', 'D-107 commitment 4: the ladder is a contract, not an optimisation. A
+continuously animated surface in an IDE must **prove it stops**.
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | no ticker at all | panel collapsed or hidden, window minimised |
+
+## What is already done, and should be credited rather than rebuilt
+
+- **`night` via collapse/hide is free.** `layout.dart` renders a spine or nothing
+  for a collapsed or hidden slot, so `SlotHost` unmounts and the ticker disposes.
+  Same for the companion being disabled or minimised (T-527/T-528) — those
+  remove the widget outright.
+- **Reduced motion** is already a hard gate in `ClideFace`, asserted by the
+  `pumpAndSettle` wedge-guard test.
+- **The loop already parks when there is nothing to animate** — `_isQuiescent` +
+  `_syncTicker`, tested for the `error`-over-drained-field case.
+
+So the genuinely new work here is `ambient` and `dormant`: an idle timer that
+drops density after a few minutes and then stops the ticker entirely, and the
+path back up when something happens.
+
+## The test is the deliverable
+
+A rung that is not asserted is decoration. Each must be proved to *stop the
+render loop*, not merely to draw less — the existing power-ladder test is the
+pattern (`clide_face_test.dart`, "error over a drained field stops ticking").
+
+Bounded pumps only. Do not use `pumpAndSettle` to wait out a ten-minute timer;
+make the interval injectable so a test can drive it in milliseconds without a
+real wait, and keep the production default honest.
+
+## Watch for
+
+- Waking from `dormant` must not pop — the field ramps, and a state change that
+  restarts the ticker with an empty field should fill rather than appear.
+- The idle timer must not itself keep the loop alive: a `Timer` that fires every
+  second to check whether things are quiet is the failure this rung exists to
+  prevent.
+
+Done (2026-08-09).
+
+## The rung was worse than "not built" — it was impossible
+
+The ticket says the loop already parks when there is nothing to animate, citing
+the `error`-over-drained-field test. True, but that case is unreachable at rest:
+`idle` sets `blink`, and `_isQuiescent` refused to park while *any* face
+animation was live. So a strip left alone drew forever, however empty the field
+— the exact defect D-107 commitment 4 exists to forbid, sitting in the code with
+a passing test beside it that looked like proof it did not.
+
+Dormancy therefore has to override the face''s own animations, not just drain the
+rain. That is the substantive design point and it is why `dormant` is a state on
+the widget rather than a load level.
+
+## Shipped
+
+- `dormantAfter` (default `kDormantAfter`, ten minutes; `Duration.zero`
+  disables). Injectable because a test that waits ten real minutes never runs,
+  and an unasserted rung is decoration.
+- A **one-shot** `Timer`, rescheduled on activity — never periodic. A timer
+  waking every second to ask whether things are quiet is precisely the drain
+  this rung removes.
+- Dormant reads the load as `absent`, so the field **drains** rather than
+  freezing mid-fall; glyphs stopped in mid-air read as a hang, not as rest. Once
+  drained there is nothing left and the ticker parks.
+- Activity = any change to load, state, gaze or `busyFor`. A running turn ticks
+  `busyFor` every second, which is the clearest possible sign to stay awake.
+
+## The frozen frame had to be made deterministic
+
+Stopping the clock freezes every cycle derived from it, so the face would rest at
+whatever phase it happened to reach — roughly one time in thirty, mid-blink. A
+face sitting with its eyes shut until you touch something reads as a hang. The
+painter takes `resting`, which draws the still frame: no blink, no talk cycle,
+no thought dots, no jitter, no breathe. Same frame every time.
+
+## `ambient` and `night` were already done and are credited, not rebuilt
+
+`ambient` is `calm` — a real but small density, now asserted so that making it
+zero fails here rather than silently stilling the strip. `night` is the widget
+being gone: collapse, hide, disable (T-527) and minimise (T-528) all unmount it,
+so the rung is a teardown assertion.
+
+## Tests
+
+10 in `power_ladder_test.dart`, every one against `transientCallbackCount` —
+whether the loop is *running*, not whether it draws less. Bounded pumps
+throughout; no `pumpAndSettle` anywhere near a live ticker.
+
+One budget worth knowing: the wake-then-sleep test needs ~12s of pumped time,
+because dormancy drains rather than freezes and at `calm` the streams fall at
+four cells a second with per-stream jitter. A tight budget there fails for the
+drain being slow rather than for dormancy being broken — it cost one iteration
+to find.
+
+Full suite 8 + 4197 + 50.
+
+**Not covered here:** minimise. That needs app-lifecycle observation, which the
+codebase has nowhere, and is T-541.', 'done', 'medium', NULL, NULL, 'D-107', '2026-08-09 12:27:39.955', '2026-08-09 13:57:56.848', NULL, 'f78ec561ddff6f01ba95d2f33e005d8b', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZXXPSAJWDTGX0Y3H2WMP0', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B5: App lifecycle observation — suspend while the window is minimised', 'The `night` rung for a **minimised window** — the one case collapse and hide do
+not already cover, because a minimised window keeps its widget tree mounted and
+its tickers running.
+
+## This is a new capability for the codebase, and should be reviewed as one
+
+There is no `WidgetsBindingObserver`, `didChangeAppLifecycleState`, or
+`AppLifecycleState` handling anywhere in `lib/` — zero hits — and `TickerMode` is
+unused. `main.dart` carries a comment noting lifecycle is not wired.
+
+So this is **not** a companion detail smuggled in as a widget change. Add it at
+the kernel, where anything else that should quiesce when the window is not
+visible can reach it: a terminal repaint, a future poll, the graph''s simulation.
+Its own commit, reviewed on its own terms.
+
+Guidance from D-107, which chose the CLI over an API partly on "no new
+capability without a reason": the reason here is that an IDE which spins the GPU
+while minimised is a defect the user feels as fan noise and battery, and "we will
+optimise later" has no test.
+
+## Also honour the preference
+
+`app.companion.suspendWhenMinimised` already exists (T-527) and is currently read
+by nobody. This ticket is what makes it mean something. Default is on; off means
+the companion keeps animating while minimised, which is a choice someone may
+legitimately make on a desktop machine.
+
+## Watch for
+
+- Linux/X11 lifecycle reporting is not uniform across desktop environments —
+  verify what actually arrives rather than trusting the enum. A rung that never
+  triggers is worse than no rung, because it reads as done.
+- Resuming must restore, not restart: coming back from minimised should not look
+  like the field being seeded from scratch.
+- Test through the binding''s lifecycle hook rather than a real minimise.', 'in_progress', 'medium', NULL, NULL, 'D-107', '2026-08-09 12:29:19.158', '2026-08-09 13:58:10.551', NULL, 'fa7aa57f1a1b583e42f7da2a2c897b54', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZXXPSAJWDTGX0Y3H2WMP0', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B5: App lifecycle observation — suspend while the window is minimised', 'The `night` rung for a **minimised window** — the one case collapse and hide do
+not already cover, because a minimised window keeps its widget tree mounted and
+its tickers running.
+
+## This is a new capability for the codebase, and should be reviewed as one
+
+There is no `WidgetsBindingObserver`, `didChangeAppLifecycleState`, or
+`AppLifecycleState` handling anywhere in `lib/` — zero hits — and `TickerMode` is
+unused. `main.dart` carries a comment noting lifecycle is not wired.
+
+So this is **not** a companion detail smuggled in as a widget change. Add it at
+the kernel, where anything else that should quiesce when the window is not
+visible can reach it: a terminal repaint, a future poll, the graph''s simulation.
+Its own commit, reviewed on its own terms.
+
+Guidance from D-107, which chose the CLI over an API partly on "no new
+capability without a reason": the reason here is that an IDE which spins the GPU
+while minimised is a defect the user feels as fan noise and battery, and "we will
+optimise later" has no test.
+
+## Also honour the preference
+
+`app.companion.suspendWhenMinimised` already exists (T-527) and is currently read
+by nobody. This ticket is what makes it mean something. Default is on; off means
+the companion keeps animating while minimised, which is a choice someone may
+legitimately make on a desktop machine.
+
+## Watch for
+
+- Linux/X11 lifecycle reporting is not uniform across desktop environments —
+  verify what actually arrives rather than trusting the enum. A rung that never
+  triggers is worse than no rung, because it reads as done.
+- Resuming must restore, not restart: coming back from minimised should not look
+  like the field being seeded from scratch.
+- Test through the binding''s lifecycle hook rather than a real minimise.', 'in_progress', 'medium', NULL, NULL, 'D-107', '2026-08-09 12:29:19.158', '2026-08-09 13:58:18.017', NULL, '44be3ad3459393c7b92e833de1619209', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZXXPSAJWDTGX0Y3H2WMP0', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B5: App lifecycle observation — suspend while the window is minimised', 'The `night` rung for a **minimised window** — the one case collapse and hide do
+not already cover, because a minimised window keeps its widget tree mounted and
+its tickers running.
+
+## This is a new capability for the codebase, and should be reviewed as one
+
+There is no `WidgetsBindingObserver`, `didChangeAppLifecycleState`, or
+`AppLifecycleState` handling anywhere in `lib/` — zero hits — and `TickerMode` is
+unused. `main.dart` carries a comment noting lifecycle is not wired.
+
+So this is **not** a companion detail smuggled in as a widget change. Add it at
+the kernel, where anything else that should quiesce when the window is not
+visible can reach it: a terminal repaint, a future poll, the graph''s simulation.
+Its own commit, reviewed on its own terms.
+
+Guidance from D-107, which chose the CLI over an API partly on "no new
+capability without a reason": the reason here is that an IDE which spins the GPU
+while minimised is a defect the user feels as fan noise and battery, and "we will
+optimise later" has no test.
+
+## Also honour the preference
+
+`app.companion.suspendWhenMinimised` already exists (T-527) and is currently read
+by nobody. This ticket is what makes it mean something. Default is on; off means
+the companion keeps animating while minimised, which is a choice someone may
+legitimately make on a desktop machine.
+
+## Watch for
+
+- Linux/X11 lifecycle reporting is not uniform across desktop environments —
+  verify what actually arrives rather than trusting the enum. A rung that never
+  triggers is worse than no rung, because it reads as done.
+- Resuming must restore, not restart: coming back from minimised should not look
+  like the field being seeded from scratch.
+- Test through the binding''s lifecycle hook rather than a real minimise.
+
+Done (2026-08-09).
+
+## Shipped
+
+`AppLifecycle` in the kernel (`lib/kernel/src/lifecycle.dart`) — the codebase''s
+first `WidgetsBindingObserver`. A `ChangeNotifier` reporting `visible`, wired
+into `KernelServices` so a terminal repaint, the graph''s simulation or a future
+poll can reach it without each inventing its own. It reports; it does not decide.
+
+The companion consumes it in `_Suspendable` and honours
+`app.companion.suspendWhenMinimised`, which had existed since T-527 and was read
+by nobody.
+
+## Verified on the platform rather than trusted
+
+The ticket warned that a rung which never fires reads as done. Checked by
+minimising the real window with `xdotool` and watching the transitions:
+
+```
+minimise: resumed -> inactive -> hidden
+restore:  hidden  -> inactive -> resumed
+```
+
+So `hidden` does arrive on Linux/GTK (X11 under XWayland, which is what
+`make run` selects). It also showed something worth more than the confirmation:
+**`inactive` appears in transit on both edges.** That is a second, independent
+reason it must not count as hidden — beyond "clicking another app leaves clide
+visible", treating `inactive` as hidden would flicker the surface off and on
+every time the window is restored.
+
+## `TickerMode`, not unmount or stop
+
+The requirement was restore-not-restart. Muting leaves the element — and so the
+rain field — exactly where it was, so coming back continues instead of reseeding
+and looking like the rain just started. Freezing mid-fall is right here precisely
+because nobody can see it while minimised; dormancy (T-540) drains instead,
+because there the user may be watching when it happens. Asserted by identity: the
+strip element must be the same object across a minimise/restore cycle.
+
+## One regression, caught by the suite
+
+Starting the observer during `KernelServices.boot` made the kernel require a
+widget binding — 183 tests failed, every plain `test()` that boots the fixture.
+That was a real defect, not a test problem: the kernel boots headless (IPC
+server, CLI paths) and must not need a widget layer. `start()` now resolves the
+binding defensively and no-ops without one, leaving `visible` true — headless
+clide has no window, so nothing should suspend on its account.
+
+The guarded read is deliberate ugliness: Flutter offers no non-throwing accessor
+for `WidgetsBinding.instance`, and the alternative was a kernel that cannot boot
+without a window.
+
+## Tests
+
+8 kernel (`test/kernel/lifecycle_test.dart`) and 6 companion
+(`suspend_minimised_test.dart`), driven through the binding''s lifecycle hook as
+the ticket specified rather than a real minimise. Full suite 8 + 4211 + 50.
+
+**Epic B is complete** with this — T-537 through T-541 all done.', 'in_progress', 'medium', NULL, NULL, 'D-107', '2026-08-09 12:29:19.158', '2026-08-09 14:22:19.780', NULL, 'd4e26fc585f365a5607a18c12ca54f97', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

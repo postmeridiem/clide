@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:clide/kernel/src/clipboard.dart';
 import 'package:clide/kernel/src/commands/keybindings.dart';
 import 'package:clide/kernel/src/keymap/keymap_service.dart';
+import 'package:clide/kernel/src/lifecycle.dart';
 import 'package:clide/kernel/src/text_zoom.dart';
 import 'package:clide/kernel/src/theme/theme_persistence.dart';
 import 'package:clide/kernel/src/toast.dart';
@@ -81,6 +82,7 @@ class KernelServices {
     required this.scheduler,
     required this.keymap,
     required this.textZoom,
+    required this.lifecycle,
     required this.toast,
     required this.logRing,
     required this.settingsRegistry,
@@ -132,6 +134,10 @@ class KernelServices {
   final KeymapService keymap;
   final TextZoom textZoom;
   final ToastService toast;
+
+  /// Whether the window is on screen — for anything that should stop working
+  /// when nobody can see it (T-541).
+  final AppLifecycle lifecycle;
 
   /// Bounded retention of [log] records, for the output dock (T-54 / D-87).
   final LogRing logRing;
@@ -201,6 +207,9 @@ class KernelServices {
     scheduler.start();
     final textZoom = TextZoom();
     final toast = ToastService(messages: messages);
+    // Registers a WidgetsBindingObserver, so it needs the binding to exist —
+    // true by boot time in the app, and true under the test binding.
+    final lifecycle = AppLifecycle()..start();
     final project = ProjectManager(
       log: log,
       events: events,
@@ -296,6 +305,7 @@ class KernelServices {
       keymap: keymap,
       textZoom: textZoom,
       toast: toast,
+      lifecycle: lifecycle,
     );
   }
 
@@ -325,6 +335,7 @@ class KernelServices {
     await scheduler.dispose();
     keymap.dispose();
     textZoom.dispose();
+    lifecycle.dispose();
     await log.dispose();
     filterStates.dispose();
     messages.dispose();

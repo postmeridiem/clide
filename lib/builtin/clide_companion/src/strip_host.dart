@@ -15,6 +15,7 @@ import 'dart:async';
 
 import 'package:clide/builtin/clide_companion/src/clide_strip.dart';
 import 'package:clide/builtin/clide_companion/src/companion_state.dart';
+import 'package:clide/kernel/src/facade.dart' show ClideKernel;
 import 'package:flutter/widgets.dart';
 
 class ClideStripHost extends StatelessWidget {
@@ -22,7 +23,36 @@ class ClideStripHost extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CompanionStateBuilder(builder: (context, state) => state.stripVisible ? _Strip(state: state) : const SizedBox.shrink());
+    return CompanionStateBuilder(builder: (context, state) => state.stripVisible ? _Suspendable(state: state) : const SizedBox.shrink());
+  }
+}
+
+/// Stops the strip animating while the window is minimised (T-541).
+///
+/// `TickerMode` rather than unmounting or parking the ticker by hand, because
+/// the requirement is **restore, not restart**: muting leaves the field exactly
+/// as it was, so coming back continues instead of reseeding and looking like the
+/// rain just started. Nobody can see a frozen frame while the window is
+/// minimised, which is exactly why freezing is right here and draining is right
+/// for dormancy (T-540) — there, the user may be watching when it happens.
+///
+/// Honours `app.companion.suspendWhenMinimised`, which has existed since T-527
+/// and until now was read by nobody.
+class _Suspendable extends StatelessWidget {
+  const _Suspendable({required this.state});
+
+  final CompanionState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final lifecycle = ClideKernel.maybeOf(context)?.lifecycle;
+    if (lifecycle == null) return _Strip(state: state);
+
+    return ListenableBuilder(
+      listenable: lifecycle,
+      builder: (context, child) => TickerMode(enabled: lifecycle.visible || !state.suspendWhenMinimised, child: child!),
+      child: _Strip(state: state),
+    );
   }
 }
 

@@ -23,7 +23,19 @@ import 'package:flutter/widgets.dart';
 
 /// What a companion surface needs to know to draw itself.
 class CompanionState {
-  const CompanionState({required this.enabled, required this.open, this.load = SessionLoad.absent, this.busySince});
+  const CompanionState({
+    required this.enabled,
+    required this.open,
+    this.load = SessionLoad.absent,
+    this.busySince,
+    this.suspendWhenMinimised = kCompanionSuspendWhenMinimisedDefault,
+  });
+
+  /// Whether to stop animating while the window is minimised (T-541).
+  ///
+  /// App-scoped rather than per-repo, because it is about not heating the
+  /// machine. Off is a legitimate choice on a desktop that does not care.
+  final bool suspendWhenMinimised;
 
   /// The kill switch: whether Clide exists for this repo at all.
   final bool enabled;
@@ -67,6 +79,7 @@ class _CompanionStateBuilderState extends State<CompanionStateBuilder> {
   bool _open = kCompanionOpenDefault;
   SessionLoad _load = SessionLoad.absent;
   DateTime? _busySince;
+  bool _suspendWhenMinimised = kCompanionSuspendWhenMinimisedDefault;
   bool _seeded = false;
 
   @override
@@ -78,6 +91,7 @@ class _CompanionStateBuilderState extends State<CompanionStateBuilder> {
       final prefs = ClideCompanionSettings((k) => store?.get<Object>(k));
       _enabled = prefs.enabled;
       _open = prefs.open;
+      _suspendWhenMinimised = prefs.suspendWhenMinimised;
       _seeded = true;
     }
 
@@ -128,5 +142,6 @@ class _CompanionStateBuilderState extends State<CompanionStateBuilder> {
   }
 
   @override
-  Widget build(BuildContext context) => widget.builder(context, CompanionState(enabled: _enabled, open: _open, load: _load, busySince: _busySince));
+  Widget build(BuildContext context) =>
+      widget.builder(context, CompanionState(enabled: _enabled, open: _open, load: _load, busySince: _busySince, suspendWhenMinimised: _suspendWhenMinimised));
 }

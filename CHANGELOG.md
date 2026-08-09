@@ -39,6 +39,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   a still frame and stops redrawing entirely; anything happening wakes it.
   (D-107, T-540)
 
+- **Nothing animates while the window is minimised.** Settings → Clide → Power
+  turns the behaviour off if you'd rather it kept running. (D-107, T-541)
+
 ### Changed
 
 - Clide's rain draws in the theme's code green rather than muted body text, so
