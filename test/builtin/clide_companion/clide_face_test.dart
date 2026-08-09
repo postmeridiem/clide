@@ -1,5 +1,6 @@
 import 'package:clide/builtin/clide_companion/src/clide_face.dart';
 import 'package:clide/builtin/clide_companion/src/face_state.dart';
+import 'package:clide/builtin/clide_companion/src/session_load.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
@@ -133,13 +134,45 @@ void main() {
     });
   });
 
+  group('the face and the rain are independent (T-537)', () {
+    // The property the whole split exists for, asserted through the render loop
+    // rather than through pixels: the goldens already cover what it looks like,
+    // and rasterising inside `runAsync` while pumping hangs on the fake clock.
+    //
+    // The pair below is what independence means operationally — the loop follows
+    // the *load*, and the face cannot start or stop it on its own.
+
+    testWidgets('a resting face over an absent session parks', (tester) async {
+      await tester.pumpWidget(sized(const ClideFace(state: FaceState.idle, load: SessionLoad.absent), width: 400, height: 120));
+      for (var i = 0; i < 300; i++) {
+        await tester.pump(const Duration(milliseconds: 33));
+      }
+      // idle blinks, so this parks only once the blink is also accounted for —
+      // if it never parks, the face is keeping the loop alive by itself.
+      expect(SchedulerBinding.instance.transientCallbackCount, greaterThan(0), reason: 'idle blinks, so it legitimately keeps ticking');
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a still face over a working session keeps ticking', (tester) async {
+      // Clide has nothing to say while a long tool run grinds: the face is still
+      // and the weather is not. Before the split this frame was impossible —
+      // `error` forced the rain to zero.
+      await tester.pumpWidget(sized(const ClideFace(state: FaceState.error, load: SessionLoad.working), width: 400, height: 120));
+      for (var i = 0; i < 200; i++) {
+        await tester.pump(const Duration(milliseconds: 33));
+      }
+      expect(SchedulerBinding.instance.transientCallbackCount, greaterThan(0), reason: 'the rain stopped because the face was resting');
+      await tester.pumpWidget(const SizedBox());
+    });
+  });
+
   group('the power ladder parks the loop', () {
     testWidgets('error over a drained field stops ticking', (tester) async {
       // D-107's contract: a continuously animated surface has to prove it stops.
-      // error has zero rain and no blink, talk, dots or jitter, so once
-      // the field drains there is nothing left to animate and the render loop
-      // must park rather than repaint an unchanging image forever.
-      await tester.pumpWidget(sized(const ClideFace(state: FaceState.error), width: 400, height: 120));
+      // error has no blink, talk, dots or jitter, and an absent session has no
+      // rain, so once the field drains there is nothing left to animate and the
+      // render loop must park rather than repaint an unchanging image forever.
+      await tester.pumpWidget(sized(const ClideFace(state: FaceState.error, load: SessionLoad.absent), width: 400, height: 120));
       for (var i = 0; i < 200; i++) {
         await tester.pump(const Duration(milliseconds: 33));
       }
@@ -149,7 +182,7 @@ void main() {
 
     testWidgets('a busy state keeps ticking', (tester) async {
       // The complement — the ladder must not park something that is still moving.
-      await tester.pumpWidget(sized(const ClideFace(state: FaceState.effort), width: 400, height: 120));
+      await tester.pumpWidget(sized(const ClideFace(state: FaceState.effort, load: SessionLoad.working), width: 400, height: 120));
       for (var i = 0; i < 200; i++) {
         await tester.pump(const Duration(milliseconds: 33));
       }

@@ -1,6 +1,7 @@
 import 'package:alchemist/alchemist.dart';
 import 'package:clide/builtin/clide_companion/src/clide_face.dart';
 import 'package:clide/builtin/clide_companion/src/face_state.dart';
+import 'package:clide/builtin/clide_companion/src/session_load.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -37,7 +38,10 @@ void main() {
               SizedBox(
                 width: 320,
                 height: 120,
-                child: ClideFace(state: state, debugFreezeAt: _frame, debugClockLabel: _clock),
+                // Held at one load throughout so the grid varies by face alone —
+                // the rain is a different axis now (T-537) and would otherwise
+                // make every cell differ for the wrong reason.
+                child: ClideFace(state: state, load: SessionLoad.calm, debugFreezeAt: _frame, debugClockLabel: _clock),
               ),
             ),
           ),
@@ -59,7 +63,7 @@ void main() {
               SizedBox(
                 width: 320,
                 height: 120,
-                child: ClideFace(state: FaceState.pensive, gaze: gaze, debugFreezeAt: _frame, debugClockLabel: _clock),
+                child: ClideFace(state: FaceState.pensive, load: SessionLoad.calm, gaze: gaze, debugFreezeAt: _frame, debugClockLabel: _clock),
               ),
             ),
           ),
@@ -83,7 +87,15 @@ void main() {
               SizedBox(
                 width: width,
                 height: 110,
-                child: ClideFace(state: FaceState.effort, busyFor: const Duration(seconds: 12), debugFreezeAt: _frame, debugClockLabel: _clock),
+                // Full load here: the width range exists to check the rain
+                // spreads, which needs rain.
+                child: ClideFace(
+                  state: FaceState.effort,
+                  load: SessionLoad.working,
+                  busyFor: const Duration(seconds: 12),
+                  debugFreezeAt: _frame,
+                  debugClockLabel: _clock,
+                ),
               ),
             ),
           ),

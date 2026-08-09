@@ -1,6 +1,7 @@
 import 'package:alchemist/alchemist.dart';
 import 'package:clide/builtin/clide_companion/src/clide_strip.dart';
 import 'package:clide/builtin/clide_companion/src/face_state.dart';
+import 'package:clide/builtin/clide_companion/src/session_load.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -35,6 +36,7 @@ void main() {
                 width: width,
                 child: const ClideStrip(
                   state: FaceState.effort,
+                  load: SessionLoad.working,
                   busyFor: Duration(seconds: 12),
                   message: 'that commit touched two call sites, not one',
                   debugFreezeAt: _frame,
@@ -47,27 +49,34 @@ void main() {
     ),
   );
 
+  // Two axes now, not one (T-537): the face is Clide's and the rain is the
+  // primary session's. These scenarios cross them deliberately, including the
+  // combinations that were unrepresentable before the split — a resting face in
+  // a downpour is the ordinary case while a long tool run grinds and he has
+  // nothing to say about it yet.
   goldenTest(
-    'ClideStrip states',
+    'ClideStrip face and weather',
     fileName: 'clide_strip_states',
     builder: () => GoldenTestGroup(
       columns: 1,
       children: [
-        for (final (state, message) in const [
-          (FaceState.idle, null),
-          (FaceState.pensive, 'reading what you just asked for'),
-          (FaceState.effort, 'this is the long kind of tool run'),
-          (FaceState.speaking, 'two call sites, not one'),
+        for (final (state, load, message) in const [
+          (FaceState.idle, SessionLoad.absent, null),
+          (FaceState.idle, SessionLoad.calm, null),
+          (FaceState.idle, SessionLoad.working, null),
+          (FaceState.pensive, SessionLoad.calm, 'reading what you just asked for'),
+          (FaceState.speaking, SessionLoad.working, 'two call sites, not one'),
         ])
           GoldenTestScenario(
-            name: state.name,
+            name: '${state.name} / ${load.name}',
             child: harness(
               f,
               SizedBox(
                 width: 520,
                 child: ClideStrip(
                   state: state,
-                  busyFor: state == FaceState.effort ? const Duration(seconds: 12) : null,
+                  load: load,
+                  busyFor: load == SessionLoad.working ? const Duration(seconds: 12) : null,
                   message: message,
                   debugFreezeAt: _frame,
                   debugClockLabel: _clock,

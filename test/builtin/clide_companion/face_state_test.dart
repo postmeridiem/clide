@@ -32,46 +32,19 @@ void main() {
     });
   });
 
-  group('rain density is the load signal', () {
-    test('density is ordered idle < pensive < speaking < listening < rage < effort', () {
-      double rain(FaceState s) => specFor(s).rainDensity;
-      expect(rain(FaceState.idle), lessThan(rain(FaceState.pensive)));
-      expect(rain(FaceState.pensive), lessThan(rain(FaceState.speaking)));
-      expect(rain(FaceState.speaking), lessThan(rain(FaceState.listening)));
-      expect(rain(FaceState.listening), lessThan(rain(FaceState.rage)));
-      expect(rain(FaceState.rage), lessThan(rain(FaceState.effort)));
-    });
+  group('the face carries no rain (T-537)', () {
+    // The split: the face reports Clide, the rain reports the primary session
+    // (D-107 commitment 5). One value driving both meant making the rain follow
+    // the session dragged his expression along with it. There is no assertion
+    // for "FaceSpec has no rainDensity" — that is the compiler's job, and it is
+    // enforced by nothing in lib/ referencing it.
 
-    test('error stops the rain completely', () {
-      // The visible half of the power-ladder contract (D-107): a dead session
-      // must not keep animating.
-      expect(specFor(FaceState.error).rainDensity, 0);
-      expect(specFor(FaceState.error).rainSpeed, 0);
-    });
-
-    test('every other state has moving rain', () {
-      for (final state in FaceState.values.where((s) => s != FaceState.error)) {
-        expect(specFor(state).rainDensity, greaterThan(0), reason: '$state has no rain');
-        expect(specFor(state).rainSpeed, greaterThan(0), reason: '$state has stalled rain');
-      }
-    });
-
-    test('density scales with the grid so a state reads the same at any width', () {
-      // The bug this replaced: an absolute count was 63% column occupancy at the
-      // 420px default and 26% at the 1000px maximum — one state looking like two
-      // (T-533).
-      const narrow = 33; // 220px
-      const wide = 151; // 1000px
-      for (final state in FaceState.values.where((s) => s != FaceState.error)) {
+    test('every state is a complete face on its own', () {
+      for (final state in FaceState.values) {
         final spec = specFor(state);
-        expect(spec.streamsFor(wide), greaterThan(spec.streamsFor(narrow)), reason: '$state does not scale');
-        expect(spec.streamsFor(wide) / wide, closeTo(spec.streamsFor(narrow) / narrow, 0.05), reason: '$state occupancy drifts with width');
+        expect(spec.eyes, isNotEmpty, reason: '$state has no eyes');
+        expect(spec.opacity, greaterThan(0), reason: '$state is invisible');
       }
-    });
-
-    test('effort fills roughly one stream per column', () {
-      expect(specFor(FaceState.effort).streamsFor(151), 151);
-      expect(specFor(FaceState.effort).streamsFor(33), 33);
     });
   });
 

@@ -16,6 +16,7 @@ library;
 
 import 'package:clide/builtin/clide_companion/src/clide_face.dart';
 import 'package:clide/builtin/clide_companion/src/face_state.dart';
+import 'package:clide/builtin/clide_companion/src/session_load.dart';
 import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/spacing.dart';
@@ -39,11 +40,24 @@ const _faceGutter = 116.0;
 const _bubbleMinWidth = 150.0;
 
 class ClideStrip extends StatelessWidget {
-  const ClideStrip({super.key, this.state = FaceState.idle, this.gaze = Gaze.none, this.busyFor, this.message, this.debugFreezeAt, this.debugClockLabel});
+  const ClideStrip({
+    super.key,
+    this.state = FaceState.idle,
+    this.load = SessionLoad.calm,
+    this.gaze = Gaze.none,
+    this.busyFor,
+    this.message,
+    this.debugFreezeAt,
+    this.debugClockLabel,
+  });
 
-  /// Face state. Epic B (T-517) drives this from live session signals; until
-  /// then it rests at [FaceState.idle].
+  /// Face state — Clide's own. Epic D drives this; until then it rests at
+  /// [FaceState.idle].
   final FaceState state;
+
+  /// The primary session's load, which is what the rain reports (D-107
+  /// commitment 5). T-539 drives this from `busyStream`.
+  final SessionLoad load;
 
   final Gaze gaze;
   final Duration? busyFor;
@@ -81,7 +95,15 @@ class ClideStrip extends StatelessWidget {
                 // Full-bleed: the rain gets the whole strip even though the
                 // glyphs sit left.
                 Positioned.fill(
-                  child: ClideFace(state: state, gaze: gaze, busyFor: busyFor, faceAlignX: -1, debugFreezeAt: debugFreezeAt, debugClockLabel: debugClockLabel),
+                  child: ClideFace(
+                    state: state,
+                    load: load,
+                    gaze: gaze,
+                    busyFor: busyFor,
+                    faceAlignX: -1,
+                    debugFreezeAt: debugFreezeAt,
+                    debugClockLabel: debugClockLabel,
+                  ),
                 ),
                 if (showBubble)
                   Positioned(

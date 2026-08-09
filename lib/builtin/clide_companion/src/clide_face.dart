@@ -11,6 +11,7 @@ import 'package:clide/builtin/clide_companion/src/face_painter.dart';
 import 'package:clide/builtin/clide_companion/src/face_state.dart';
 import 'package:clide/builtin/clide_companion/src/glyph_cache.dart';
 import 'package:clide/builtin/clide_companion/src/rain_field.dart';
+import 'package:clide/builtin/clide_companion/src/session_load.dart';
 import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/typography.dart';
 import 'package:flutter/scheduler.dart';
@@ -27,10 +28,27 @@ const _leanTravel = 0.22;
 /// A glyph face whose expression tracks session state, over a rain field whose
 /// density encodes load.
 class ClideFace extends StatefulWidget {
-  const ClideFace({super.key, required this.state, this.gaze = Gaze.none, this.busyFor, this.faceAlignX = 0, this.debugFreezeAt, this.debugClockLabel});
+  const ClideFace({
+    super.key,
+    required this.state,
+    this.load = SessionLoad.calm,
+    this.gaze = Gaze.none,
+    this.busyFor,
+    this.faceAlignX = 0,
+    this.debugFreezeAt,
+    this.debugClockLabel,
+  });
 
-  /// What the face is doing. Mapped from live session signals by Epic B.
+  /// What Clide is doing. Driven by his own session (Epic D).
   final FaceState state;
+
+  /// What the **primary** session is doing — the rain, not the face (D-107
+  /// commitment 5, T-537).
+  ///
+  /// Two inputs rather than one because they report different subjects: he can
+  /// be idle in a downpour, which is the ordinary case while a long tool run is
+  /// going and he has nothing to say about it yet.
+  final SessionLoad load;
 
   /// Which way the pupils point; also drives the lean.
   final Gaze gaze;
@@ -114,9 +132,10 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
       // A frozen face still needs its lean to reflect the gaze it was given.
       _lean = widget.gaze.leanPx;
     }
-    // Density is per-state, so a static frame has to re-prime when the state
-    // changes — otherwise it keeps the previous state's rain forever.
-    if (!_ticking && old.state != widget.state) {
+    // Density follows the *load*, so a static frame re-primes when the load
+    // changes — otherwise it keeps the previous load's rain forever. A face
+    // change alone no longer touches the field, which is the point of the split.
+    if (!_ticking && old.load != widget.load) {
       _field = null;
       _ensureField(_columns, _rows);
     }
@@ -140,12 +159,15 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
   }
 
   /// True when nothing on screen would change from one frame to the next.
+  ///
+  /// Both layers have to be still: a dimmed face over a raining field is
+  /// animating, and so is a resting face while streams are draining.
   bool get _isQuiescent {
     final field = _field;
     if (field == null) return false;
     final spec = specFor(widget.state);
     final settled = (_lean - widget.gaze.leanPx).abs() < 0.01;
-    return spec.rainDensity == 0 && field.isQuiescent && !spec.blink && !spec.talkCycle && !spec.thoughtDots && !spec.jitter && settled;
+    return loadSpecFor(widget.load).rainDensity == 0 && field.isQuiescent && !spec.blink && !spec.talkCycle && !spec.thoughtDots && !spec.jitter && settled;
   }
 
   void _tick(Duration elapsed) {
@@ -156,8 +178,8 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
       return;
     }
 
-    final spec = specFor(widget.state);
-    _field?.tick(dt, targetStreams: spec.streamsFor(_columns), speed: spec.rainSpeed);
+    final load = loadSpecFor(widget.load);
+    _field?.tick(dt, targetStreams: load.streamsFor(_columns), speed: load.rainSpeed);
 
     // Ease the lean toward its target at a constant rate.
     final target = widget.gaze.leanPx;
@@ -194,8 +216,8 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
   /// user should still see that the session is busy; they just should not see it
   /// move.
   void _primeField(RainField field) {
-    final spec = specFor(widget.state);
-    final target = spec.streamsFor(field.columns);
+    final load = loadSpecFor(widget.load);
+    final target = load.streamsFor(field.columns);
     if (target == 0) return;
     const step = 1 / 30;
     // Long enough to actually reach the target, which is now width-dependent:
@@ -204,7 +226,7 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
     // cheap enough to run during build.
     final seconds = (target / RainField.spawnPerSecond + 2.0).clamp(1.0, 8.0);
     for (var t = 0.0; t < seconds; t += step) {
-      field.tick(step, targetStreams: target, speed: spec.rainSpeed);
+      field.tick(step, targetStreams: target, speed: load.rainSpeed);
     }
   }
 

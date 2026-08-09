@@ -7642,3 +7642,818 @@ INSERT INTO tickets (record_id, type, parent_record_id, title, description, stat
 Border only, not fill: a green fill would fight the message it contains, and the message is the point.
 
 Goldens regenerated. Full suite 8 + 4163 + 50.', 'done', 'low', NULL, NULL, 'D-107', '2026-08-09 12:21:39.449', '2026-08-09 12:21:46.746', NULL, '63bc7bbbe4d45aa95969ec2f0821062e', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Y5FBHF8QNAXQDJBJ26B0', 'epic', '06FY73V6EVHP32P31NQRJCP104', 'Epic B: Clide state machine + power ladder', 'Drive Epic A''s face from real session signals, and make it provably stop when nothing is
+happening. This is where "whimsical but a solid widget" is actually earned.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams on both sides** — consume Epic A''s state-enum contract, and consume the
+   session signals below without adding new public API to `StreamJsonSession` unless it
+   genuinely belongs there (coordinate with Epic D, which also reads that session).
+
+## State mapping
+
+| State | Trigger |
+|---|---|
+| `idle` | `!busy`, no recent activity |
+| `listening` | composer or Clide input focused |
+| `pensive` | `busy` && no `partial-` item yet — i.e. thinking |
+| `effort` | `busy` && elapsed past a threshold → orbit arc + `[ Ns ]` counter |
+| `speaking` | `busy` && `partial-` items arriving — i.e. streaming |
+| `rage` | API error / turn failure; plays the 3-frame table-flip, then returns to idle |
+| `error` | `endedStream` fired — session died |
+
+**The thinking-vs-streaming split is free and is the nicest signal here.** There is no
+public "is streaming" stream on the session; the tell is items whose
+`uuid.startsWith(''partial-'')` (`stream_json_session.dart:589-628`). So `busy` with no partial
+yet = thinking; `busy` with partials arriving = streaming.
+
+Signals to bind: `busyStream` (seeded `ValueStream`), `items`, `statusStream`,
+`pendingPromptStream`, `endedStream`. Binding pattern: the `_bindPrimary()` cancel/rebind/seed
+dance at `claude_meta_sidebar.dart:205-245` — the worked example for exactly this.
+
+DeskLock''s rule is adopted verbatim: **"wait cues are a hard requirement — never a bare
+static face during a wait, and no fake progress bars, only honest cues."** The `effort`
+orbit + elapsed counter is the answer to clide''s long tool runs.
+
+## Power ladder
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible, focused |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | unmounted / no ticker | panel collapsed or hidden; window minimised |
+
+**Collapse and hide are free.** `layout.dart:51-59` renders a spine or nothing when a slot is
+collapsed/hidden, so `SlotHost` unmounts entirely and the controller disposes. Same for
+inactive tabs — the context path has no `IndexedStack`/`keepAlive`.
+
+**Minimise is not free — this is a new capability for the codebase.** There is no
+`WidgetsBindingObserver`, `didChangeAppLifecycleState`, or `AppLifecycleState` handling
+anywhere in `lib/` (zero hits), and `TickerMode` is unused. Adding lifecycle observation is
+its own commit and should be reviewed as a kernel-level addition, not smuggled in as a
+widget detail. `lib/main.dart:553` has a comment noting lifecycle isn''t wired.
+
+## Testing
+
+Assert each rung actually stops the ticker — a power ladder that doesn''t demonstrably park
+the render loop is decoration. Bounded pumps, empty-tree teardown, and the reduced-motion
+`pumpAndSettle` contract from Epic A still apply.
+
+## Contract published (Epic A breakdown, 2026-08-09) — you are not blocked
+
+Epic A''s seam is specified in full on **T-521**. Code against it now; you do not need to wait
+for T-521 to land, and A will not change it without renegotiating here.
+
+```dart
+enum FaceState { idle, listening, pensive, effort, speaking, rage, error }
+enum Gaze { none, left, forward, right }
+
+ClideFace({
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,   // you own this; the widget does not time turns
+})
+```
+
+That is the entire surface. Three things follow for B:
+
+1. **B owns elapsed time.** `busyFor` drives the `[ Ns ]` counter in `effort`. The widget
+   deliberately does not time turns itself, because you already know when the turn started
+   and the widget would only be guessing from prop changes.
+2. **Lean is derived from `gaze`, not passed.** `left → −8px`, `forward/none → 0`,
+   `right → +8px`. Do not look for a `lean` prop.
+3. **If you need something more, that is a T-521 change, not a prop added quietly to the
+   widget.** Raise it there so the contract stays one place.
+
+### `rage` is a scowl, not a table-flip
+
+Deviation from DeskLock, decided during the A breakdown: `rage` renders as brows-down eyes
+`▼   ▼` with a flat mouth `━` and jitter, not the 3-frame kaomoji. Two of the kaomoji''s
+glyphs (`︵` U+FE35, `ノ` U+30CE — katakana) are missing from the bundled fonts, and the
+sequence needed a second render path for the state you see least. **Semantics are unchanged**
+— it is still the transient-failure reaction, so your mapping (API error / turn failure →
+`rage` for a beat → back to `idle`) is unaffected.
+
+### Signals reminder for your mapping
+
+The thinking-versus-streaming split is free: `busy && no partial- item yet` → `pensive`;
+`busy && partial- items arriving` → `speaking` (`stream_json_session.dart:589-628`). There is
+no public "is streaming" stream; items whose `uuid.startsWith(''partial-'')` are the tell.
+
+Signal audit against the live session code (2026-08-09), before breakdown. Two
+of the seven states have **no source at all** today, and one of the plan''s
+central assumptions is wrong. Read this before scoping.
+
+Everything hangs off `activeSessionOrchestrator.byId(''primary'')` — rebind on
+every orchestrator notification, per the worked example at
+`claude_meta_sidebar.dart:200-245`.
+
+## Available now, no new plumbing
+
+| Need | Signal | Where |
+|---|---|---|
+| busy on/off | `busyStream` — `ValueStream<bool>`, replay-latest, edge-deduped | `stream_json_session.dart:426` |
+| turn ended | falling edge of the same stream | `:532-537` |
+| session died (`error`) | `endedStream` + `end` field. **No replay** — check `end` first, then subscribe (`claude_pane.dart:421-426`) | `:465-472`, `:982-993` |
+| blocked on a permission ask | `pendingPromptStream` — `ValueStream`, replay | `:436-440` |
+| context tokens / cost | `statusStream` — `ValueStream`, replay | `:457` |
+
+## Wrong assumption: `partial-` does not mean "arriving now"
+
+The plan and `FaceState.speaking` both rest on "items whose uuid starts with
+`partial-` are the tell for streaming". It is **half true**. Partial items are
+created per `text_delta` (`:601-622`), but at `:561-570` the *final* assistant
+event is rewritten to carry the same `partial-$msgId` uuid — so a completed
+message keeps the prefix permanently. The predicate therefore means "this text
+came through the streaming path", not "prose is arriving right now".
+
+The honest tell is either the **arrival event** (a new/updated `partial-` item
+while `busy`) or exposing `_streamingMsgId` (`:381`, private; set on
+`message_start`, cleared on `message_stop` and `result`) — a one-line addition
+and the cleaner of the two.
+
+## Missing: thinking-in-progress
+
+`_onStreamEvent` (`:589-626`) handles exactly `message_start`,
+`content_block_delta` gated on `text_delta`, and `message_stop`. **`thinking_delta`
+is on the wire** (`docs/spikes/cc-stream-json-control-protocol-2.1.150.md:74`)
+**and dropped on the floor.** What survives is `AssistantThinkingMessage`
+(`transcript_reader.dart:133`), which arrives when a thinking block *completes* —
+an end edge, not a during state.
+
+So `pensive` as specified ("busy && no partial item yet") is an inference, not an
+observation. Handling `thinking_delta` would make it an observation, and would
+also let `effort` key off real reasoning rather than a stopwatch. Worth doing as
+part of this epic: it is a `case` in an existing switch.
+
+## Missing: `busyFor`
+
+No turn-start timestamp is recorded anywhere. `_setBusy(true)` has exactly one
+call site (`:876`). The state machine stamps the rising edge itself — trivial,
+but it is *our* job, not the session''s.
+
+## Missing: a source for `rage`
+
+`_statusFromEvent`''s `case ''result'':` (`:803-824`) reads only `total_cost_usd`
+and `contextWindow`. The result event''s `is_error` / error `subtype` are **never
+inspected**, and there is no error member in the `ConversationItem` union
+(`transcript_reader.dart:41`). The nearest thing is `ToolResultMessage.isError` —
+a *tool* failure, not an API failure.
+
+Decide early: either parse `result.is_error` (small, and useful beyond the face),
+or cut `rage` and let `error` cover both. Do not leave a state in the table with
+nothing that can trigger it.
+
+## Missing: a source for `listening`
+
+Composer drafts are pane-local and silent (`claude_pane.dart:645-653`). Focus is
+observable via the kernel''s focus tracker, which is probably the honest trigger —
+"the user is typing at me" rather than "a draft changed".
+
+## Not exposed: tool currently running
+
+Derived per-card in the view (`conversation_view.dart:1064-1070`) by scanning for
+an `AssistantToolUse` with no matching `ToolResultMessage`. Fine as a pattern to
+copy; there is no session-level signal.
+
+## Note on cadence
+
+`ConversationController` coalesces `notifyListeners` through a zero-duration
+timer (`conversation_controller.dart:111-114`) — at most once per microtask
+drain. Good as a liveness heartbeat, useless as a token counter.
+
+**Scope cut — D-107 amended 2026-08-09 (commitment 5).** Read this before the
+signal audit above; it supersedes half of it.
+
+The face no longer reads the primary session. It reports **Clide''s own state**
+only, and the rain keeps the primary session''s load as ambient weather. So this
+epic loses the mapping table it was mostly about.
+
+## What stays here
+
+- **Rain density from the primary session.** `busyStream` is the whole input:
+  busy → the `effort` density, idle → the `idle` density, with the existing ramp
+  doing the transition. This is now the *only* thing epic B reads from the
+  primary session, and `ValueStream` gives it to us with replay for free.
+- **The elapsed counter**, moved to the ambient layer with the rain — it is
+  main-session information. Still needs the state machine to stamp the rising
+  edge of `busyStream`, since no turn-start timestamp is recorded anywhere.
+- **The power ladder**, unchanged, including minimise-suspension and the new
+  `WidgetsBindingObserver` capability.
+
+## What moves out
+
+The seven-state face mapping. Under the split its sources are:
+
+| State | Source | Epic |
+|---|---|---|
+| `listening` | focus on Clide''s input | E |
+| `pensive` | his request in flight | D |
+| `speaking` | his reply streaming | D |
+| `error` | his session died (`endedStream`) | D |
+| `rage` and any other editorial mood | **his own declared mood** | D (prompt: T-532) |
+| `idle` | none of the above | — |
+
+This also retires the "`rage` has no source, cut it or wire `result.is_error`"
+finding above: under the split, a reaction to *content* is the one thing only
+Clide can produce, and the mood channel is exactly that source.
+
+## Consequence for sequencing
+
+The face stays at `idle` until epic D exists — no state machine can make it live
+sooner, because there is nothing of Clide''s to report yet. Epic B is therefore
+much smaller than planned and no longer the thing that brings the strip to life;
+D is. Worth reordering against that rather than discovering it mid-epic.
+
+`thinking_delta` (dropped by `_onStreamEvent`, see above) is still worth adding —
+but for **Clide''s** session, where it distinguishes "he is composing" from "he is
+answering", not for the primary''s.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-08 22:47:58.074', '2026-08-09 12:23:54.272', NULL, '7b3a1b37b28eec531a67ee005543554d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Y5FBHF8QNAXQDJBJ26B0', 'epic', '06FY73V6EVHP32P31NQRJCP104', 'Epic B: Clide state machine + power ladder', 'Drive Epic A''s face from real session signals, and make it provably stop when nothing is
+happening. This is where "whimsical but a solid widget" is actually earned.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams on both sides** — consume Epic A''s state-enum contract, and consume the
+   session signals below without adding new public API to `StreamJsonSession` unless it
+   genuinely belongs there (coordinate with Epic D, which also reads that session).
+
+## State mapping
+
+| State | Trigger |
+|---|---|
+| `idle` | `!busy`, no recent activity |
+| `listening` | composer or Clide input focused |
+| `pensive` | `busy` && no `partial-` item yet — i.e. thinking |
+| `effort` | `busy` && elapsed past a threshold → orbit arc + `[ Ns ]` counter |
+| `speaking` | `busy` && `partial-` items arriving — i.e. streaming |
+| `rage` | API error / turn failure; plays the 3-frame table-flip, then returns to idle |
+| `error` | `endedStream` fired — session died |
+
+**The thinking-vs-streaming split is free and is the nicest signal here.** There is no
+public "is streaming" stream on the session; the tell is items whose
+`uuid.startsWith(''partial-'')` (`stream_json_session.dart:589-628`). So `busy` with no partial
+yet = thinking; `busy` with partials arriving = streaming.
+
+Signals to bind: `busyStream` (seeded `ValueStream`), `items`, `statusStream`,
+`pendingPromptStream`, `endedStream`. Binding pattern: the `_bindPrimary()` cancel/rebind/seed
+dance at `claude_meta_sidebar.dart:205-245` — the worked example for exactly this.
+
+DeskLock''s rule is adopted verbatim: **"wait cues are a hard requirement — never a bare
+static face during a wait, and no fake progress bars, only honest cues."** The `effort`
+orbit + elapsed counter is the answer to clide''s long tool runs.
+
+## Power ladder
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible, focused |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | unmounted / no ticker | panel collapsed or hidden; window minimised |
+
+**Collapse and hide are free.** `layout.dart:51-59` renders a spine or nothing when a slot is
+collapsed/hidden, so `SlotHost` unmounts entirely and the controller disposes. Same for
+inactive tabs — the context path has no `IndexedStack`/`keepAlive`.
+
+**Minimise is not free — this is a new capability for the codebase.** There is no
+`WidgetsBindingObserver`, `didChangeAppLifecycleState`, or `AppLifecycleState` handling
+anywhere in `lib/` (zero hits), and `TickerMode` is unused. Adding lifecycle observation is
+its own commit and should be reviewed as a kernel-level addition, not smuggled in as a
+widget detail. `lib/main.dart:553` has a comment noting lifecycle isn''t wired.
+
+## Testing
+
+Assert each rung actually stops the ticker — a power ladder that doesn''t demonstrably park
+the render loop is decoration. Bounded pumps, empty-tree teardown, and the reduced-motion
+`pumpAndSettle` contract from Epic A still apply.
+
+## Contract published (Epic A breakdown, 2026-08-09) — you are not blocked
+
+Epic A''s seam is specified in full on **T-521**. Code against it now; you do not need to wait
+for T-521 to land, and A will not change it without renegotiating here.
+
+```dart
+enum FaceState { idle, listening, pensive, effort, speaking, rage, error }
+enum Gaze { none, left, forward, right }
+
+ClideFace({
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,   // you own this; the widget does not time turns
+})
+```
+
+That is the entire surface. Three things follow for B:
+
+1. **B owns elapsed time.** `busyFor` drives the `[ Ns ]` counter in `effort`. The widget
+   deliberately does not time turns itself, because you already know when the turn started
+   and the widget would only be guessing from prop changes.
+2. **Lean is derived from `gaze`, not passed.** `left → −8px`, `forward/none → 0`,
+   `right → +8px`. Do not look for a `lean` prop.
+3. **If you need something more, that is a T-521 change, not a prop added quietly to the
+   widget.** Raise it there so the contract stays one place.
+
+### `rage` is a scowl, not a table-flip
+
+Deviation from DeskLock, decided during the A breakdown: `rage` renders as brows-down eyes
+`▼   ▼` with a flat mouth `━` and jitter, not the 3-frame kaomoji. Two of the kaomoji''s
+glyphs (`︵` U+FE35, `ノ` U+30CE — katakana) are missing from the bundled fonts, and the
+sequence needed a second render path for the state you see least. **Semantics are unchanged**
+— it is still the transient-failure reaction, so your mapping (API error / turn failure →
+`rage` for a beat → back to `idle`) is unaffected.
+
+### Signals reminder for your mapping
+
+The thinking-versus-streaming split is free: `busy && no partial- item yet` → `pensive`;
+`busy && partial- items arriving` → `speaking` (`stream_json_session.dart:589-628`). There is
+no public "is streaming" stream; items whose `uuid.startsWith(''partial-'')` are the tell.
+
+Signal audit against the live session code (2026-08-09), before breakdown. Two
+of the seven states have **no source at all** today, and one of the plan''s
+central assumptions is wrong. Read this before scoping.
+
+Everything hangs off `activeSessionOrchestrator.byId(''primary'')` — rebind on
+every orchestrator notification, per the worked example at
+`claude_meta_sidebar.dart:200-245`.
+
+## Available now, no new plumbing
+
+| Need | Signal | Where |
+|---|---|---|
+| busy on/off | `busyStream` — `ValueStream<bool>`, replay-latest, edge-deduped | `stream_json_session.dart:426` |
+| turn ended | falling edge of the same stream | `:532-537` |
+| session died (`error`) | `endedStream` + `end` field. **No replay** — check `end` first, then subscribe (`claude_pane.dart:421-426`) | `:465-472`, `:982-993` |
+| blocked on a permission ask | `pendingPromptStream` — `ValueStream`, replay | `:436-440` |
+| context tokens / cost | `statusStream` — `ValueStream`, replay | `:457` |
+
+## Wrong assumption: `partial-` does not mean "arriving now"
+
+The plan and `FaceState.speaking` both rest on "items whose uuid starts with
+`partial-` are the tell for streaming". It is **half true**. Partial items are
+created per `text_delta` (`:601-622`), but at `:561-570` the *final* assistant
+event is rewritten to carry the same `partial-$msgId` uuid — so a completed
+message keeps the prefix permanently. The predicate therefore means "this text
+came through the streaming path", not "prose is arriving right now".
+
+The honest tell is either the **arrival event** (a new/updated `partial-` item
+while `busy`) or exposing `_streamingMsgId` (`:381`, private; set on
+`message_start`, cleared on `message_stop` and `result`) — a one-line addition
+and the cleaner of the two.
+
+## Missing: thinking-in-progress
+
+`_onStreamEvent` (`:589-626`) handles exactly `message_start`,
+`content_block_delta` gated on `text_delta`, and `message_stop`. **`thinking_delta`
+is on the wire** (`docs/spikes/cc-stream-json-control-protocol-2.1.150.md:74`)
+**and dropped on the floor.** What survives is `AssistantThinkingMessage`
+(`transcript_reader.dart:133`), which arrives when a thinking block *completes* —
+an end edge, not a during state.
+
+So `pensive` as specified ("busy && no partial item yet") is an inference, not an
+observation. Handling `thinking_delta` would make it an observation, and would
+also let `effort` key off real reasoning rather than a stopwatch. Worth doing as
+part of this epic: it is a `case` in an existing switch.
+
+## Missing: `busyFor`
+
+No turn-start timestamp is recorded anywhere. `_setBusy(true)` has exactly one
+call site (`:876`). The state machine stamps the rising edge itself — trivial,
+but it is *our* job, not the session''s.
+
+## Missing: a source for `rage`
+
+`_statusFromEvent`''s `case ''result'':` (`:803-824`) reads only `total_cost_usd`
+and `contextWindow`. The result event''s `is_error` / error `subtype` are **never
+inspected**, and there is no error member in the `ConversationItem` union
+(`transcript_reader.dart:41`). The nearest thing is `ToolResultMessage.isError` —
+a *tool* failure, not an API failure.
+
+Decide early: either parse `result.is_error` (small, and useful beyond the face),
+or cut `rage` and let `error` cover both. Do not leave a state in the table with
+nothing that can trigger it.
+
+## Missing: a source for `listening`
+
+Composer drafts are pane-local and silent (`claude_pane.dart:645-653`). Focus is
+observable via the kernel''s focus tracker, which is probably the honest trigger —
+"the user is typing at me" rather than "a draft changed".
+
+## Not exposed: tool currently running
+
+Derived per-card in the view (`conversation_view.dart:1064-1070`) by scanning for
+an `AssistantToolUse` with no matching `ToolResultMessage`. Fine as a pattern to
+copy; there is no session-level signal.
+
+## Note on cadence
+
+`ConversationController` coalesces `notifyListeners` through a zero-duration
+timer (`conversation_controller.dart:111-114`) — at most once per microtask
+drain. Good as a liveness heartbeat, useless as a token counter.
+
+**Scope cut — D-107 amended 2026-08-09 (commitment 5).** Read this before the
+signal audit above; it supersedes half of it.
+
+The face no longer reads the primary session. It reports **Clide''s own state**
+only, and the rain keeps the primary session''s load as ambient weather. So this
+epic loses the mapping table it was mostly about.
+
+## What stays here
+
+- **Rain density from the primary session.** `busyStream` is the whole input:
+  busy → the `effort` density, idle → the `idle` density, with the existing ramp
+  doing the transition. This is now the *only* thing epic B reads from the
+  primary session, and `ValueStream` gives it to us with replay for free.
+- **The elapsed counter**, moved to the ambient layer with the rain — it is
+  main-session information. Still needs the state machine to stamp the rising
+  edge of `busyStream`, since no turn-start timestamp is recorded anywhere.
+- **The power ladder**, unchanged, including minimise-suspension and the new
+  `WidgetsBindingObserver` capability.
+
+## What moves out
+
+The seven-state face mapping. Under the split its sources are:
+
+| State | Source | Epic |
+|---|---|---|
+| `listening` | focus on Clide''s input | E |
+| `pensive` | his request in flight | D |
+| `speaking` | his reply streaming | D |
+| `error` | his session died (`endedStream`) | D |
+| `rage` and any other editorial mood | **his own declared mood** | D (prompt: T-532) |
+| `idle` | none of the above | — |
+
+This also retires the "`rage` has no source, cut it or wire `result.is_error`"
+finding above: under the split, a reaction to *content* is the one thing only
+Clide can produce, and the mood channel is exactly that source.
+
+## Consequence for sequencing
+
+The face stays at `idle` until epic D exists — no state machine can make it live
+sooner, because there is nothing of Clide''s to report yet. Epic B is therefore
+much smaller than planned and no longer the thing that brings the strip to life;
+D is. Worth reordering against that rather than discovering it mid-epic.
+
+`thinking_delta` (dropped by `_onStreamEvent`, see above) is still worth adding —
+but for **Clide''s** session, where it distinguishes "he is composing" from "he is
+answering", not for the primary''s.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-08 22:47:58.074', '2026-08-09 12:24:26.941', NULL, '9e684f790356a5a94bb18b3054bbe583', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCYYFEV4XPZ2WGENAHVFYFM', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B1: Split the rain''s input from the face''s state (T-521 amendment)', '**Prerequisite for the rest of Epic B.** A T-521 contract change, raised there
+rather than done quietly, per that ticket''s rule.
+
+## The problem
+
+`ClideFace` takes one input, `FaceState`, and `FaceSpec` carries `rainDensity`
+and `rainSpeed` alongside the eyes and mouth. So the face and the rain are driven
+by the same value.
+
+D-107 commitment 5 gave them **different subjects**: the face reports Clide''s own
+state, the rain reports the primary session''s load as ambient weather. Two
+subjects cannot share one input. As it stands, making the rain track the session
+would drag the face''s expression along with it, which is the exact confusion the
+amendment was written to remove.
+
+## Change
+
+Split the load out of the face''s spec:
+
+- `FaceSpec` keeps eyes, mouth, blink, talk cycle, thought dots, jitter, elapsed,
+  clock, opacity — everything that is *the character*.
+- A new type carries `rainDensity` and `rainSpeed` — everything that is *the
+  weather*. Small and closed; at first it has two values (calm and working),
+  because `busyStream` is binary and inventing gradations we cannot observe would
+  be a fake gauge.
+- `ClideFace` gains a second input for it. That is the whole public change.
+
+Keep the density figures already settled in T-533 (`effort` = 1.0 × columns,
+idle = 0.05) — the ladder was chosen against rendered output and should survive
+the refactor unchanged. This ticket moves where they live, not what they are.
+
+## Watch for
+
+- `_isQuiescent` in `clide_face.dart` reads `spec.rainDensity` to decide whether
+  the ticker may park. It must now consider the *load*, not the face — an `error`
+  face over a still-raining field is animating and must not park.
+- `_primeField` likewise.
+- Goldens regenerate; the strip and face golden sets both take `state` today and
+  will need the load passing too.
+
+## Done when
+
+The face can be `idle` while the rain is at full density, and vice versa, and a
+test asserts exactly that — it is the property the whole split exists for.', 'backlog', 'high', NULL, NULL, 'D-107', '2026-08-09 12:25:01.558', '2026-08-09 12:25:01.558', NULL, '77d03586d016217d16c76cb00eebbd41', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZB4GNSJ08012SRRCQCCY8', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B2: Primary session load adapter — busyStream to the bus', 'Bind the primary Claude session and publish its load on the bus. This is the
+**only** thing Epic B reads from the primary session after the D-107 commitment 5
+scope cut.
+
+## Input
+
+`busyStream` on the primary `StreamJsonSession` — a replay-latest `ValueStream<bool>`,
+edge-deduped, already consumed by the running indicator
+(`stream_json_session.dart:426`). Replay is why no seeding dance is needed for
+the value itself.
+
+Reached via `activeSessionOrchestrator.byId(''primary'')`. The orchestrator is a
+`ChangeNotifier` that fires on spawn/close/show/hide/mute and on session-id
+resolution, so this **must rebind on every notification** — the worked example is
+`claude_meta_sidebar.dart:200-245`.
+
+## Output
+
+A `companion.load` message on the existing `clide.companion` publisher, carrying
+whether the session is busy and, when it is, when it started.
+
+**The turn-start timestamp is ours to stamp.** Nothing records it: `_setBusy(true)`
+has exactly one call site (`:876`) and keeps no time. Stamp the rising edge here
+— the widget deliberately does not time turns, because it would only be guessing
+from prop changes.
+
+## Why the bus rather than props
+
+Same reason as T-527: the strip is one widget deep inside the context column, and
+the thing that knows about sessions is an extension. Publishing keeps them
+unaware of each other, and gives T-529''s CLI verbs somewhere to read from for
+free.
+
+Add the channel to `companion_channel.dart` beside `companion.set` /
+`companion.state`, with the same rule — one publisher, announced after the fact,
+never optimistically.
+
+## Watch for
+
+- **No session is a normal state**, not an error: clide boots with no primary
+  session and the strip renders throughout. Absence must publish "not busy"
+  rather than nothing at all.
+- Rebinding must not double-subscribe; cancel first.
+- Do not add public API to `StreamJsonSession` for this. Epic D reads the same
+  session and any addition should be agreed with it.', 'backlog', 'high', NULL, NULL, 'D-107', '2026-08-09 12:26:45.253', '2026-08-09 12:26:45.253', NULL, 'a776591c0f78a699190d9fb91d488bc6', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZDXYNZ7ND17G1BFM0G26W', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B3: Strip renders session load — rain density + elapsed counter', 'Make the strip show the weather. Blocked by **T-537** (the input must exist) and
+**T-538** (something must publish it).
+
+## What lands
+
+- `ClideStripHost` subscribes to `companion.load` alongside the state it already
+  follows, and passes the load through to `ClideFace`.
+- The `[ Ns ]` counter runs from the stamped turn start. It is main-session
+  information and belongs to the ambient layer with the rain, not to the face
+  (D-107 commitment 5) — it is already drawn in the bottom cue slot, so this is
+  wiring, not layout.
+
+**This is the first time the strip carries real information.** Until now it has
+rendered `idle` forever regardless of what the session was doing; after this the
+rain thickens when the session is working and the counter says how long.
+
+## Watch for
+
+- Seed from the store, then follow the bus — the bus has no retention, so a
+  subscriber alone shows the default until something happens to change. Same
+  shape as `CompanionStateBuilder`; probably the same widget grows a second
+  channel rather than a second builder wrapping the first.
+- The counter must not tick from the widget''s own clock. It renders elapsed from
+  a start instant; the widget does not time turns (the T-521 contract).
+- A turn that ends must clear it, not freeze it at the last value.
+
+## Done when
+
+Driving a long tool run in the running app visibly thickens the rain and starts
+the counter, and both return to idle when the turn ends. That is a `make run`
+check, not only a test — the point of the feature is that it reads at a glance.', 'backlog', 'high', NULL, NULL, 'D-107', '2026-08-09 12:27:08.149', '2026-08-09 12:27:08.149', NULL, '94208102adb20b0064ee7cb4081538f6', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZHT6CG6NY0W2Y9AAGMCCG', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B4: Power ladder — ambient and dormant rungs, each proved to park the loop', 'D-107 commitment 4: the ladder is a contract, not an optimisation. A
+continuously animated surface in an IDE must **prove it stops**.
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | no ticker at all | panel collapsed or hidden, window minimised |
+
+## What is already done, and should be credited rather than rebuilt
+
+- **`night` via collapse/hide is free.** `layout.dart` renders a spine or nothing
+  for a collapsed or hidden slot, so `SlotHost` unmounts and the ticker disposes.
+  Same for the companion being disabled or minimised (T-527/T-528) — those
+  remove the widget outright.
+- **Reduced motion** is already a hard gate in `ClideFace`, asserted by the
+  `pumpAndSettle` wedge-guard test.
+- **The loop already parks when there is nothing to animate** — `_isQuiescent` +
+  `_syncTicker`, tested for the `error`-over-drained-field case.
+
+So the genuinely new work here is `ambient` and `dormant`: an idle timer that
+drops density after a few minutes and then stops the ticker entirely, and the
+path back up when something happens.
+
+## The test is the deliverable
+
+A rung that is not asserted is decoration. Each must be proved to *stop the
+render loop*, not merely to draw less — the existing power-ladder test is the
+pattern (`clide_face_test.dart`, "error over a drained field stops ticking").
+
+Bounded pumps only. Do not use `pumpAndSettle` to wait out a ten-minute timer;
+make the interval injectable so a test can drive it in milliseconds without a
+real wait, and keep the production default honest.
+
+## Watch for
+
+- Waking from `dormant` must not pop — the field ramps, and a state change that
+  restarts the ticker with an empty field should fill rather than appear.
+- The idle timer must not itself keep the loop alive: a `Timer` that fires every
+  second to check whether things are quiet is the failure this rung exists to
+  prevent.', 'backlog', 'medium', NULL, NULL, 'D-107', '2026-08-09 12:27:39.955', '2026-08-09 12:27:39.955', NULL, 'd425fd8950bcc51c4d5018e71dd4c6fe', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZXXPSAJWDTGX0Y3H2WMP0', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B5: App lifecycle observation — suspend while the window is minimised', 'The `night` rung for a **minimised window** — the one case collapse and hide do
+not already cover, because a minimised window keeps its widget tree mounted and
+its tickers running.
+
+## This is a new capability for the codebase, and should be reviewed as one
+
+There is no `WidgetsBindingObserver`, `didChangeAppLifecycleState`, or
+`AppLifecycleState` handling anywhere in `lib/` — zero hits — and `TickerMode` is
+unused. `main.dart` carries a comment noting lifecycle is not wired.
+
+So this is **not** a companion detail smuggled in as a widget change. Add it at
+the kernel, where anything else that should quiesce when the window is not
+visible can reach it: a terminal repaint, a future poll, the graph''s simulation.
+Its own commit, reviewed on its own terms.
+
+Guidance from D-107, which chose the CLI over an API partly on "no new
+capability without a reason": the reason here is that an IDE which spins the GPU
+while minimised is a defect the user feels as fan noise and battery, and "we will
+optimise later" has no test.
+
+## Also honour the preference
+
+`app.companion.suspendWhenMinimised` already exists (T-527) and is currently read
+by nobody. This ticket is what makes it mean something. Default is on; off means
+the companion keeps animating while minimised, which is a choice someone may
+legitimately make on a desktop machine.
+
+## Watch for
+
+- Linux/X11 lifecycle reporting is not uniform across desktop environments —
+  verify what actually arrives rather than trusting the enum. A rung that never
+  triggers is worse than no rung, because it reads as done.
+- Resuming must restore, not restart: coming back from minimised should not look
+  like the field being seeded from scratch.
+- Test through the binding''s lifecycle hook rather than a real minimise.', 'backlog', 'medium', NULL, NULL, 'D-107', '2026-08-09 12:29:19.158', '2026-08-09 12:29:19.158', NULL, '4b79a956bab055ced2c2355c78c799a0', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCYYFEV4XPZ2WGENAHVFYFM', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B1: Split the rain''s input from the face''s state (T-521 amendment)', '**Prerequisite for the rest of Epic B.** A T-521 contract change, raised there
+rather than done quietly, per that ticket''s rule.
+
+## The problem
+
+`ClideFace` takes one input, `FaceState`, and `FaceSpec` carries `rainDensity`
+and `rainSpeed` alongside the eyes and mouth. So the face and the rain are driven
+by the same value.
+
+D-107 commitment 5 gave them **different subjects**: the face reports Clide''s own
+state, the rain reports the primary session''s load as ambient weather. Two
+subjects cannot share one input. As it stands, making the rain track the session
+would drag the face''s expression along with it, which is the exact confusion the
+amendment was written to remove.
+
+## Change
+
+Split the load out of the face''s spec:
+
+- `FaceSpec` keeps eyes, mouth, blink, talk cycle, thought dots, jitter, elapsed,
+  clock, opacity — everything that is *the character*.
+- A new type carries `rainDensity` and `rainSpeed` — everything that is *the
+  weather*. Small and closed; at first it has two values (calm and working),
+  because `busyStream` is binary and inventing gradations we cannot observe would
+  be a fake gauge.
+- `ClideFace` gains a second input for it. That is the whole public change.
+
+Keep the density figures already settled in T-533 (`effort` = 1.0 × columns,
+idle = 0.05) — the ladder was chosen against rendered output and should survive
+the refactor unchanged. This ticket moves where they live, not what they are.
+
+## Watch for
+
+- `_isQuiescent` in `clide_face.dart` reads `spec.rainDensity` to decide whether
+  the ticker may park. It must now consider the *load*, not the face — an `error`
+  face over a still-raining field is animating and must not park.
+- `_primeField` likewise.
+- Goldens regenerate; the strip and face golden sets both take `state` today and
+  will need the load passing too.
+
+## Done when
+
+The face can be `idle` while the rain is at full density, and vice versa, and a
+test asserts exactly that — it is the property the whole split exists for.', 'in_progress', 'high', NULL, NULL, 'D-107', '2026-08-09 12:25:01.558', '2026-08-09 12:29:40.634', NULL, '61de7de67b477b01e25d2c7519623baa', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCYYFEV4XPZ2WGENAHVFYFM', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B1: Split the rain''s input from the face''s state (T-521 amendment)', '**Prerequisite for the rest of Epic B.** A T-521 contract change, raised there
+rather than done quietly, per that ticket''s rule.
+
+## The problem
+
+`ClideFace` takes one input, `FaceState`, and `FaceSpec` carries `rainDensity`
+and `rainSpeed` alongside the eyes and mouth. So the face and the rain are driven
+by the same value.
+
+D-107 commitment 5 gave them **different subjects**: the face reports Clide''s own
+state, the rain reports the primary session''s load as ambient weather. Two
+subjects cannot share one input. As it stands, making the rain track the session
+would drag the face''s expression along with it, which is the exact confusion the
+amendment was written to remove.
+
+## Change
+
+Split the load out of the face''s spec:
+
+- `FaceSpec` keeps eyes, mouth, blink, talk cycle, thought dots, jitter, elapsed,
+  clock, opacity — everything that is *the character*.
+- A new type carries `rainDensity` and `rainSpeed` — everything that is *the
+  weather*. Small and closed; at first it has two values (calm and working),
+  because `busyStream` is binary and inventing gradations we cannot observe would
+  be a fake gauge.
+- `ClideFace` gains a second input for it. That is the whole public change.
+
+Keep the density figures already settled in T-533 (`effort` = 1.0 × columns,
+idle = 0.05) — the ladder was chosen against rendered output and should survive
+the refactor unchanged. This ticket moves where they live, not what they are.
+
+## Watch for
+
+- `_isQuiescent` in `clide_face.dart` reads `spec.rainDensity` to decide whether
+  the ticker may park. It must now consider the *load*, not the face — an `error`
+  face over a still-raining field is animating and must not park.
+- `_primeField` likewise.
+- Goldens regenerate; the strip and face golden sets both take `state` today and
+  will need the load passing too.
+
+## Done when
+
+The face can be `idle` while the rain is at full density, and vice versa, and a
+test asserts exactly that — it is the property the whole split exists for.
+
+Done (2026-08-09).
+
+`FaceSpec` no longer carries rain. `SessionLoad` (absent / calm / working) and `LoadSpec` live in `session_load.dart`; `ClideFace` and `ClideStrip` take both inputs.
+
+**Three coarse levels, not a number.** `busyStream` is a boolean, so gradations invented from it would be a gauge that looks precise and is not — the thing D-107 rules out when it bans fake progress bars. Adding a level means finding a real signal for it first, and the test says so.
+
+**`absent` is new and load-bearing.** The old `error` face forced rain to zero, which conflated ''Clide''s session died'' with ''nothing is running''. Under the split those are different subjects: the primary can be grinding while Clide is dead. So stopping the rain became its own load level, and it is what still lets the render loop park (D-107 commitment 4).
+
+**Consequences handled**: `_isQuiescent` now asks the load, not the face — a resting face over a working session must keep ticking, which is asserted; `didUpdateWidget` re-primes a static frame on a *load* change rather than a state change, so changing his expression no longer disturbs the field.
+
+Tests: rain assertions moved off `face_state_test` into `session_load_test` (12), and two new ladder cases prove independence in both directions. The strip golden is now a face x weather cross including `idle / working` — a resting face in a downpour, which was unrepresentable before and is the ordinary case during a long tool run.
+
+Full suite 8 + 4168 + 50. **T-539 and T-538 are unblocked from this side.**', 'in_progress', 'high', NULL, NULL, 'D-107', '2026-08-09 12:25:01.558', '2026-08-09 12:41:12.060', NULL, '6813e8d18ba9f3d7e5ee362682f68548', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCYYFEV4XPZ2WGENAHVFYFM', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B1: Split the rain''s input from the face''s state (T-521 amendment)', '**Prerequisite for the rest of Epic B.** A T-521 contract change, raised there
+rather than done quietly, per that ticket''s rule.
+
+## The problem
+
+`ClideFace` takes one input, `FaceState`, and `FaceSpec` carries `rainDensity`
+and `rainSpeed` alongside the eyes and mouth. So the face and the rain are driven
+by the same value.
+
+D-107 commitment 5 gave them **different subjects**: the face reports Clide''s own
+state, the rain reports the primary session''s load as ambient weather. Two
+subjects cannot share one input. As it stands, making the rain track the session
+would drag the face''s expression along with it, which is the exact confusion the
+amendment was written to remove.
+
+## Change
+
+Split the load out of the face''s spec:
+
+- `FaceSpec` keeps eyes, mouth, blink, talk cycle, thought dots, jitter, elapsed,
+  clock, opacity — everything that is *the character*.
+- A new type carries `rainDensity` and `rainSpeed` — everything that is *the
+  weather*. Small and closed; at first it has two values (calm and working),
+  because `busyStream` is binary and inventing gradations we cannot observe would
+  be a fake gauge.
+- `ClideFace` gains a second input for it. That is the whole public change.
+
+Keep the density figures already settled in T-533 (`effort` = 1.0 × columns,
+idle = 0.05) — the ladder was chosen against rendered output and should survive
+the refactor unchanged. This ticket moves where they live, not what they are.
+
+## Watch for
+
+- `_isQuiescent` in `clide_face.dart` reads `spec.rainDensity` to decide whether
+  the ticker may park. It must now consider the *load*, not the face — an `error`
+  face over a still-raining field is animating and must not park.
+- `_primeField` likewise.
+- Goldens regenerate; the strip and face golden sets both take `state` today and
+  will need the load passing too.
+
+## Done when
+
+The face can be `idle` while the rain is at full density, and vice versa, and a
+test asserts exactly that — it is the property the whole split exists for.
+
+Done (2026-08-09).
+
+`FaceSpec` no longer carries rain. `SessionLoad` (absent / calm / working) and `LoadSpec` live in `session_load.dart`; `ClideFace` and `ClideStrip` take both inputs.
+
+**Three coarse levels, not a number.** `busyStream` is a boolean, so gradations invented from it would be a gauge that looks precise and is not — the thing D-107 rules out when it bans fake progress bars. Adding a level means finding a real signal for it first, and the test says so.
+
+**`absent` is new and load-bearing.** The old `error` face forced rain to zero, which conflated ''Clide''s session died'' with ''nothing is running''. Under the split those are different subjects: the primary can be grinding while Clide is dead. So stopping the rain became its own load level, and it is what still lets the render loop park (D-107 commitment 4).
+
+**Consequences handled**: `_isQuiescent` now asks the load, not the face — a resting face over a working session must keep ticking, which is asserted; `didUpdateWidget` re-primes a static frame on a *load* change rather than a state change, so changing his expression no longer disturbs the field.
+
+Tests: rain assertions moved off `face_state_test` into `session_load_test` (12), and two new ladder cases prove independence in both directions. The strip golden is now a face x weather cross including `idle / working` — a resting face in a downpour, which was unrepresentable before and is the ordinary case during a long tool run.
+
+Full suite 8 + 4168 + 50. **T-539 and T-538 are unblocked from this side.**', 'done', 'high', NULL, NULL, 'D-107', '2026-08-09 12:25:01.558', '2026-08-09 12:41:15.714', NULL, 'ad9ebbc9bd2b49b68c953b614dd0fe41', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

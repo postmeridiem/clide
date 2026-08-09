@@ -7405,3 +7405,108 @@ The re-attach notice that follows from it ("you were away for N minutes") is T-5
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XS3NW0XJA256CB6BJ21BM', 'status', 'in_progress', 'done', NULL, '2026-08-09 11:54:13', '2026-08-09 11:54:13.986', '2026-08-09 11:54:13.986', NULL, '2ddeb4f8564e96e5b41752a9b88565fa', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCWT2NCPV5ZSZAB9MS7J6YW', 'status', 'backlog', 'done', NULL, '2026-08-09 12:15:45', '2026-08-09 12:15:45.559', '2026-08-09 12:15:45.559', NULL, 'b499642485b58b4b5a1207e6ad3e42fe', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCY5SZ7W4QPN4X1E7YEG8W0', 'status', 'backlog', 'done', NULL, '2026-08-09 12:21:46', '2026-08-09 12:21:46.746', '2026-08-09 12:21:46.746', NULL, '49e515d5c190231c34c367874f4409f9', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Y5FBHF8QNAXQDJBJ26B0', 'status', 'backlog', 'in_progress', NULL, '2026-08-09 12:23:54', '2026-08-09 12:23:54.272', '2026-08-09 12:23:54.272', NULL, '705a98c98de5ff3828c5d38031cad7ad', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Y5FBHF8QNAXQDJBJ26B0', 'status', 'in_progress', 'in_progress', NULL, '2026-08-09 12:24:26', '2026-08-09 12:24:26.941', '2026-08-09 12:24:26.941', NULL, 'fde832959add0d8baec36a31af0b6662', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCYYFEV4XPZ2WGENAHVFYFM', 'status', 'backlog', 'in_progress', NULL, '2026-08-09 12:29:40', '2026-08-09 12:29:40.634', '2026-08-09 12:29:40.634', NULL, '6b0d5fd9bfe798b046dfea040ce6e17e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCYYFEV4XPZ2WGENAHVFYFM', 'description', '**Prerequisite for the rest of Epic B.** A T-521 contract change, raised there
+rather than done quietly, per that ticket''s rule.
+
+## The problem
+
+`ClideFace` takes one input, `FaceState`, and `FaceSpec` carries `rainDensity`
+and `rainSpeed` alongside the eyes and mouth. So the face and the rain are driven
+by the same value.
+
+D-107 commitment 5 gave them **different subjects**: the face reports Clide''s own
+state, the rain reports the primary session''s load as ambient weather. Two
+subjects cannot share one input. As it stands, making the rain track the session
+would drag the face''s expression along with it, which is the exact confusion the
+amendment was written to remove.
+
+## Change
+
+Split the load out of the face''s spec:
+
+- `FaceSpec` keeps eyes, mouth, blink, talk cycle, thought dots, jitter, elapsed,
+  clock, opacity — everything that is *the character*.
+- A new type carries `rainDensity` and `rainSpeed` — everything that is *the
+  weather*. Small and closed; at first it has two values (calm and working),
+  because `busyStream` is binary and inventing gradations we cannot observe would
+  be a fake gauge.
+- `ClideFace` gains a second input for it. That is the whole public change.
+
+Keep the density figures already settled in T-533 (`effort` = 1.0 × columns,
+idle = 0.05) — the ladder was chosen against rendered output and should survive
+the refactor unchanged. This ticket moves where they live, not what they are.
+
+## Watch for
+
+- `_isQuiescent` in `clide_face.dart` reads `spec.rainDensity` to decide whether
+  the ticker may park. It must now consider the *load*, not the face — an `error`
+  face over a still-raining field is animating and must not park.
+- `_primeField` likewise.
+- Goldens regenerate; the strip and face golden sets both take `state` today and
+  will need the load passing too.
+
+## Done when
+
+The face can be `idle` while the rain is at full density, and vice versa, and a
+test asserts exactly that — it is the property the whole split exists for.', '**Prerequisite for the rest of Epic B.** A T-521 contract change, raised there
+rather than done quietly, per that ticket''s rule.
+
+## The problem
+
+`ClideFace` takes one input, `FaceState`, and `FaceSpec` carries `rainDensity`
+and `rainSpeed` alongside the eyes and mouth. So the face and the rain are driven
+by the same value.
+
+D-107 commitment 5 gave them **different subjects**: the face reports Clide''s own
+state, the rain reports the primary session''s load as ambient weather. Two
+subjects cannot share one input. As it stands, making the rain track the session
+would drag the face''s expression along with it, which is the exact confusion the
+amendment was written to remove.
+
+## Change
+
+Split the load out of the face''s spec:
+
+- `FaceSpec` keeps eyes, mouth, blink, talk cycle, thought dots, jitter, elapsed,
+  clock, opacity — everything that is *the character*.
+- A new type carries `rainDensity` and `rainSpeed` — everything that is *the
+  weather*. Small and closed; at first it has two values (calm and working),
+  because `busyStream` is binary and inventing gradations we cannot observe would
+  be a fake gauge.
+- `ClideFace` gains a second input for it. That is the whole public change.
+
+Keep the density figures already settled in T-533 (`effort` = 1.0 × columns,
+idle = 0.05) — the ladder was chosen against rendered output and should survive
+the refactor unchanged. This ticket moves where they live, not what they are.
+
+## Watch for
+
+- `_isQuiescent` in `clide_face.dart` reads `spec.rainDensity` to decide whether
+  the ticker may park. It must now consider the *load*, not the face — an `error`
+  face over a still-raining field is animating and must not park.
+- `_primeField` likewise.
+- Goldens regenerate; the strip and face golden sets both take `state` today and
+  will need the load passing too.
+
+## Done when
+
+The face can be `idle` while the rain is at full density, and vice versa, and a
+test asserts exactly that — it is the property the whole split exists for.
+
+Done (2026-08-09).
+
+`FaceSpec` no longer carries rain. `SessionLoad` (absent / calm / working) and `LoadSpec` live in `session_load.dart`; `ClideFace` and `ClideStrip` take both inputs.
+
+**Three coarse levels, not a number.** `busyStream` is a boolean, so gradations invented from it would be a gauge that looks precise and is not — the thing D-107 rules out when it bans fake progress bars. Adding a level means finding a real signal for it first, and the test says so.
+
+**`absent` is new and load-bearing.** The old `error` face forced rain to zero, which conflated ''Clide''s session died'' with ''nothing is running''. Under the split those are different subjects: the primary can be grinding while Clide is dead. So stopping the rain became its own load level, and it is what still lets the render loop park (D-107 commitment 4).
+
+**Consequences handled**: `_isQuiescent` now asks the load, not the face — a resting face over a working session must keep ticking, which is asserted; `didUpdateWidget` re-primes a static frame on a *load* change rather than a state change, so changing his expression no longer disturbs the field.
+
+Tests: rain assertions moved off `face_state_test` into `session_load_test` (12), and two new ladder cases prove independence in both directions. The strip golden is now a face x weather cross including `idle / working` — a resting face in a downpour, which was unrepresentable before and is the ordinary case during a long tool run.
+
+Full suite 8 + 4168 + 50. **T-539 and T-538 are unblocked from this side.**', NULL, '2026-08-09 12:41:12', '2026-08-09 12:41:12.060', '2026-08-09 12:41:12.060', NULL, 'e61c6fe3508b07a317b9831816319d12', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCYYFEV4XPZ2WGENAHVFYFM', 'status', 'in_progress', 'done', NULL, '2026-08-09 12:41:15', '2026-08-09 12:41:15.714', '2026-08-09 12:41:15.714', NULL, '24536b143e35927dc5e3bac6858ebe00', 2) ON CONFLICT(hash) DO NOTHING;
