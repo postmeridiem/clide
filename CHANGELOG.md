@@ -33,6 +33,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- Clide's rain draws in the theme's code green rather than muted body text, so
+  it reads as falling code instead of dimmed text. (T-535)
+
 ### Fixed
 
 - Settings controls bound to a per-project key no longer throw when no workspace

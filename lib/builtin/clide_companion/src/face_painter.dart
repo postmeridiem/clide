@@ -110,7 +110,24 @@ class ClideFacePainter extends CustomPainter {
 
   double get _seconds => clock.value.inMicroseconds / 1e6;
 
-  /// Accent for states that recolour the face.
+  /// The rain's colour: markdown's inline-code green (`syntaxString`), not the
+  /// muted body text it started as.
+  ///
+  /// Reaching for a *syntax* token from chrome looks like a layering slip and is
+  /// not. The rain is the one place in the app that is literally falling code —
+  /// the same green the markdown reader gives a backticked span — and borrowing
+  /// the token is what keeps it in step with a theme rather than approximating
+  /// one theme's idea of green. Verified readable across every bundled theme
+  /// before adopting.
+  Color get _rainColor => tokens.syntaxString;
+
+  /// Accent for the face.
+  ///
+  /// Stays `globalForeground` at rest, deliberately, now that the rain is
+  /// coloured: the face is the character and the rain is the weather (D-107
+  /// commitment 5), and giving them one colour would undo the separation the
+  /// vignette exists to create — worst at high density, which is exactly when
+  /// the face needs to read.
   Color get _faceColor => switch (state) {
     FaceState.rage => tokens.statusWarning,
     FaceState.error => tokens.statusError,
@@ -142,7 +159,7 @@ class ClideFacePainter extends CustomPainter {
         // Quantised so the glyph cache sees a handful of colours rather than a
         // new one per cell; keys include the colour, and an unbounded palette
         // would evict the whole cache every frame.
-        color: tokens.globalTextMuted.withValues(alpha: _trailAlpha(c.intensity)),
+        color: _rainColor.withValues(alpha: _trailAlpha(c.intensity)),
         fontSize: rainFontSize,
         fontFamily: fontFamily,
         fontFamilyFallback: fontFamilyFallback,
