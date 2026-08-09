@@ -4233,3 +4233,252 @@ needs byte comparison, not ink counting.
   is already set up for it.
 - Wall-clock `HH:MM` for the idle state is the one thing not derived from the ticker, since
   it is genuinely time-of-day. Goldens covering `idle` must pin or avoid it.', 'done', 'medium', NULL, NULL, NULL, '2026-08-09 00:33:58.510', '2026-08-09 02:41:30.922', NULL, '1868972c8e9389cd49825e7a77a7c841', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XR4APSKWH94DNG00B51J4', 'task', '06FY73YPCJVWBXD9YF1JKZEK2W', 'C1: Clide strip surface — _ContextSlot becomes a Column, responsive 220-1000px', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-08-09 03:00:32.981', '2026-08-09 03:00:32.981', NULL, '29b88374421d61e6e3f9107351b15ff4', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XRM7XGNMSGTRB1CNZAA8R', 'task', '06FY73YPCJVWBXD9YF1JKZEK2W', 'C4: Clide settings category + enable/disable kill switch', NULL, 'backlog', 'high', NULL, NULL, NULL, '2026-08-09 03:00:37.055', '2026-08-09 03:00:37.055', NULL, '85be53bc5f6878ce583b46f068e273fe', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XS3NW0XJA256CB6BJ21BM', 'task', '06FY73YPCJVWBXD9YF1JKZEK2W', 'C2: Strip collapse affordance + persisted height + grow-to-cap while answering', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-08-09 03:00:41.007', '2026-08-09 03:00:41.007', NULL, '4636b86d56078ac6cc815a3b5d5f89aa', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XSMQCBRVZWWMENNS3KKFM', 'task', '06FY73YPCJVWBXD9YF1JKZEK2W', 'C3: CLI verbs for the Clide strip — D-6 parity', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-08-09 03:00:45.371', '2026-08-09 03:00:45.371', NULL, '2f913f94f7bd88794dd90d757cf53490', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XTDQ9HXXA1PA6KRG5FFHM', 'task', '06FY73YPCJVWBXD9YF1JKZEK2W', 'C5: Clide i18n catalog — chrome strings for en_us and nl_nl', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-08-09 03:00:51.770', '2026-08-09 03:00:51.770', NULL, 'a5466527a9952ace63b421258b6f9334', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XRM7XGNMSGTRB1CNZAA8R', 'task', '06FY73YPCJVWBXD9YF1JKZEK2W', 'C4: Clide settings category + enable/disable kill switch', 'The off switch. **Blocks Epic D (T-519)** — deliberately, so the thing that spends
+subscription quota cannot land before the thing that stops it.
+
+## Why this is a blocker and not a nicety
+
+D-107 commits to the companion being **"user-disableable to zero"**, and is explicit that
+this is part of the decision rather than tuning, because the companion runs on subscription
+auth and draws from the same pool that already rate-limits the primary session. Without this
+ticket there is a window in which a second model session runs with no way to stop it short of
+quitting the app.
+
+**Disable must tear the process down, not just hide the UI.** A hidden face that is still
+spawning a `claude` process and consuming quota is precisely the failure this exists to
+prevent. Epic D''s session lifecycle honours this key; wire it as a real teardown.
+
+## Deliberately independent of the rest of Epic C
+
+This ticket has **no blockers** and must stay that way. A settings key plus a
+`SettingsCategoryContribution` is self-contained and does not need the strip, the collapse
+affordance, the CLI verbs or the i18n catalog to exist first. If it were sequenced behind
+C1, Epic D would be queued behind the entire surface for no reason.
+
+## Scope
+
+- Settings category for Clide with, at minimum:
+  - **enable/disable** — the kill switch. Default off is the safer choice given it spends
+    quota; confirm the default with the user rather than assuming.
+  - **comment frequency** — how eagerly it speaks (D-107: notable events only, but the
+    threshold is tunable).
+  - **suspend when minimised** — the power-ladder `night` rung (T-517 owns the lifecycle
+    capability itself; this is just the preference).
+- Registration template: `lib/builtin/output/src/extension.dart` — tab + status toggle +
+  command, with `dependsOn: [''builtin.default-layout'']`.
+- Contribution types: `SettingsCategoryContribution` / `SettingsControlContribution`
+  (`lib/extension/src/contribution.dart`).
+- Read through `ClideSettings` (D-101), never a bare settings lookup.
+
+## Done when
+
+- The key exists, persists, and is readable without the strip being mounted.
+- A test asserts that disabling produces a state in which no companion session may run —
+  written so it still passes before Epic D exists, and becomes meaningful once it does.
+- Labels are catalog strings (D-21/D-102), not literals; coordinate the namespace with C5.', 'backlog', 'high', NULL, NULL, NULL, '2026-08-09 03:00:37.055', '2026-08-09 03:01:37.531', NULL, '4d98893718b85ebe601c8648198834d4', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Z35AYAJQZ4MZMT25DPWC', 'epic', '06FY73V6EVHP32P31NQRJCP104', 'Epic D: Clide companion session + observed/direct protocol', 'Stand up the Haiku companion session, feed it a filtered digest of the main conversation,
+and give it a protocol that distinguishes *watching* from *being spoken to*. Pure plumbing —
+**can start immediately, in parallel with Epic A**.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams** — publish the reply/state stream that Epic B (face reactions to
+   companion errors) and Epic E (answer rendering) consume, and coordinate with B on reading
+   `StreamJsonSession` so the two epics don''t each grow their own subscription layer.
+
+## Spawning — no new process plumbing needed
+
+`ClaudeSessionOrchestrator.spawn(SpawnSpec(..., visible: false))`
+(`lib/builtin/claude/src/session_orchestrator.dart:209`) already yields a live stream-json
+session with **no pane**, idempotent per `(id, cwd)`, serialized against races.
+`visible: false` is the intended primitive for a headless agent. Precedent for spawning
+outside a pane: `_forkMember` at `claude_meta_sidebar.dart:256-274`.
+
+- Spawn id `clide.companion`, `--model haiku`.
+- `--no-session-persistence` so it never pollutes `~/.claude/projects` (precedent:
+  `claude_config.dart:576`).
+- **There is no Anthropic API client in the repo** — grep for `anthropic` / `ANTHROPIC_API_KEY`
+  across `lib/` returns only comments. Everything goes through the `claude` CLI, so this runs
+  on subscription auth exactly like the main session.
+
+## Digest — what Clide sees
+
+Filter `session.items` to **`UserMessage` + `AssistantTextMessage` only**. Drop
+`AssistantToolUse`, `ToolResultMessage`, thinking, and the clide-injected image/drawing/icon
+cards. Item model: `transcript_reader.dart:41-267`.
+
+**Known limitation, accepted for v1:** with tool calls excluded, *"what did that tool call
+do?"* is unanswerable. Asking what Claude **said** works; asking what Claude **did** does
+not. Revisit if it bites in practice.
+
+## Protocol — observed vs direct
+
+```
+[observed] jeroen: <prompt text>
+[observed] claude: <assistant prose>
+[direct]   jeroen: <question typed into Clide''s own input>
+```
+
+The system prompt states the split explicitly: `observed` lines are a conversation between
+the user and Claude that Clide is watching — remark rarely and briefly; `direct` lines are
+addressed to Clide — always answer. Reply in the active locale (`app.locale`, carried into
+the prompt). One or two sentences.
+
+Trigger for unprompted remarks: **notable events only** — turn finished, error, long run
+crossing a threshold, commit landed. Never per-token.
+
+## Cost guards — the constraints that actually shape this
+
+- **Restart the session at ~50 comments.** Cost grows quadratically (history re-sends each
+  turn). A rolling window is the wrong fix: evicting the oldest event changes the cache
+  prefix, so every turn would pay full price. Grow-then-restart preserves cache hits within
+  an epoch and bounds growth.
+- **Haiku 4.5''s prompt-cache minimum is 4096 tokens — the highest of any current model.**
+  Below it `cache_control` is silently ignored (`cache_creation_input_tokens: 0`, no error).
+  A lean sidekick prompt is uncached for roughly its first 20 comments.
+- **Do not set `effort`** — it errors on Haiku 4.5.
+- Leave thinking off (latency and tokens for a one-line quip), and cap `max_tokens` ~100 so
+  a bad turn can''t produce an essay.
+- Budget: ~$0.002/comment at 50 comments. But under subscription auth the real cost is
+  **quota**, drawn from the same pool already rate-limiting the main session — keep the
+  trigger stingy.
+
+## Lifecycle
+
+Respect the settings kill switch (Epic C) and the power ladder (Epic B): a disabled or
+dormant Clide should not hold a live process open. Tear the session down, don''t just stop
+reading it.
+
+BLOCKED BY T-527 (kill switch) — added deliberately 2026-08-09. D-107 commits the companion to being user-disableable to zero, and this epic is the thing that spends subscription quota from the same pool that already rate-limits the primary session. Landing it before an off switch exists would leave a window with no way to stop it short of quitting the app. Note the requirement is a real teardown of the claude process, not just hiding the UI — a hidden face still spawning a process and burning quota is exactly the failure the blocker exists to prevent.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-08 22:48:05.674', '2026-08-09 03:01:44.001', NULL, '53eb586003d396259ba92e178e161cc3', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73YPCJVWBXD9YF1JKZEK2W', 'epic', '06FY73V6EVHP32P31NQRJCP104', 'Epic C: Clide surface & chrome — slot, settings, i18n, CLI parity', 'Give Clide a real home in the shell, with the settings, i18n and CLI parity that make it a
+first-class surface rather than a bolted-on widget.
+
+**Blocked by T-514** — the spike decides whether this is a new slot or a region inside the
+context panel, and that changes most of the file list below.
+
+## Epic''s own first job
+
+1. **Break this epic down** once T-514 lands and the shape is known.
+2. **Own the seam with Epic E** — E mounts its input box inside this surface. Settle the
+   surface''s internal composition (face region / bubble region / input region) here so E
+   only fills a slot rather than renegotiating layout.
+
+## If the spike picks A (own right-edge rail)
+
+| File | Change |
+|---|---|
+| `lib/kernel/src/panels/slot_id.dart:20-33` | add the slot id (`SlotId` is a wrapped String — new ids are cheap) |
+| `lib/kernel/src/panels/layout_preset.dart:13-23` | `LayoutSlot(position: right, defaultSize/minSize/maxSize)` |
+| `lib/src/shell/layout.dart:51-59` | render column + `ClideSpine` when collapsed + `DragResizeHandle` |
+| `lib/kernel/src/panels/drag_resize.dart:178` **and** `:199` | **The sign flip is hard-coded to `Slots.contextPanel` at both sites.** A new right-side slot must be added to both or the drag runs backwards. This is the single easiest thing to get wrong in this epic. |
+| `lib/builtin/default_layout/src/extension.dart:170-234` | persistence keys (`_restoreLayout` / `_persistLayout`) |
+| `lib/main.dart:599-632` + `lib/test_app.dart:288-294` | register the extension |
+
+A real slot buys `isVisible` / `isCollapsed` / `sizeOf`, restart persistence,
+`clide panel resize <slot>` (`lib/src/daemon/panel_commands.dart:66`) and `clide pane list`
+reporting — i.e. **D-6 parity for free**. That is the main argument for a slot over a bare
+widget.
+
+## If the spike picks B (strip in the context panel)
+
+Single insertion point: `_ContextSlot` at `lib/src/shell/slot_host.dart:349-362`, currently
+`Container(... child: active.build(context))`, becomes a `Column`. The slot/persistence/
+drag-resize rows above all drop away. Structural template for a split inside a column:
+`_WorkspaceSlot` at `slot_host.dart:147-207`.
+
+## Also in scope regardless of shape
+
+- **Settings**: `SettingsCategoryContribution` + controls — enable/disable Clide entirely,
+  comment frequency, suspend-when-minimised. Registration template:
+  `lib/builtin/output/src/extension.dart` (tab + status toggle + command, with
+  `dependsOn: [''builtin.default-layout'']` so the slot exists first).
+- **i18n**: chrome strings via `ClideSettings.i18n.string(...)` into
+  `assets/i18n/{en_us,nl_nl}/clide.json` (D-21/D-102). Note Clide''s *replies* are model
+  output, not catalog strings — the locale is carried into the prompt by Epic D, not
+  translated here. Design for ~30% length growth on any fixed-width chrome.
+- **Contribution + registration** per `lib/extension/src/contribution.dart`; host dispatch
+  is `extensions_manager.dart:237-260`.
+
+## Testing
+
+Layout must be asserted **at ultrawide**, driving `tester.view.physicalSize` — a wide
+`SizedBox` under the default 800px test surface is clamped to 800 and does not actually test
+wide. Pattern: `test/app_statusbar_test.dart` (`pumpAt`). Related audit: T-241.
+
+Likely to need updating: `test/app_test.dart`, `test/app_collapse_toggle_test.dart`,
+`test/builtin/default_layout/widget_test.dart`, and the panels tests under
+`test/kernel/src/panels/`.
+
+## Spike resolved (T-514, 2026-08-09) — take the B route
+
+Placement **B** was chosen: a horizontal strip sharing the bottom of the context column.
+
+**The "If the spike picks A" section above is dead — ignore it.** No `slot_id.dart`, no
+`layout_preset.dart`, no `layout.dart` column, and in particular **no `drag_resize.dart`
+sign-flip work**; that trap does not apply on this route.
+
+Live scope is the B section: `_ContextSlot` at `lib/src/shell/slot_host.dart:349-362`
+becomes a `Column`. Structural template for a split inside a column is `_WorkspaceSlot`
+(`slot_host.dart:147-207`).
+
+**What B costs this epic, and it is the main work here:** the strip is not a slot, so none of
+`isVisible` / `isCollapsed` / `sizeOf` / restart persistence / `clide panel resize` /
+`clide pane list` come for free. To keep **D-6 parity** this epic must hand-roll:
+
+- a collapse/expand affordance for the strip,
+- a persisted height and collapsed-state (alongside the dock''s keys in
+  `default_layout/src/extension.dart:170-234`),
+- and CLI verbs so every UI action has a command equivalent.
+
+Budget for that explicitly — it was the strongest argument for A and is now this epic''s
+problem. Decide early whether the strip''s height is a first-class arrangement value or
+extension-local settings state; the former is more work but keeps it consistent with every
+other resizable region.
+
+Also in scope from the spike: the strip **grows to a capped height (~40% of the column)
+while Clide is answering and collapses back when idle**. That interacts with the persisted
+height — the user''s chosen height is the resting height, not a ceiling.
+
+## Breakdown (2026-08-09)
+
+| | Ticket | Blocked by |
+|---|---|---|
+| C1 | T-526 — strip surface: `_ContextSlot` becomes a `Column`, responsive 220–1000px | T-525 (A5) |
+| C2 | T-528 — collapse affordance, persisted height, grow-to-cap while answering | C1 |
+| C3 | T-529 — CLI verbs, D-6 parity | C1 |
+| C4 | **T-527 — settings category + kill switch** | **nothing, deliberately** |
+| C5 | T-530 — i18n catalog (en_us, nl_nl) | C1 |
+
+## Two sequencing decisions
+
+**C1 waits for A5 (T-525).** The strip needs a real face to mount. Building it against a
+placeholder would mean redoing the integration, and — more importantly — A5 is where the face
+is first validated at real dimensions. The chosen placement is a ~110px-tall strip; so far the
+face has only been seen in wireframes with hand-placed glyphs and in painter tests at 240×160.
+If it does not read at strip height, that is a design problem worth finding **before** a slot,
+settings, CLI verbs and an i18n catalog are built around it.
+
+**C4 has no blockers, and must keep none.** It blocks Epic D (T-519), so sequencing it behind
+C1 would queue the entire companion session behind the entire surface for no reason. A
+settings key plus a contribution is self-contained.
+
+## Why C4 blocks Epic D
+
+D-107 commits the companion to being "user-disableable to zero", and states that this is part
+of the decision rather than tuning, because it spends subscription quota from the same pool
+that already rate-limits the primary session. Making it a graph edge rather than a note in a
+description means it cannot be forgotten at the moment it matters. Requirement is a real
+process teardown, not hiding the UI.
+
+## The epic''s other job: the seam with Epic E
+
+E (T-520) mounts its input box and answer surface inside C1''s strip. C1 therefore owns the
+**internal composition** — face region, bubble region, input region — and settles it once, so
+E fills a slot rather than renegotiating layout. C2 owns height behaviour including the
+grow-to-cap-while-answering that E''s answers trigger; E should not implement its own resizing.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-08 22:48:02.404', '2026-08-09 03:02:02.287', NULL, '7dc2c6b50c46047a283ea80afc1b976e', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
