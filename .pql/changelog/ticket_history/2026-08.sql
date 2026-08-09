@@ -5041,3 +5041,1171 @@ The shipped top rung — effort at 1.00 x columns, so 151 streams at the widest 
 
 Worth recording for whoever raises this next: with trail 6 the old headroom is gone. 600 streams was 2.2% at trail 1 and is 6.4% now. The budget is spent on cells, and trail length multiplies cells per stream — so the two dials are not independent, and a future ''just crank the count'' needs re-measuring rather than reading the trail-1 table.', NULL, '2026-08-09 09:54:17', '2026-08-09 09:54:17.669', '2026-08-09 09:54:17.669', NULL, 'ef3b03fa67558f6a1e6bc85507883e99', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYBSP0GRXMFWTTHQ344YCGC4', 'status', 'in_progress', 'done', NULL, '2026-08-09 09:54:26', '2026-08-09 09:54:26.314', '2026-08-09 09:54:26.314', NULL, '876164cb335daed1e34581eeea8ba784', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Y5FBHF8QNAXQDJBJ26B0', 'description', 'Drive Epic A''s face from real session signals, and make it provably stop when nothing is
+happening. This is where "whimsical but a solid widget" is actually earned.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams on both sides** — consume Epic A''s state-enum contract, and consume the
+   session signals below without adding new public API to `StreamJsonSession` unless it
+   genuinely belongs there (coordinate with Epic D, which also reads that session).
+
+## State mapping
+
+| State | Trigger |
+|---|---|
+| `idle` | `!busy`, no recent activity |
+| `listening` | composer or Clide input focused |
+| `pensive` | `busy` && no `partial-` item yet — i.e. thinking |
+| `effort` | `busy` && elapsed past a threshold → orbit arc + `[ Ns ]` counter |
+| `speaking` | `busy` && `partial-` items arriving — i.e. streaming |
+| `rage` | API error / turn failure; plays the 3-frame table-flip, then returns to idle |
+| `error` | `endedStream` fired — session died |
+
+**The thinking-vs-streaming split is free and is the nicest signal here.** There is no
+public "is streaming" stream on the session; the tell is items whose
+`uuid.startsWith(''partial-'')` (`stream_json_session.dart:589-628`). So `busy` with no partial
+yet = thinking; `busy` with partials arriving = streaming.
+
+Signals to bind: `busyStream` (seeded `ValueStream`), `items`, `statusStream`,
+`pendingPromptStream`, `endedStream`. Binding pattern: the `_bindPrimary()` cancel/rebind/seed
+dance at `claude_meta_sidebar.dart:205-245` — the worked example for exactly this.
+
+DeskLock''s rule is adopted verbatim: **"wait cues are a hard requirement — never a bare
+static face during a wait, and no fake progress bars, only honest cues."** The `effort`
+orbit + elapsed counter is the answer to clide''s long tool runs.
+
+## Power ladder
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible, focused |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | unmounted / no ticker | panel collapsed or hidden; window minimised |
+
+**Collapse and hide are free.** `layout.dart:51-59` renders a spine or nothing when a slot is
+collapsed/hidden, so `SlotHost` unmounts entirely and the controller disposes. Same for
+inactive tabs — the context path has no `IndexedStack`/`keepAlive`.
+
+**Minimise is not free — this is a new capability for the codebase.** There is no
+`WidgetsBindingObserver`, `didChangeAppLifecycleState`, or `AppLifecycleState` handling
+anywhere in `lib/` (zero hits), and `TickerMode` is unused. Adding lifecycle observation is
+its own commit and should be reviewed as a kernel-level addition, not smuggled in as a
+widget detail. `lib/main.dart:553` has a comment noting lifecycle isn''t wired.
+
+## Testing
+
+Assert each rung actually stops the ticker — a power ladder that doesn''t demonstrably park
+the render loop is decoration. Bounded pumps, empty-tree teardown, and the reduced-motion
+`pumpAndSettle` contract from Epic A still apply.
+
+## Contract published (Epic A breakdown, 2026-08-09) — you are not blocked
+
+Epic A''s seam is specified in full on **T-521**. Code against it now; you do not need to wait
+for T-521 to land, and A will not change it without renegotiating here.
+
+```dart
+enum FaceState { idle, listening, pensive, effort, speaking, rage, error }
+enum Gaze { none, left, forward, right }
+
+ClideFace({
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,   // you own this; the widget does not time turns
+})
+```
+
+That is the entire surface. Three things follow for B:
+
+1. **B owns elapsed time.** `busyFor` drives the `[ Ns ]` counter in `effort`. The widget
+   deliberately does not time turns itself, because you already know when the turn started
+   and the widget would only be guessing from prop changes.
+2. **Lean is derived from `gaze`, not passed.** `left → −8px`, `forward/none → 0`,
+   `right → +8px`. Do not look for a `lean` prop.
+3. **If you need something more, that is a T-521 change, not a prop added quietly to the
+   widget.** Raise it there so the contract stays one place.
+
+### `rage` is a scowl, not a table-flip
+
+Deviation from DeskLock, decided during the A breakdown: `rage` renders as brows-down eyes
+`▼   ▼` with a flat mouth `━` and jitter, not the 3-frame kaomoji. Two of the kaomoji''s
+glyphs (`︵` U+FE35, `ノ` U+30CE — katakana) are missing from the bundled fonts, and the
+sequence needed a second render path for the state you see least. **Semantics are unchanged**
+— it is still the transient-failure reaction, so your mapping (API error / turn failure →
+`rage` for a beat → back to `idle`) is unaffected.
+
+### Signals reminder for your mapping
+
+The thinking-versus-streaming split is free: `busy && no partial- item yet` → `pensive`;
+`busy && partial- items arriving` → `speaking` (`stream_json_session.dart:589-628`). There is
+no public "is streaming" stream; items whose `uuid.startsWith(''partial-'')` are the tell.', 'Drive Epic A''s face from real session signals, and make it provably stop when nothing is
+happening. This is where "whimsical but a solid widget" is actually earned.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams on both sides** — consume Epic A''s state-enum contract, and consume the
+   session signals below without adding new public API to `StreamJsonSession` unless it
+   genuinely belongs there (coordinate with Epic D, which also reads that session).
+
+## State mapping
+
+| State | Trigger |
+|---|---|
+| `idle` | `!busy`, no recent activity |
+| `listening` | composer or Clide input focused |
+| `pensive` | `busy` && no `partial-` item yet — i.e. thinking |
+| `effort` | `busy` && elapsed past a threshold → orbit arc + `[ Ns ]` counter |
+| `speaking` | `busy` && `partial-` items arriving — i.e. streaming |
+| `rage` | API error / turn failure; plays the 3-frame table-flip, then returns to idle |
+| `error` | `endedStream` fired — session died |
+
+**The thinking-vs-streaming split is free and is the nicest signal here.** There is no
+public "is streaming" stream on the session; the tell is items whose
+`uuid.startsWith(''partial-'')` (`stream_json_session.dart:589-628`). So `busy` with no partial
+yet = thinking; `busy` with partials arriving = streaming.
+
+Signals to bind: `busyStream` (seeded `ValueStream`), `items`, `statusStream`,
+`pendingPromptStream`, `endedStream`. Binding pattern: the `_bindPrimary()` cancel/rebind/seed
+dance at `claude_meta_sidebar.dart:205-245` — the worked example for exactly this.
+
+DeskLock''s rule is adopted verbatim: **"wait cues are a hard requirement — never a bare
+static face during a wait, and no fake progress bars, only honest cues."** The `effort`
+orbit + elapsed counter is the answer to clide''s long tool runs.
+
+## Power ladder
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible, focused |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | unmounted / no ticker | panel collapsed or hidden; window minimised |
+
+**Collapse and hide are free.** `layout.dart:51-59` renders a spine or nothing when a slot is
+collapsed/hidden, so `SlotHost` unmounts entirely and the controller disposes. Same for
+inactive tabs — the context path has no `IndexedStack`/`keepAlive`.
+
+**Minimise is not free — this is a new capability for the codebase.** There is no
+`WidgetsBindingObserver`, `didChangeAppLifecycleState`, or `AppLifecycleState` handling
+anywhere in `lib/` (zero hits), and `TickerMode` is unused. Adding lifecycle observation is
+its own commit and should be reviewed as a kernel-level addition, not smuggled in as a
+widget detail. `lib/main.dart:553` has a comment noting lifecycle isn''t wired.
+
+## Testing
+
+Assert each rung actually stops the ticker — a power ladder that doesn''t demonstrably park
+the render loop is decoration. Bounded pumps, empty-tree teardown, and the reduced-motion
+`pumpAndSettle` contract from Epic A still apply.
+
+## Contract published (Epic A breakdown, 2026-08-09) — you are not blocked
+
+Epic A''s seam is specified in full on **T-521**. Code against it now; you do not need to wait
+for T-521 to land, and A will not change it without renegotiating here.
+
+```dart
+enum FaceState { idle, listening, pensive, effort, speaking, rage, error }
+enum Gaze { none, left, forward, right }
+
+ClideFace({
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,   // you own this; the widget does not time turns
+})
+```
+
+That is the entire surface. Three things follow for B:
+
+1. **B owns elapsed time.** `busyFor` drives the `[ Ns ]` counter in `effort`. The widget
+   deliberately does not time turns itself, because you already know when the turn started
+   and the widget would only be guessing from prop changes.
+2. **Lean is derived from `gaze`, not passed.** `left → −8px`, `forward/none → 0`,
+   `right → +8px`. Do not look for a `lean` prop.
+3. **If you need something more, that is a T-521 change, not a prop added quietly to the
+   widget.** Raise it there so the contract stays one place.
+
+### `rage` is a scowl, not a table-flip
+
+Deviation from DeskLock, decided during the A breakdown: `rage` renders as brows-down eyes
+`▼   ▼` with a flat mouth `━` and jitter, not the 3-frame kaomoji. Two of the kaomoji''s
+glyphs (`︵` U+FE35, `ノ` U+30CE — katakana) are missing from the bundled fonts, and the
+sequence needed a second render path for the state you see least. **Semantics are unchanged**
+— it is still the transient-failure reaction, so your mapping (API error / turn failure →
+`rage` for a beat → back to `idle`) is unaffected.
+
+### Signals reminder for your mapping
+
+The thinking-versus-streaming split is free: `busy && no partial- item yet` → `pensive`;
+`busy && partial- items arriving` → `speaking` (`stream_json_session.dart:589-628`). There is
+no public "is streaming" stream; items whose `uuid.startsWith(''partial-'')` are the tell.
+
+Signal audit against the live session code (2026-08-09), before breakdown. Two
+of the seven states have **no source at all** today, and one of the plan''s
+central assumptions is wrong. Read this before scoping.
+
+Everything hangs off `activeSessionOrchestrator.byId(''primary'')` — rebind on
+every orchestrator notification, per the worked example at
+`claude_meta_sidebar.dart:200-245`.
+
+## Available now, no new plumbing
+
+| Need | Signal | Where |
+|---|---|---|
+| busy on/off | `busyStream` — `ValueStream<bool>`, replay-latest, edge-deduped | `stream_json_session.dart:426` |
+| turn ended | falling edge of the same stream | `:532-537` |
+| session died (`error`) | `endedStream` + `end` field. **No replay** — check `end` first, then subscribe (`claude_pane.dart:421-426`) | `:465-472`, `:982-993` |
+| blocked on a permission ask | `pendingPromptStream` — `ValueStream`, replay | `:436-440` |
+| context tokens / cost | `statusStream` — `ValueStream`, replay | `:457` |
+
+## Wrong assumption: `partial-` does not mean "arriving now"
+
+The plan and `FaceState.speaking` both rest on "items whose uuid starts with
+`partial-` are the tell for streaming". It is **half true**. Partial items are
+created per `text_delta` (`:601-622`), but at `:561-570` the *final* assistant
+event is rewritten to carry the same `partial-$msgId` uuid — so a completed
+message keeps the prefix permanently. The predicate therefore means "this text
+came through the streaming path", not "prose is arriving right now".
+
+The honest tell is either the **arrival event** (a new/updated `partial-` item
+while `busy`) or exposing `_streamingMsgId` (`:381`, private; set on
+`message_start`, cleared on `message_stop` and `result`) — a one-line addition
+and the cleaner of the two.
+
+## Missing: thinking-in-progress
+
+`_onStreamEvent` (`:589-626`) handles exactly `message_start`,
+`content_block_delta` gated on `text_delta`, and `message_stop`. **`thinking_delta`
+is on the wire** (`docs/spikes/cc-stream-json-control-protocol-2.1.150.md:74`)
+**and dropped on the floor.** What survives is `AssistantThinkingMessage`
+(`transcript_reader.dart:133`), which arrives when a thinking block *completes* —
+an end edge, not a during state.
+
+So `pensive` as specified ("busy && no partial item yet") is an inference, not an
+observation. Handling `thinking_delta` would make it an observation, and would
+also let `effort` key off real reasoning rather than a stopwatch. Worth doing as
+part of this epic: it is a `case` in an existing switch.
+
+## Missing: `busyFor`
+
+No turn-start timestamp is recorded anywhere. `_setBusy(true)` has exactly one
+call site (`:876`). The state machine stamps the rising edge itself — trivial,
+but it is *our* job, not the session''s.
+
+## Missing: a source for `rage`
+
+`_statusFromEvent`''s `case ''result'':` (`:803-824`) reads only `total_cost_usd`
+and `contextWindow`. The result event''s `is_error` / error `subtype` are **never
+inspected**, and there is no error member in the `ConversationItem` union
+(`transcript_reader.dart:41`). The nearest thing is `ToolResultMessage.isError` —
+a *tool* failure, not an API failure.
+
+Decide early: either parse `result.is_error` (small, and useful beyond the face),
+or cut `rage` and let `error` cover both. Do not leave a state in the table with
+nothing that can trigger it.
+
+## Missing: a source for `listening`
+
+Composer drafts are pane-local and silent (`claude_pane.dart:645-653`). Focus is
+observable via the kernel''s focus tracker, which is probably the honest trigger —
+"the user is typing at me" rather than "a draft changed".
+
+## Not exposed: tool currently running
+
+Derived per-card in the view (`conversation_view.dart:1064-1070`) by scanning for
+an `AssistantToolUse` with no matching `ToolResultMessage`. Fine as a pattern to
+copy; there is no session-level signal.
+
+## Note on cadence
+
+`ConversationController` coalesces `notifyListeners` through a zero-duration
+timer (`conversation_controller.dart:111-114`) — at most once per microtask
+drain. Good as a liveness heartbeat, useless as a token counter.', NULL, '2026-08-09 09:55:16', '2026-08-09 09:55:16.707', '2026-08-09 09:55:16.707', NULL, '097058ff98f5ccda7d99fb000122e0b0', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Y5FBHF8QNAXQDJBJ26B0', 'description', 'Drive Epic A''s face from real session signals, and make it provably stop when nothing is
+happening. This is where "whimsical but a solid widget" is actually earned.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams on both sides** — consume Epic A''s state-enum contract, and consume the
+   session signals below without adding new public API to `StreamJsonSession` unless it
+   genuinely belongs there (coordinate with Epic D, which also reads that session).
+
+## State mapping
+
+| State | Trigger |
+|---|---|
+| `idle` | `!busy`, no recent activity |
+| `listening` | composer or Clide input focused |
+| `pensive` | `busy` && no `partial-` item yet — i.e. thinking |
+| `effort` | `busy` && elapsed past a threshold → orbit arc + `[ Ns ]` counter |
+| `speaking` | `busy` && `partial-` items arriving — i.e. streaming |
+| `rage` | API error / turn failure; plays the 3-frame table-flip, then returns to idle |
+| `error` | `endedStream` fired — session died |
+
+**The thinking-vs-streaming split is free and is the nicest signal here.** There is no
+public "is streaming" stream on the session; the tell is items whose
+`uuid.startsWith(''partial-'')` (`stream_json_session.dart:589-628`). So `busy` with no partial
+yet = thinking; `busy` with partials arriving = streaming.
+
+Signals to bind: `busyStream` (seeded `ValueStream`), `items`, `statusStream`,
+`pendingPromptStream`, `endedStream`. Binding pattern: the `_bindPrimary()` cancel/rebind/seed
+dance at `claude_meta_sidebar.dart:205-245` — the worked example for exactly this.
+
+DeskLock''s rule is adopted verbatim: **"wait cues are a hard requirement — never a bare
+static face during a wait, and no fake progress bars, only honest cues."** The `effort`
+orbit + elapsed counter is the answer to clide''s long tool runs.
+
+## Power ladder
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible, focused |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | unmounted / no ticker | panel collapsed or hidden; window minimised |
+
+**Collapse and hide are free.** `layout.dart:51-59` renders a spine or nothing when a slot is
+collapsed/hidden, so `SlotHost` unmounts entirely and the controller disposes. Same for
+inactive tabs — the context path has no `IndexedStack`/`keepAlive`.
+
+**Minimise is not free — this is a new capability for the codebase.** There is no
+`WidgetsBindingObserver`, `didChangeAppLifecycleState`, or `AppLifecycleState` handling
+anywhere in `lib/` (zero hits), and `TickerMode` is unused. Adding lifecycle observation is
+its own commit and should be reviewed as a kernel-level addition, not smuggled in as a
+widget detail. `lib/main.dart:553` has a comment noting lifecycle isn''t wired.
+
+## Testing
+
+Assert each rung actually stops the ticker — a power ladder that doesn''t demonstrably park
+the render loop is decoration. Bounded pumps, empty-tree teardown, and the reduced-motion
+`pumpAndSettle` contract from Epic A still apply.
+
+## Contract published (Epic A breakdown, 2026-08-09) — you are not blocked
+
+Epic A''s seam is specified in full on **T-521**. Code against it now; you do not need to wait
+for T-521 to land, and A will not change it without renegotiating here.
+
+```dart
+enum FaceState { idle, listening, pensive, effort, speaking, rage, error }
+enum Gaze { none, left, forward, right }
+
+ClideFace({
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,   // you own this; the widget does not time turns
+})
+```
+
+That is the entire surface. Three things follow for B:
+
+1. **B owns elapsed time.** `busyFor` drives the `[ Ns ]` counter in `effort`. The widget
+   deliberately does not time turns itself, because you already know when the turn started
+   and the widget would only be guessing from prop changes.
+2. **Lean is derived from `gaze`, not passed.** `left → −8px`, `forward/none → 0`,
+   `right → +8px`. Do not look for a `lean` prop.
+3. **If you need something more, that is a T-521 change, not a prop added quietly to the
+   widget.** Raise it there so the contract stays one place.
+
+### `rage` is a scowl, not a table-flip
+
+Deviation from DeskLock, decided during the A breakdown: `rage` renders as brows-down eyes
+`▼   ▼` with a flat mouth `━` and jitter, not the 3-frame kaomoji. Two of the kaomoji''s
+glyphs (`︵` U+FE35, `ノ` U+30CE — katakana) are missing from the bundled fonts, and the
+sequence needed a second render path for the state you see least. **Semantics are unchanged**
+— it is still the transient-failure reaction, so your mapping (API error / turn failure →
+`rage` for a beat → back to `idle`) is unaffected.
+
+### Signals reminder for your mapping
+
+The thinking-versus-streaming split is free: `busy && no partial- item yet` → `pensive`;
+`busy && partial- items arriving` → `speaking` (`stream_json_session.dart:589-628`). There is
+no public "is streaming" stream; items whose `uuid.startsWith(''partial-'')` are the tell.
+
+Signal audit against the live session code (2026-08-09), before breakdown. Two
+of the seven states have **no source at all** today, and one of the plan''s
+central assumptions is wrong. Read this before scoping.
+
+Everything hangs off `activeSessionOrchestrator.byId(''primary'')` — rebind on
+every orchestrator notification, per the worked example at
+`claude_meta_sidebar.dart:200-245`.
+
+## Available now, no new plumbing
+
+| Need | Signal | Where |
+|---|---|---|
+| busy on/off | `busyStream` — `ValueStream<bool>`, replay-latest, edge-deduped | `stream_json_session.dart:426` |
+| turn ended | falling edge of the same stream | `:532-537` |
+| session died (`error`) | `endedStream` + `end` field. **No replay** — check `end` first, then subscribe (`claude_pane.dart:421-426`) | `:465-472`, `:982-993` |
+| blocked on a permission ask | `pendingPromptStream` — `ValueStream`, replay | `:436-440` |
+| context tokens / cost | `statusStream` — `ValueStream`, replay | `:457` |
+
+## Wrong assumption: `partial-` does not mean "arriving now"
+
+The plan and `FaceState.speaking` both rest on "items whose uuid starts with
+`partial-` are the tell for streaming". It is **half true**. Partial items are
+created per `text_delta` (`:601-622`), but at `:561-570` the *final* assistant
+event is rewritten to carry the same `partial-$msgId` uuid — so a completed
+message keeps the prefix permanently. The predicate therefore means "this text
+came through the streaming path", not "prose is arriving right now".
+
+The honest tell is either the **arrival event** (a new/updated `partial-` item
+while `busy`) or exposing `_streamingMsgId` (`:381`, private; set on
+`message_start`, cleared on `message_stop` and `result`) — a one-line addition
+and the cleaner of the two.
+
+## Missing: thinking-in-progress
+
+`_onStreamEvent` (`:589-626`) handles exactly `message_start`,
+`content_block_delta` gated on `text_delta`, and `message_stop`. **`thinking_delta`
+is on the wire** (`docs/spikes/cc-stream-json-control-protocol-2.1.150.md:74`)
+**and dropped on the floor.** What survives is `AssistantThinkingMessage`
+(`transcript_reader.dart:133`), which arrives when a thinking block *completes* —
+an end edge, not a during state.
+
+So `pensive` as specified ("busy && no partial item yet") is an inference, not an
+observation. Handling `thinking_delta` would make it an observation, and would
+also let `effort` key off real reasoning rather than a stopwatch. Worth doing as
+part of this epic: it is a `case` in an existing switch.
+
+## Missing: `busyFor`
+
+No turn-start timestamp is recorded anywhere. `_setBusy(true)` has exactly one
+call site (`:876`). The state machine stamps the rising edge itself — trivial,
+but it is *our* job, not the session''s.
+
+## Missing: a source for `rage`
+
+`_statusFromEvent`''s `case ''result'':` (`:803-824`) reads only `total_cost_usd`
+and `contextWindow`. The result event''s `is_error` / error `subtype` are **never
+inspected**, and there is no error member in the `ConversationItem` union
+(`transcript_reader.dart:41`). The nearest thing is `ToolResultMessage.isError` —
+a *tool* failure, not an API failure.
+
+Decide early: either parse `result.is_error` (small, and useful beyond the face),
+or cut `rage` and let `error` cover both. Do not leave a state in the table with
+nothing that can trigger it.
+
+## Missing: a source for `listening`
+
+Composer drafts are pane-local and silent (`claude_pane.dart:645-653`). Focus is
+observable via the kernel''s focus tracker, which is probably the honest trigger —
+"the user is typing at me" rather than "a draft changed".
+
+## Not exposed: tool currently running
+
+Derived per-card in the view (`conversation_view.dart:1064-1070`) by scanning for
+an `AssistantToolUse` with no matching `ToolResultMessage`. Fine as a pattern to
+copy; there is no session-level signal.
+
+## Note on cadence
+
+`ConversationController` coalesces `notifyListeners` through a zero-duration
+timer (`conversation_controller.dart:111-114`) — at most once per microtask
+drain. Good as a liveness heartbeat, useless as a token counter.', 'Drive Epic A''s face from real session signals, and make it provably stop when nothing is
+happening. This is where "whimsical but a solid widget" is actually earned.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams on both sides** — consume Epic A''s state-enum contract, and consume the
+   session signals below without adding new public API to `StreamJsonSession` unless it
+   genuinely belongs there (coordinate with Epic D, which also reads that session).
+
+## State mapping
+
+| State | Trigger |
+|---|---|
+| `idle` | `!busy`, no recent activity |
+| `listening` | composer or Clide input focused |
+| `pensive` | `busy` && no `partial-` item yet — i.e. thinking |
+| `effort` | `busy` && elapsed past a threshold → orbit arc + `[ Ns ]` counter |
+| `speaking` | `busy` && `partial-` items arriving — i.e. streaming |
+| `rage` | API error / turn failure; plays the 3-frame table-flip, then returns to idle |
+| `error` | `endedStream` fired — session died |
+
+**The thinking-vs-streaming split is free and is the nicest signal here.** There is no
+public "is streaming" stream on the session; the tell is items whose
+`uuid.startsWith(''partial-'')` (`stream_json_session.dart:589-628`). So `busy` with no partial
+yet = thinking; `busy` with partials arriving = streaming.
+
+Signals to bind: `busyStream` (seeded `ValueStream`), `items`, `statusStream`,
+`pendingPromptStream`, `endedStream`. Binding pattern: the `_bindPrimary()` cancel/rebind/seed
+dance at `claude_meta_sidebar.dart:205-245` — the worked example for exactly this.
+
+DeskLock''s rule is adopted verbatim: **"wait cues are a hard requirement — never a bare
+static face during a wait, and no fake progress bars, only honest cues."** The `effort`
+orbit + elapsed counter is the answer to clide''s long tool runs.
+
+## Power ladder
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible, focused |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | unmounted / no ticker | panel collapsed or hidden; window minimised |
+
+**Collapse and hide are free.** `layout.dart:51-59` renders a spine or nothing when a slot is
+collapsed/hidden, so `SlotHost` unmounts entirely and the controller disposes. Same for
+inactive tabs — the context path has no `IndexedStack`/`keepAlive`.
+
+**Minimise is not free — this is a new capability for the codebase.** There is no
+`WidgetsBindingObserver`, `didChangeAppLifecycleState`, or `AppLifecycleState` handling
+anywhere in `lib/` (zero hits), and `TickerMode` is unused. Adding lifecycle observation is
+its own commit and should be reviewed as a kernel-level addition, not smuggled in as a
+widget detail. `lib/main.dart:553` has a comment noting lifecycle isn''t wired.
+
+## Testing
+
+Assert each rung actually stops the ticker — a power ladder that doesn''t demonstrably park
+the render loop is decoration. Bounded pumps, empty-tree teardown, and the reduced-motion
+`pumpAndSettle` contract from Epic A still apply.
+
+## Contract published (Epic A breakdown, 2026-08-09) — you are not blocked
+
+Epic A''s seam is specified in full on **T-521**. Code against it now; you do not need to wait
+for T-521 to land, and A will not change it without renegotiating here.
+
+```dart
+enum FaceState { idle, listening, pensive, effort, speaking, rage, error }
+enum Gaze { none, left, forward, right }
+
+ClideFace({
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,   // you own this; the widget does not time turns
+})
+```
+
+That is the entire surface. Three things follow for B:
+
+1. **B owns elapsed time.** `busyFor` drives the `[ Ns ]` counter in `effort`. The widget
+   deliberately does not time turns itself, because you already know when the turn started
+   and the widget would only be guessing from prop changes.
+2. **Lean is derived from `gaze`, not passed.** `left → −8px`, `forward/none → 0`,
+   `right → +8px`. Do not look for a `lean` prop.
+3. **If you need something more, that is a T-521 change, not a prop added quietly to the
+   widget.** Raise it there so the contract stays one place.
+
+### `rage` is a scowl, not a table-flip
+
+Deviation from DeskLock, decided during the A breakdown: `rage` renders as brows-down eyes
+`▼   ▼` with a flat mouth `━` and jitter, not the 3-frame kaomoji. Two of the kaomoji''s
+glyphs (`︵` U+FE35, `ノ` U+30CE — katakana) are missing from the bundled fonts, and the
+sequence needed a second render path for the state you see least. **Semantics are unchanged**
+— it is still the transient-failure reaction, so your mapping (API error / turn failure →
+`rage` for a beat → back to `idle`) is unaffected.
+
+### Signals reminder for your mapping
+
+The thinking-versus-streaming split is free: `busy && no partial- item yet` → `pensive`;
+`busy && partial- items arriving` → `speaking` (`stream_json_session.dart:589-628`). There is
+no public "is streaming" stream; items whose `uuid.startsWith(''partial-'')` are the tell.
+
+Signal audit against the live session code (2026-08-09), before breakdown. Two
+of the seven states have **no source at all** today, and one of the plan''s
+central assumptions is wrong. Read this before scoping.
+
+Everything hangs off `activeSessionOrchestrator.byId(''primary'')` — rebind on
+every orchestrator notification, per the worked example at
+`claude_meta_sidebar.dart:200-245`.
+
+## Available now, no new plumbing
+
+| Need | Signal | Where |
+|---|---|---|
+| busy on/off | `busyStream` — `ValueStream<bool>`, replay-latest, edge-deduped | `stream_json_session.dart:426` |
+| turn ended | falling edge of the same stream | `:532-537` |
+| session died (`error`) | `endedStream` + `end` field. **No replay** — check `end` first, then subscribe (`claude_pane.dart:421-426`) | `:465-472`, `:982-993` |
+| blocked on a permission ask | `pendingPromptStream` — `ValueStream`, replay | `:436-440` |
+| context tokens / cost | `statusStream` — `ValueStream`, replay | `:457` |
+
+## Wrong assumption: `partial-` does not mean "arriving now"
+
+The plan and `FaceState.speaking` both rest on "items whose uuid starts with
+`partial-` are the tell for streaming". It is **half true**. Partial items are
+created per `text_delta` (`:601-622`), but at `:561-570` the *final* assistant
+event is rewritten to carry the same `partial-$msgId` uuid — so a completed
+message keeps the prefix permanently. The predicate therefore means "this text
+came through the streaming path", not "prose is arriving right now".
+
+The honest tell is either the **arrival event** (a new/updated `partial-` item
+while `busy`) or exposing `_streamingMsgId` (`:381`, private; set on
+`message_start`, cleared on `message_stop` and `result`) — a one-line addition
+and the cleaner of the two.
+
+## Missing: thinking-in-progress
+
+`_onStreamEvent` (`:589-626`) handles exactly `message_start`,
+`content_block_delta` gated on `text_delta`, and `message_stop`. **`thinking_delta`
+is on the wire** (`docs/spikes/cc-stream-json-control-protocol-2.1.150.md:74`)
+**and dropped on the floor.** What survives is `AssistantThinkingMessage`
+(`transcript_reader.dart:133`), which arrives when a thinking block *completes* —
+an end edge, not a during state.
+
+So `pensive` as specified ("busy && no partial item yet") is an inference, not an
+observation. Handling `thinking_delta` would make it an observation, and would
+also let `effort` key off real reasoning rather than a stopwatch. Worth doing as
+part of this epic: it is a `case` in an existing switch.
+
+## Missing: `busyFor`
+
+No turn-start timestamp is recorded anywhere. `_setBusy(true)` has exactly one
+call site (`:876`). The state machine stamps the rising edge itself — trivial,
+but it is *our* job, not the session''s.
+
+## Missing: a source for `rage`
+
+`_statusFromEvent`''s `case ''result'':` (`:803-824`) reads only `total_cost_usd`
+and `contextWindow`. The result event''s `is_error` / error `subtype` are **never
+inspected**, and there is no error member in the `ConversationItem` union
+(`transcript_reader.dart:41`). The nearest thing is `ToolResultMessage.isError` —
+a *tool* failure, not an API failure.
+
+Decide early: either parse `result.is_error` (small, and useful beyond the face),
+or cut `rage` and let `error` cover both. Do not leave a state in the table with
+nothing that can trigger it.
+
+## Missing: a source for `listening`
+
+Composer drafts are pane-local and silent (`claude_pane.dart:645-653`). Focus is
+observable via the kernel''s focus tracker, which is probably the honest trigger —
+"the user is typing at me" rather than "a draft changed".
+
+## Not exposed: tool currently running
+
+Derived per-card in the view (`conversation_view.dart:1064-1070`) by scanning for
+an `AssistantToolUse` with no matching `ToolResultMessage`. Fine as a pattern to
+copy; there is no session-level signal.
+
+## Note on cadence
+
+`ConversationController` coalesces `notifyListeners` through a zero-duration
+timer (`conversation_controller.dart:111-114`) — at most once per microtask
+drain. Good as a liveness heartbeat, useless as a token counter.
+
+**Scope cut — D-107 amended 2026-08-09 (commitment 5).** Read this before the
+signal audit above; it supersedes half of it.
+
+The face no longer reads the primary session. It reports **Clide''s own state**
+only, and the rain keeps the primary session''s load as ambient weather. So this
+epic loses the mapping table it was mostly about.
+
+## What stays here
+
+- **Rain density from the primary session.** `busyStream` is the whole input:
+  busy → the `effort` density, idle → the `idle` density, with the existing ramp
+  doing the transition. This is now the *only* thing epic B reads from the
+  primary session, and `ValueStream` gives it to us with replay for free.
+- **The elapsed counter**, moved to the ambient layer with the rain — it is
+  main-session information. Still needs the state machine to stamp the rising
+  edge of `busyStream`, since no turn-start timestamp is recorded anywhere.
+- **The power ladder**, unchanged, including minimise-suspension and the new
+  `WidgetsBindingObserver` capability.
+
+## What moves out
+
+The seven-state face mapping. Under the split its sources are:
+
+| State | Source | Epic |
+|---|---|---|
+| `listening` | focus on Clide''s input | E |
+| `pensive` | his request in flight | D |
+| `speaking` | his reply streaming | D |
+| `error` | his session died (`endedStream`) | D |
+| `rage` and any other editorial mood | **his own declared mood** | D (prompt: T-532) |
+| `idle` | none of the above | — |
+
+This also retires the "`rage` has no source, cut it or wire `result.is_error`"
+finding above: under the split, a reaction to *content* is the one thing only
+Clide can produce, and the mood channel is exactly that source.
+
+## Consequence for sequencing
+
+The face stays at `idle` until epic D exists — no state machine can make it live
+sooner, because there is nothing of Clide''s to report yet. Epic B is therefore
+much smaller than planned and no longer the thing that brings the strip to life;
+D is. Worth reordering against that rather than discovering it mid-epic.
+
+`thinking_delta` (dropped by `_onStreamEvent`, see above) is still worth adding —
+but for **Clide''s** session, where it distinguishes "he is composing" from "he is
+answering", not for the primary''s.', NULL, '2026-08-09 10:05:42', '2026-08-09 10:05:42.650', '2026-08-09 10:05:42.650', NULL, 'fbf267b7ab98b44e34d293c3eccb35e2', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYBN0EJ3B59YWV2Z9S54PRGG', 'description', 'Clide''s prompt is the product. Everything else in Epic D is plumbing — this is
+where his voice, his restraint, and his sense of what is going on actually live.
+Split out of T-519 because "write the system prompt" buried in a plumbing epic
+gets three lines of attention and then ships as whatever the first draft was.
+
+## Deliverable
+
+A versioned set of prompt templates in one place, not string literals scattered
+across the session code. Each template documented with *why* it says what it
+says, because prompt text is the one part of this feature with no compiler, no
+type system and no test that can tell you it drifted.
+
+## Templates needed
+
+**1. System prompt.** Establishes:
+- Who Clide is — the IDE''s companion, watching a session he is not part of.
+- The observed/direct split (D-107): `[observed]` lines are a conversation
+  between the user and Claude that he is *watching* — remark rarely, briefly,
+  and never pretend to be a participant. `[direct]` lines are addressed to him —
+  always answer.
+- That he sees **prose only, never tool calls or results** (D-107). He must know
+  the shape of his own blindness, or he will confidently answer "what did that
+  tool do?" — the known v1 limitation. Better that he says he cannot see it.
+- Reply in the active locale (`app.locale`), one or two sentences, no preamble.
+- Silence is a valid response. This is the hardest thing to get a model to do
+  and deserves the most prompt real estate.
+
+**2. Turn digest.** How each observed exchange is framed:
+```
+[observed] <user>: <prompt text>
+[observed] claude: <assistant prose>
+```
+Open question the template has to answer: whether the user''s real name is used
+(it is available) or a neutral label, and whether Clide addresses them by it.
+
+**3. Direct address.** Distinguishing a question typed into Clide''s own input
+from the conversation he is watching. Same channel, different contract.
+
+**4. Lifecycle notices.** New, from the minimize design:
+- **Detach** — minimizing the strip stops the digest, so Clide *misses* that
+  stretch of conversation. On resume he is told he was detached and roughly how
+  long for. Explicitly worth playing with: an ambient companion that knows it
+  was away, and says something about it, is more alive than one that silently
+  has a gap. Try it before deciding whether it is charming or tiresome.
+- **Clear / restart** — the companion session tracks the primary''s clear and
+  restart windows so it lives alongside the main conversation rather than
+  accumulating context the user thinks they threw away.
+- **Session restart at ~50 comments** (cost control, per the initiative) is a
+  third kind of discontinuity. Decide whether Clide is told about this one at
+  all, or whether it should be seamless — it is our bookkeeping, not an event in
+  his world.
+
+## Constraints inherited
+
+- **Notable events only.** Turn finished, error, long run crossing a threshold,
+  commit landed. Never per-token. Direct questions always answered.
+- **Cap `max_tokens` ~100**, no thinking, and do **not** set `effort` — it errors
+  on Haiku 4.5.
+- **Cache shape matters more than brevity.** Haiku 4.5 has the highest prompt
+  cache minimum of any current model (4096 tokens); under that, `cache_control`
+  is silently ignored. A lean system prompt is therefore *uncached* for roughly
+  its first 20 comments — the opposite of the usual instinct. Weigh prompt
+  length against that threshold deliberately rather than trimming on reflex.
+
+## Not in scope
+
+Wiring, spawn, filtering and transport are T-519''s. This ticket owns the text
+and the rationale for the text.', 'Clide''s prompt is the product. Everything else in Epic D is plumbing — this is
+where his voice, his restraint, and his sense of what is going on actually live.
+Split out of T-519 because "write the system prompt" buried in a plumbing epic
+gets three lines of attention and then ships as whatever the first draft was.
+
+## Deliverable
+
+A versioned set of prompt templates in one place, not string literals scattered
+across the session code. Each template documented with *why* it says what it
+says, because prompt text is the one part of this feature with no compiler, no
+type system and no test that can tell you it drifted.
+
+## Templates needed
+
+**1. System prompt.** Establishes:
+- Who Clide is — the IDE''s companion, watching a session he is not part of.
+- The observed/direct split (D-107): `[observed]` lines are a conversation
+  between the user and Claude that he is *watching* — remark rarely, briefly,
+  and never pretend to be a participant. `[direct]` lines are addressed to him —
+  always answer.
+- That he sees **prose only, never tool calls or results** (D-107). He must know
+  the shape of his own blindness, or he will confidently answer "what did that
+  tool do?" — the known v1 limitation. Better that he says he cannot see it.
+- Reply in the active locale (`app.locale`), one or two sentences, no preamble.
+- Silence is a valid response. This is the hardest thing to get a model to do
+  and deserves the most prompt real estate.
+
+**2. Turn digest.** How each observed exchange is framed:
+```
+[observed] <user>: <prompt text>
+[observed] claude: <assistant prose>
+```
+Open question the template has to answer: whether the user''s real name is used
+(it is available) or a neutral label, and whether Clide addresses them by it.
+
+**3. Direct address.** Distinguishing a question typed into Clide''s own input
+from the conversation he is watching. Same channel, different contract.
+
+**4. Lifecycle notices.** New, from the minimize design:
+- **Detach** — minimizing the strip stops the digest, so Clide *misses* that
+  stretch of conversation. On resume he is told he was detached and roughly how
+  long for. Explicitly worth playing with: an ambient companion that knows it
+  was away, and says something about it, is more alive than one that silently
+  has a gap. Try it before deciding whether it is charming or tiresome.
+- **Clear / restart** — the companion session tracks the primary''s clear and
+  restart windows so it lives alongside the main conversation rather than
+  accumulating context the user thinks they threw away.
+- **Session restart at ~50 comments** (cost control, per the initiative) is a
+  third kind of discontinuity. Decide whether Clide is told about this one at
+  all, or whether it should be seamless — it is our bookkeeping, not an event in
+  his world.
+
+## Constraints inherited
+
+- **Notable events only.** Turn finished, error, long run crossing a threshold,
+  commit landed. Never per-token. Direct questions always answered.
+- **Cap `max_tokens` ~100**, no thinking, and do **not** set `effort` — it errors
+  on Haiku 4.5.
+- **Cache shape matters more than brevity.** Haiku 4.5 has the highest prompt
+  cache minimum of any current model (4096 tokens); under that, `cache_control`
+  is silently ignored. A lean system prompt is therefore *uncached* for roughly
+  its first 20 comments — the opposite of the usual instinct. Weigh prompt
+  length against that threshold deliberately rather than trimming on reflex.
+
+## Not in scope
+
+Wiring, spawn, filtering and transport are T-519''s. This ticket owns the text
+and the rationale for the text.
+
+**Fifth template added — the mood side-channel (D-107 commitment 5, added
+2026-08-09).** This is now the highest-risk part of the prompt work, and it has
+an explicit kill condition.
+
+Clide declares his own emotional state on every reply; the face renders it. This
+is the only possible source for a reaction to *content* rather than to
+mechanics — "you have made this mistake before" — which is what the whole
+side-channel exists for, and which no derived signal can ever produce.
+
+## Requirement
+
+A demanded output template, not a hope. Two candidates to bake off against Haiku
+4.5 rather than choose on paper:
+
+- **Frontmatter-style** — a delimited header block before the prose.
+- **JSON** — `{"mood": "...", "say": "..."}`.
+
+Pick whichever Haiku follows most cleanly under the real system prompt, at the
+real reply length, across the real trigger events. This runs through the CLI in
+stream-json, so there is **no structured-output enforcement** — the model''s
+compliance is the only guarantee there is, which is why it is measured rather
+than assumed.
+
+## The kill condition, stated up front
+
+**If it is not very stable, it does not ship.** A malformed reply must never put
+scaffolding in the speech bubble; a user who sees `{"mood":` in Clide''s mouth has
+watched the illusion break, which costs more than the feature adds. So:
+
+- Parse defensively and **strip aggressively** — anything template-shaped that
+  survives parsing is removed from the displayed text, not passed through.
+- A missing or unparseable mood means **keep the previous expression**, never a
+  default reset and never a visible failure.
+- If the bake-off shows the format bleeding under any of the real triggers,
+  **drop the channel** and derive the expression mechanically from his session
+  lifecycle. That loses `rage` and the editorial states — accepted, versus
+  shipping something that visibly leaks.
+
+Measure it: run each candidate format over a realistic set of trigger events and
+count malformed replies. A format that is 95% clean is not clean — this renders
+on every remark, so a 1-in-20 failure is visible within minutes of use.
+
+## Vocabulary
+
+The mood values are the face states that have no mechanical source. Keep the set
+**small and closed**, and validate against it — an open vocabulary means the
+model invents a mood the face cannot render, which is a silent failure that looks
+like the channel working.', NULL, '2026-08-09 10:05:46', '2026-08-09 10:05:46.364', '2026-08-09 10:05:46.364', NULL, 'e6dd4ab45a8dd9a4a3158954bfe3e343', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W569QMQPKWCJ2PY9APGM8', 'description', '**This is the published seam with Epic B (T-517).** B codes against this contract; it must
+land first and then stay stable. Everything here is specified concretely so B is not blocked
+on the implementation.
+
+Pure Dart — **no Flutter import** (no `Color`, no `TextStyle`). Colours come from tokens at
+paint time, not from the spec. That keeps this file runnable under `dart test` and keeps the
+table reviewable as data.
+
+Target: `lib/builtin/clide_companion/src/face_state.dart`
+
+## The contract
+
+```dart
+enum FaceState { idle, listening, pensive, effort, speaking, rage, error }
+
+/// Which way the pupils point. Drives the lean offset too (D-107, T-514).
+enum Gaze { none, left, forward, right }
+
+class FaceSpec {
+  final String eyes;        // always an eyes string — no alternate render path
+  final String mouth;       // '''' when hidden
+  final bool blink;         // lids drop ~130ms every 2.6–6.2s
+  final bool thoughtDots;   // cycling . / .. / ... beside the head
+  final bool talkCycle;     // mouth cycles the TALK sequence
+  final bool jitter;        // ±1px face shake
+  final bool orbit;         // bezel arc sweep
+  final bool elapsed;       // [ Ns ] counter
+  final bool clock;         // HH:MM under the face
+  final int rainStreams;    // density — the load signal
+  final double rainSpeed;   // cells/sec
+  final double opacity;     // 1.0, or 0.45 for error
+}
+```
+
+Widget props (what B passes to `ClideFace` in T-525):
+
+| Prop | Type | Notes |
+|---|---|---|
+| `state` | `FaceState` | required |
+| `gaze` | `Gaze` | default `Gaze.none` |
+| `busyFor` | `Duration?` | drives `[ Ns ]`; **B owns this**, the widget does not time turns. Null renders no counter. |
+
+**Lean is derived, not passed:** `none/forward → 0px`, `left → −8px`, `right → +8px`, applied
+as the mouth''s x-offset from the eye centre and animated rather than snapped (D-107). One
+number; do not add a `lean` prop.
+
+## The table — ported from DeskLock `sim/face/index.html`
+
+| state | eyes | mouth | blink | rain | extras |
+|---|---|---|---|---|---|
+| `idle` | `-   -` | `\_/` | ✓ | 2 @ 4 | clock |
+| `listening` | `O   O` | `o` | ✓ | 16 @ 7 | — |
+| `pensive` | `·   ·` | `~` | — | 7 @ 5 | thoughtDots |
+| `effort` | `>   <` | `~` | — | 40 @ 16 | jitter, orbit, elapsed |
+| `speaking` | `^   ^` | `o` | ✓ | 14 @ 9 | talkCycle |
+| `rage` | `▼   ▼` | `━` | — | 34 @ 20 | jitter |
+| `error` | `x   x` | `-` | — | 0 @ 0 | opacity 0.45 |
+
+`TALK = [''o'', ''O'', ''-'', ''O'', ''='', ''o'']` at ~150ms/frame. Blink replaces every non-space eye
+char with `_` for ~130ms. Thought dots cycle at ~480ms. Breathe is a 4.5s ±9px vertical bob
+applied to the whole face group (not per-state).
+
+## Deliberate deviation from DeskLock: `rage` is a scowl, not a table-flip
+
+DeskLock renders `rage` as a 3-frame kaomoji sequence — `(°□°) ┬─┬` → `(╯°□°)╯︵ ┻━┻` →
+`┬─┬ ノ( º_º ノ)` — pushed as whole lines through the eye slot. **Not ported.** Two reasons,
+and the second is the real one:
+
+1. **Two of its glyphs are missing from the bundled fonts**, verified with `fc-query` against
+   `JetBrainsMono-Regular.ttf`: `︵` (U+FE35) and `ノ` (U+30CE — katakana again; the
+   initiative''s font finding only covered the *rain* glyph set, so this is a second instance
+   of the same bug class). `╯` and `□` are fine, inside `2500-25a1`.
+2. **It needs a second render path.** Whole-line text through the eye slot is not the
+   eyes+mouth model every other state uses, so it drags a `KaomojiFrame` class, a frame
+   timer, and a branch through the painter into the contract — for the state you see least.
+
+`rage` instead uses the ordinary grammar: brows-down eyes `▼` (U+25BC) and a hard flat mouth
+`━` (U+2501), with `jitter` already carrying the agitation and rain spiking to 34 @ 20. Both
+glyphs verified covered. Net effect on this epic: **no `KaomojiFrame`, no frame timer, no
+second branch in the painter, no font substitutions** — one more row in the same table.
+
+If the table-flip is ever wanted back, it is a deliberate re-open needing a bundled font that
+covers kana, which trades against prefer-zero-deps (D-31/D-42).
+
+## Done when
+
+- Enum + spec + const table exist, pure Dart, no Flutter import.
+- A `specFor(FaceState)` lookup returns the const spec.
+- Unit tests: every state has a spec; rain density is monotonic across
+  idle < pensive < speaking < listening < rage < effort; error has zero rain; **every glyph in
+  the table is asserted against the covered set** so a future edit reintroducing an uncovered
+  glyph fails the suite rather than the render.
+- Epic B (T-517) is told the contract is available.
+
+That last test is the one that matters — it is the guard that stops this bug class recurring,
+and it has now bitten twice.
+
+## DONE (2026-08-09)
+
+- `lib/builtin/clide_companion/src/face_state.dart` — enum, `Gaze` + derived lean,
+  `FaceSpec`, the seven const specs, `specFor()`, timing constants, `kVerifiedFaceGlyphs`.
+  Pure Dart, no Flutter import; runs under `dart test`.
+- `test/builtin/clide_companion/face_state_test.dart` — 17 tests, all green.
+- `make analyze`, `make format` and `make test` (50 tests) all clean.
+
+Contract shipped exactly as published on T-517. No deviations, so Epic B needs no rework.
+
+### The glyph guard is proven, not just written
+
+The ticket called this the test that matters. A guard that has never failed is not evidence,
+so it was verified by sabotage: `rage`''s eyes were temporarily changed to `ノ   ノ` (the exact
+katakana that hid inside DeskLock''s kaomoji). Two tests failed, and the message named the
+codepoint and the fix:
+
+```
+Unverified glyph(s) in the face table: "ノ" (U+30CE). Verify against BOTH
+assets/fonts/jetbrains_mono/ and assets/fonts/fira_mono/ with fc-query,
+then add to kVerifiedFaceGlyphs.
+```
+
+Reverted, green again. A third instance of this bug class now fails the suite instead of
+rendering as tofu.
+
+### Correction to the earlier font work
+
+Both prior checks (initiative, T-516 breakdown) verified against **JetBrains Mono only**.
+That was insufficient: the mono face is user-selectable (D-101) and **Fira Mono is also
+bundled**, so a glyph present in one and absent from the other would render as tofu for
+anyone who switched fonts, and would break goldens on whichever font CI happens to use.
+
+Re-verified every face glyph against **both** fonts — all present, so no table change was
+needed, but the reasoning in `kVerifiedFaceGlyphs`'' doc comment and in the test''s failure
+message now says "both", with the verification recipe inline. **T-522 (rain glyph set)
+inherits this**: check the rain glyphs against both fonts, not just JetBrains.
+
+### Tests worth noting beyond the ticket''s list
+
+- **Eye rows are all the same width**, and blink preserves that width. The painter centres
+  the mouth against the eye row, so a ragged row would silently make the lean offset mean
+  something different per state.
+- **No astral glyphs / no surrogate pairs** — anything outside the BMP breaks the per-cell
+  monospace grid.
+- **`specFor` returns the identical instance** per call, so the painter''s identity-based
+  `shouldRepaint` (T-524) cannot be defeated by spec churn.
+- **Talk cycle loops seamlessly** (first frame equals last).', '**This is the published seam with Epic B (T-517).** B codes against this contract; it must
+land first and then stay stable. Everything here is specified concretely so B is not blocked
+on the implementation.
+
+Pure Dart — **no Flutter import** (no `Color`, no `TextStyle`). Colours come from tokens at
+paint time, not from the spec. That keeps this file runnable under `dart test` and keeps the
+table reviewable as data.
+
+Target: `lib/builtin/clide_companion/src/face_state.dart`
+
+## The contract
+
+```dart
+enum FaceState { idle, listening, pensive, effort, speaking, rage, error }
+
+/// Which way the pupils point. Drives the lean offset too (D-107, T-514).
+enum Gaze { none, left, forward, right }
+
+class FaceSpec {
+  final String eyes;        // always an eyes string — no alternate render path
+  final String mouth;       // '''' when hidden
+  final bool blink;         // lids drop ~130ms every 2.6–6.2s
+  final bool thoughtDots;   // cycling . / .. / ... beside the head
+  final bool talkCycle;     // mouth cycles the TALK sequence
+  final bool jitter;        // ±1px face shake
+  final bool orbit;         // bezel arc sweep
+  final bool elapsed;       // [ Ns ] counter
+  final bool clock;         // HH:MM under the face
+  final int rainStreams;    // density — the load signal
+  final double rainSpeed;   // cells/sec
+  final double opacity;     // 1.0, or 0.45 for error
+}
+```
+
+Widget props (what B passes to `ClideFace` in T-525):
+
+| Prop | Type | Notes |
+|---|---|---|
+| `state` | `FaceState` | required |
+| `gaze` | `Gaze` | default `Gaze.none` |
+| `busyFor` | `Duration?` | drives `[ Ns ]`; **B owns this**, the widget does not time turns. Null renders no counter. |
+
+**Lean is derived, not passed:** `none/forward → 0px`, `left → −8px`, `right → +8px`, applied
+as the mouth''s x-offset from the eye centre and animated rather than snapped (D-107). One
+number; do not add a `lean` prop.
+
+## The table — ported from DeskLock `sim/face/index.html`
+
+| state | eyes | mouth | blink | rain | extras |
+|---|---|---|---|---|---|
+| `idle` | `-   -` | `\_/` | ✓ | 2 @ 4 | clock |
+| `listening` | `O   O` | `o` | ✓ | 16 @ 7 | — |
+| `pensive` | `·   ·` | `~` | — | 7 @ 5 | thoughtDots |
+| `effort` | `>   <` | `~` | — | 40 @ 16 | jitter, orbit, elapsed |
+| `speaking` | `^   ^` | `o` | ✓ | 14 @ 9 | talkCycle |
+| `rage` | `▼   ▼` | `━` | — | 34 @ 20 | jitter |
+| `error` | `x   x` | `-` | — | 0 @ 0 | opacity 0.45 |
+
+`TALK = [''o'', ''O'', ''-'', ''O'', ''='', ''o'']` at ~150ms/frame. Blink replaces every non-space eye
+char with `_` for ~130ms. Thought dots cycle at ~480ms. Breathe is a 4.5s ±9px vertical bob
+applied to the whole face group (not per-state).
+
+## Deliberate deviation from DeskLock: `rage` is a scowl, not a table-flip
+
+DeskLock renders `rage` as a 3-frame kaomoji sequence — `(°□°) ┬─┬` → `(╯°□°)╯︵ ┻━┻` →
+`┬─┬ ノ( º_º ノ)` — pushed as whole lines through the eye slot. **Not ported.** Two reasons,
+and the second is the real one:
+
+1. **Two of its glyphs are missing from the bundled fonts**, verified with `fc-query` against
+   `JetBrainsMono-Regular.ttf`: `︵` (U+FE35) and `ノ` (U+30CE — katakana again; the
+   initiative''s font finding only covered the *rain* glyph set, so this is a second instance
+   of the same bug class). `╯` and `□` are fine, inside `2500-25a1`.
+2. **It needs a second render path.** Whole-line text through the eye slot is not the
+   eyes+mouth model every other state uses, so it drags a `KaomojiFrame` class, a frame
+   timer, and a branch through the painter into the contract — for the state you see least.
+
+`rage` instead uses the ordinary grammar: brows-down eyes `▼` (U+25BC) and a hard flat mouth
+`━` (U+2501), with `jitter` already carrying the agitation and rain spiking to 34 @ 20. Both
+glyphs verified covered. Net effect on this epic: **no `KaomojiFrame`, no frame timer, no
+second branch in the painter, no font substitutions** — one more row in the same table.
+
+If the table-flip is ever wanted back, it is a deliberate re-open needing a bundled font that
+covers kana, which trades against prefer-zero-deps (D-31/D-42).
+
+## Done when
+
+- Enum + spec + const table exist, pure Dart, no Flutter import.
+- A `specFor(FaceState)` lookup returns the const spec.
+- Unit tests: every state has a spec; rain density is monotonic across
+  idle < pensive < speaking < listening < rage < effort; error has zero rain; **every glyph in
+  the table is asserted against the covered set** so a future edit reintroducing an uncovered
+  glyph fails the suite rather than the render.
+- Epic B (T-517) is told the contract is available.
+
+That last test is the one that matters — it is the guard that stops this bug class recurring,
+and it has now bitten twice.
+
+## DONE (2026-08-09)
+
+- `lib/builtin/clide_companion/src/face_state.dart` — enum, `Gaze` + derived lean,
+  `FaceSpec`, the seven const specs, `specFor()`, timing constants, `kVerifiedFaceGlyphs`.
+  Pure Dart, no Flutter import; runs under `dart test`.
+- `test/builtin/clide_companion/face_state_test.dart` — 17 tests, all green.
+- `make analyze`, `make format` and `make test` (50 tests) all clean.
+
+Contract shipped exactly as published on T-517. No deviations, so Epic B needs no rework.
+
+### The glyph guard is proven, not just written
+
+The ticket called this the test that matters. A guard that has never failed is not evidence,
+so it was verified by sabotage: `rage`''s eyes were temporarily changed to `ノ   ノ` (the exact
+katakana that hid inside DeskLock''s kaomoji). Two tests failed, and the message named the
+codepoint and the fix:
+
+```
+Unverified glyph(s) in the face table: "ノ" (U+30CE). Verify against BOTH
+assets/fonts/jetbrains_mono/ and assets/fonts/fira_mono/ with fc-query,
+then add to kVerifiedFaceGlyphs.
+```
+
+Reverted, green again. A third instance of this bug class now fails the suite instead of
+rendering as tofu.
+
+### Correction to the earlier font work
+
+Both prior checks (initiative, T-516 breakdown) verified against **JetBrains Mono only**.
+That was insufficient: the mono face is user-selectable (D-101) and **Fira Mono is also
+bundled**, so a glyph present in one and absent from the other would render as tofu for
+anyone who switched fonts, and would break goldens on whichever font CI happens to use.
+
+Re-verified every face glyph against **both** fonts — all present, so no table change was
+needed, but the reasoning in `kVerifiedFaceGlyphs`'' doc comment and in the test''s failure
+message now says "both", with the verification recipe inline. **T-522 (rain glyph set)
+inherits this**: check the rain glyphs against both fonts, not just JetBrains.
+
+### Tests worth noting beyond the ticket''s list
+
+- **Eye rows are all the same width**, and blink preserves that width. The painter centres
+  the mouth against the eye row, so a ragged row would silently make the lean offset mean
+  something different per state.
+- **No astral glyphs / no surrogate pairs** — anything outside the BMP breaks the per-cell
+  monospace grid.
+- **`specFor` returns the identical instance** per call, so the painter''s identity-based
+  `shouldRepaint` (T-524) cannot be defeated by spec churn.
+- **Talk cycle loops seamlessly** (first frame equals last).
+
+Amended by D-107 commitment 5 (2026-08-09): the state table''s *sources* change, the table itself does not. `listening`, `pensive`, `speaking` and `error` are now driven by **Clide''s own session**, not the primary''s; `rage` (and any other editorial expression) comes from a mood he declares himself on each reply (T-532). Rain density remains the **primary** session''s load, moved conceptually from readout to ambient weather, and the elapsed counter moves with it.
+
+Nothing in `face_state.dart` needs to change for this — the contract was always ''here is a state, render it'', and it stays that. What changes is who computes the state, which was never this ticket''s business. Worth knowing when reading the per-state doc comments, several of which still describe the old primary-session triggers (e.g. `pensive`: ''busy, but no partial- item has arrived yet''). Those comments are stale as *sources*; the visual contract they describe is intact.', NULL, '2026-08-09 10:05:54', '2026-08-09 10:05:54.501', '2026-08-09 10:05:54.501', NULL, '437b8babb76a9b4e4d5cf9280839daa7', 2) ON CONFLICT(hash) DO NOTHING;

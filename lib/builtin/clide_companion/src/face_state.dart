@@ -11,31 +11,45 @@
 /// Epic B passes `state`, `gaze` and `busyFor`; everything else here is read by
 /// the painter. Changing this contract is a negotiation on T-521, not a prop
 /// added quietly to the widget.
+///
+/// Who *computes* the state changed once already (D-107 commitment 5 moved it
+/// from the primary session to Clide's own) without this file changing at all —
+/// which is the seam working as intended.
 library;
 
-/// What the face is doing. Mapped from live session signals by Epic B (T-517).
+/// What the face is doing.
+///
+/// **The face reports Clide, not the primary session** (D-107 commitment 5). A
+/// single surface cannot be both a character and a gauge for a component the
+/// character is not part of — you watch the figure strain and the information is
+/// about something else. So expression is his, and the *rain* carries the
+/// primary session's load as ambient weather. Two layers, two subjects.
 enum FaceState {
-  /// Nothing to read. Lids down, clock showing, rain barely drips.
+  /// Nothing going on. Lids down, clock showing, rain barely drips.
   idle,
 
-  /// You are typing — at Claude, or at Clide's own input.
+  /// His input has focus — you are talking to him.
   listening,
 
-  /// Claude is thinking: busy, but no `partial-` item has arrived yet.
+  /// His request is in flight; he has not started answering.
   pensive,
 
-  /// A long turn. Dense rain plus an elapsed counter — DeskLock's rule is that a
-  /// wait always shows an honest cue, never a bare face and never a fake bar.
+  /// A long wait, with the elapsed counter. The counter is *main-session*
+  /// information and belongs to the ambient layer with the rain — DeskLock's
+  /// rule is that a wait always shows an honest cue, never a bare face and never
+  /// a fake bar.
   effort,
 
-  /// Claude is streaming: busy, with `partial-` items arriving.
+  /// His reply is streaming.
   speaking,
 
-  /// Transient failure — an API error or a failed turn. Held for a beat, then
-  /// back to [idle]. Distinct from [error], which means the session is gone.
+  /// An editorial mood he **declares himself** on a reply (T-532) — the only
+  /// possible source for a reaction to *content* rather than to mechanics, e.g.
+  /// the same mistake made twice. Held for a beat, then back to [idle]. Distinct
+  /// from [error], which means his session is gone.
   rage,
 
-  /// The session died. Rain stops dead and the face dims.
+  /// His session died. Rain stops dead and the face dims.
   error,
 }
 
