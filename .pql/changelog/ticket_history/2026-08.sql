@@ -7616,3 +7616,130 @@ Also deduped: an unchanged state is not republished, so the orchestrator''s freq
 
 9 tests. Full suite 8 + 4177 + 50. **T-539 is now fully unblocked.**', NULL, '2026-08-09 12:49:46', '2026-08-09 12:49:46.144', '2026-08-09 12:49:46.144', NULL, '1e5ab1e7ca88da81fb64a0f635138bbb', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZB4GNSJ08012SRRCQCCY8', 'status', 'in_progress', 'done', NULL, '2026-08-09 12:49:50', '2026-08-09 12:49:50.465', '2026-08-09 12:49:50.465', NULL, '4932ca23bcefadd9c0a5330f6a31cf75', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZDXYNZ7ND17G1BFM0G26W', 'status', 'backlog', 'in_progress', NULL, '2026-08-09 12:51:03', '2026-08-09 12:51:03.135', '2026-08-09 12:51:03.135', NULL, '9b8585687a176a00440da47226c52118', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZDXYNZ7ND17G1BFM0G26W', 'description', 'Make the strip show the weather. Blocked by **T-537** (the input must exist) and
+**T-538** (something must publish it).
+
+## What lands
+
+- `ClideStripHost` subscribes to `companion.load` alongside the state it already
+  follows, and passes the load through to `ClideFace`.
+- The `[ Ns ]` counter runs from the stamped turn start. It is main-session
+  information and belongs to the ambient layer with the rain, not to the face
+  (D-107 commitment 5) — it is already drawn in the bottom cue slot, so this is
+  wiring, not layout.
+
+**This is the first time the strip carries real information.** Until now it has
+rendered `idle` forever regardless of what the session was doing; after this the
+rain thickens when the session is working and the counter says how long.
+
+## Watch for
+
+- Seed from the store, then follow the bus — the bus has no retention, so a
+  subscriber alone shows the default until something happens to change. Same
+  shape as `CompanionStateBuilder`; probably the same widget grows a second
+  channel rather than a second builder wrapping the first.
+- The counter must not tick from the widget''s own clock. It renders elapsed from
+  a start instant; the widget does not time turns (the T-521 contract).
+- A turn that ends must clear it, not freeze it at the last value.
+
+## Done when
+
+Driving a long tool run in the running app visibly thickens the rain and starts
+the counter, and both return to idle when the turn ends. That is a `make run`
+check, not only a test — the point of the feature is that it reads at a glance.', 'Make the strip show the weather. Blocked by **T-537** (the input must exist) and
+**T-538** (something must publish it).
+
+## What lands
+
+- `ClideStripHost` subscribes to `companion.load` alongside the state it already
+  follows, and passes the load through to `ClideFace`.
+- The `[ Ns ]` counter runs from the stamped turn start. It is main-session
+  information and belongs to the ambient layer with the rain, not to the face
+  (D-107 commitment 5) — it is already drawn in the bottom cue slot, so this is
+  wiring, not layout.
+
+**This is the first time the strip carries real information.** Until now it has
+rendered `idle` forever regardless of what the session was doing; after this the
+rain thickens when the session is working and the counter says how long.
+
+## Watch for
+
+- Seed from the store, then follow the bus — the bus has no retention, so a
+  subscriber alone shows the default until something happens to change. Same
+  shape as `CompanionStateBuilder`; probably the same widget grows a second
+  channel rather than a second builder wrapping the first.
+- The counter must not tick from the widget''s own clock. It renders elapsed from
+  a start instant; the widget does not time turns (the T-521 contract).
+- A turn that ends must clear it, not freeze it at the last value.
+
+## Done when
+
+Driving a long tool run in the running app visibly thickens the rain and starts
+the counter, and both return to idle when the turn ends. That is a `make run`
+check, not only a test — the point of the feature is that it reads at a glance.
+
+Done (2026-08-09) — automated half. **The live check is still outstanding; see
+the bottom.**
+
+## Shipped
+
+`CompanionStateBuilder` grew a second channel rather than being wrapped in
+another builder, as the ticket suggested: it now carries `load` and `busySince`
+alongside enabled/open, so the strip and the rail toggle still cannot disagree.
+`ClideStripHost` passes the load to `ClideFace` and turns the stamped instant
+into a running counter.
+
+## Two things the ticket did not anticipate
+
+**Seeding was impossible, so it asks instead.** The ticket says "seed from the
+store, then follow the bus" — but load is not a preference, so there is nothing
+to seed from, and `main.dart` activates extensions at line 636 and calls
+`runApp` at 649. The adapter''s opening announcement is therefore *always*
+published before any widget exists. Added a `companion.load.ask` channel: a
+renderer asks on mount and the adapter answers. That is the same request/announce
+grammar as `companion.set` / `companion.state`, and it also gives T-529''s CLI
+verbs a way to read the current load.
+
+Pre-answer default is `SessionLoad.absent` rather than something livelier —
+park-by-default is the safer bias for a surface whose power behaviour is a
+contract (D-107 commitment 4), and the answer arrives within a microtask.
+
+**The counter was gated on the wrong layer.** `FaceSpec.elapsed` made the `[ Ns ]`
+counter a property of the *face*, so under the D-107 split it would never have
+appeared — Clide sits at `idle` until Epic D. Gated on `busyFor != null` now, and
+`FaceSpec.elapsed` is deleted. It shares the bottom cue slot with the idle clock
+and wins while a turn runs: how long something has been going is more useful than
+the time of day.
+
+## Who ticks the counter
+
+The widget still does not time turns (the T-521 contract): the instant comes from
+the adapter, which stamped it. The *ticking* is the host''s — one tick a second,
+and only while a turn is running. Seconds are the counter''s granularity so
+anything faster is redraws nobody can read; while busy the face is already
+animating at frame rate so it costs nothing measurable; while idle there is no
+timer at all, which is what keeps it clear of the power ladder.
+
+A turn ending clears the counter rather than freezing it — a stopped counter left
+on screen reads as a turn still running.
+
+## Tests
+
+9 in `strip_load_test.dart`: load reaches the face, idle announces `calm` (only
+the pre-answer default is `absent`), mounting asks, the counter runs from the
+stamped start rather than from when the widget noticed (asserted with a start a
+minute in the past — a widget that restarted its own clock would report zero),
+clears on turn end, advances mid-turn, and leaves no timer behind.
+
+Suite: 8 + 4184 + 50, with one **pre-existing** failure unrelated to this work —
+`clide_cli_e2e_test` times out because the CLI itself hangs on a stale socket.
+Confirmed pre-existing by stashing this change and reproducing on the baseline;
+filed as **T-542**.
+
+## Still to do — the acceptance check is live, not automated
+
+"Driving a long tool run in the running app visibly thickens the rain and starts
+the counter, and both return to idle when the turn ends." That needs a real turn
+in a real session and has **not** been done. The tests prove the wiring; they
+cannot tell me it reads at a glance, which is the entire point of the feature.', NULL, '2026-08-09 13:06:49', '2026-08-09 13:06:49.947', '2026-08-09 13:06:49.947', NULL, '654c3d0ab90c5d913243391edf4ab6f0', 2) ON CONFLICT(hash) DO NOTHING;

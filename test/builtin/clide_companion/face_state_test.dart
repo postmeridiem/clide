@@ -49,15 +49,12 @@ void main() {
   });
 
   group('wait cues', () {
-    test('effort is the only state showing the elapsed counter', () {
-      // DeskLock's hard requirement: a wait always shows alive-and-working
-      // signals, and never a fake progress bar. Here that is the counter plus
-      // the rain — DeskLock's bezel arc is deliberately not ported (T-531), it
-      // would encode activity a second time and the rain already owns that.
-      for (final state in FaceState.values) {
-        expect(specFor(state).elapsed, state == FaceState.effort, reason: '$state elapsed');
-      }
-    });
+    // The elapsed counter is no longer a face flag: it is gated on a turn
+    // running (T-539), because a wait cue that only appeared when Clide happened
+    // to be wearing the right expression would miss most waits. DeskLock's hard
+    // requirement — a wait always shows alive-and-working signals, never a fake
+    // progress bar — is met by the counter plus the rain, both on the weather
+    // layer. Its assertions live in the painter tests.
 
     test('only idle shows the clock', () {
       for (final state in FaceState.values) {

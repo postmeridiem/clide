@@ -31,6 +31,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   hides the strip and gives the detail view its height back; the state persists
   per repository. (T-528)
 
+- **The strip tracks your session.** Clide's rain thickens while Claude is
+  working and thins when it stops, with a counter for how long the current turn
+  has run. (D-107, T-537, T-538, T-539)
+
 ### Changed
 
 - Clide's rain draws in the theme's code green rather than muted body text, so

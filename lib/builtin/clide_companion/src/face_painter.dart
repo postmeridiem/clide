@@ -143,7 +143,11 @@ class ClideFacePainter extends CustomPainter {
     _paintRain(canvas, size);
     _paintVignette(canvas, size);
     _paintFace(canvas, size, spec, t);
-    if (spec.elapsed) _paintElapsed(canvas, size);
+    // Gated on the *turn*, not on the face (T-539). Elapsed time is main-session
+    // information and belongs to the ambient layer with the rain; keying it off
+    // an expression would mean the counter only appeared when Clide happened to
+    // be wearing the right one.
+    if (busyFor != null) _paintElapsed(canvas, size);
   }
 
   void _paintRain(Canvas canvas, Size size) {
@@ -251,7 +255,10 @@ class ClideFacePainter extends CustomPainter {
     }
 
     final clock = clockLabel;
-    if (spec.clock && clock != null) {
+    // They share one slot and never both draw: while a turn is running, how long
+    // it has been running is the more useful of the two, and the time of day can
+    // wait.
+    if (spec.clock && clock != null && busyFor == null) {
       final p = cache.paragraph(clock, color: muted, fontSize: mouthSize * 0.7, fontFamily: fontFamily, fontFamilyFallback: fontFamilyFallback);
       _drawBottomCue(canvas, size, p);
     }

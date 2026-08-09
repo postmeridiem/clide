@@ -95,7 +95,6 @@ class FaceSpec {
     this.thoughtDots = false,
     this.talkCycle = false,
     this.jitter = false,
-    this.elapsed = false,
     this.clock = false,
     this.opacity = 1,
   });
@@ -119,16 +118,11 @@ class FaceSpec {
   /// ±1px shake on the face group.
   final bool jitter;
 
-  /// `[ Ns ]` counter — the wait cue. Driven by the widget's `busyFor`.
-  ///
-  /// DeskLock pairs this with a sweeping bezel arc. That arc is **not** ported
-  /// (T-531): it encodes activity, and activity is already the rain's job — two
-  /// glyph-free pixels saying the same thing, one of which reads as a smear at
-  /// strip proportions. The counter stays because it says something the rain
-  /// cannot: *how long*.
-  final bool elapsed;
-
   /// `HH:MM` under the face.
+  ///
+  /// Shares the bottom cue slot with the `[ Ns ]` counter and yields to it: the
+  /// counter is gated on a turn running (T-539), not on an expression, so the
+  /// face no longer carries a flag for it.
   final bool clock;
 
   /// Face opacity; dimmed for [FaceState.error].
@@ -144,7 +138,7 @@ const _listening = FaceSpec(eyes: 'O   O', mouth: 'o', blink: true);
 
 const _pensive = FaceSpec(eyes: '·   ·', mouth: '~', thoughtDots: true);
 
-const _effort = FaceSpec(eyes: '>   <', mouth: '~', jitter: true, elapsed: true);
+const _effort = FaceSpec(eyes: '>   <', mouth: '~', jitter: true);
 
 const _speaking = FaceSpec(eyes: '^   ^', mouth: 'o', blink: true, talkCycle: true);
 

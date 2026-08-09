@@ -41,6 +41,18 @@ const companionSetChannel = 'companion.set';
 /// primary session to look busy.
 const companionLoadChannel = 'companion.load';
 
+/// Asks whoever is watching the session to re-announce the current load.
+///
+/// The state channels seed from the stored preference; load has no preference to
+/// seed from, and extensions activate before `runApp` — so the adapter's first
+/// announcement is always published before any widget exists to hear it. Rather
+/// than let every renderer guess a default and stay wrong until the next turn,
+/// a renderer asks on mount and gets told.
+const companionLoadAskChannel = 'companion.load.ask';
+
+/// Ask for the current load. Answered on [companionLoadChannel].
+void askCompanionLoad(MessageBus messages) => messages.publish(clideCompanionPublisher, companionLoadAskChannel, const {});
+
 /// Announce the primary session's load.
 ///
 /// [busySinceMs] is epoch milliseconds for the moment the current turn started,

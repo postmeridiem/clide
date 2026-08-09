@@ -8665,3 +8665,193 @@ Done (2026-08-09).
 Also deduped: an unchanged state is not republished, so the orchestrator''s frequent notifications do not wake every companion surface.
 
 9 tests. Full suite 8 + 4177 + 50. **T-539 is now fully unblocked.**', 'done', 'high', NULL, NULL, 'D-107', '2026-08-09 12:26:45.253', '2026-08-09 12:49:50.465', NULL, 'c1783ae355b95f95fffe52b711252163', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZDXYNZ7ND17G1BFM0G26W', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B3: Strip renders session load — rain density + elapsed counter', 'Make the strip show the weather. Blocked by **T-537** (the input must exist) and
+**T-538** (something must publish it).
+
+## What lands
+
+- `ClideStripHost` subscribes to `companion.load` alongside the state it already
+  follows, and passes the load through to `ClideFace`.
+- The `[ Ns ]` counter runs from the stamped turn start. It is main-session
+  information and belongs to the ambient layer with the rain, not to the face
+  (D-107 commitment 5) — it is already drawn in the bottom cue slot, so this is
+  wiring, not layout.
+
+**This is the first time the strip carries real information.** Until now it has
+rendered `idle` forever regardless of what the session was doing; after this the
+rain thickens when the session is working and the counter says how long.
+
+## Watch for
+
+- Seed from the store, then follow the bus — the bus has no retention, so a
+  subscriber alone shows the default until something happens to change. Same
+  shape as `CompanionStateBuilder`; probably the same widget grows a second
+  channel rather than a second builder wrapping the first.
+- The counter must not tick from the widget''s own clock. It renders elapsed from
+  a start instant; the widget does not time turns (the T-521 contract).
+- A turn that ends must clear it, not freeze it at the last value.
+
+## Done when
+
+Driving a long tool run in the running app visibly thickens the rain and starts
+the counter, and both return to idle when the turn ends. That is a `make run`
+check, not only a test — the point of the feature is that it reads at a glance.', 'in_progress', 'high', NULL, NULL, 'D-107', '2026-08-09 12:27:08.149', '2026-08-09 12:51:03.134', NULL, '0a9446944b81a2f54d193c096e949ceb', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYD80NP2RJEREA6485BNFYC0', 'bug', NULL, 'clide CLI hangs on a stale discovered socket — every verb, no timeout', 'Found 2026-08-09 while investigating a `make test` failure. **Not the test''s
+fault** — `test/cli/clide_cli_e2e_test.dart` "instances lists live instances"
+times out at 30s because the CLI it drives hangs.
+
+## Reproduction
+
+```
+$ timeout 10 clide instances   ; echo $?   # 124
+$ timeout 10 clide pane list   ; echo $?   # 124
+$ timeout 10 clide files root  ; echo $?   # 124
+```
+
+Every verb, not one. `/run/user/1000/clide/` holds a single socket
+(`eeac4e3bc8a25fe3.sock`) that nothing is answering on.
+
+## What makes it a defect rather than a mess
+
+**The CLI blocks forever on a socket with no listener.** It should fail fast and
+say so. There is already a test asserting exactly that behaviour for the pinned
+path — "a dead `CLIDE_SOCK` fails loudly, never falling back to discovery"
+(T-247) — and it passes. The **discovery** path has no equivalent guarantee, and
+that is the gap: a stale socket found by discovery hangs instead of being skipped
+or reported.
+
+Consequences beyond the test: any agent or script calling `clide …` wedges until
+its own timeout, and `clide image show` — the sanctioned way to put an image in
+the conversation — stops working with no error.
+
+## How it likely got stale (unconfirmed)
+
+Several `make run` instances were launched during the session. At least one
+logged both
+
+```
+INFO  [ipc] swept orphaned socket /run/user/1000/clide/c6e32a7d38f8ba27.sock
+ERROR [ipc] server start failed | another clide IPC server is already listening
+            on /run/user/1000/clide/eeac4e3bc8a25fe3.sock
+```
+
+i.e. it failed to claim the socket, ran as a client, and later exited. Worth
+checking whether a **second instance''s shutdown can unlink or otherwise orphan
+the first instance''s socket** — the sweep logic is the obvious suspect, and if so
+that is the more serious half of this bug: a dev launching a second clide would
+silently break CLI access for the one already running.
+
+`clide image show` worked repeatedly earlier in the same session and stopped
+partway through, which is consistent with that ordering.
+
+## Suggested shape
+
+1. Discovery must **time out per candidate socket** and move on, rather than
+   blocking. A socket nobody answers is a dead instance, and the enumerator
+   already tolerates other instances existing.
+2. Every verb needs an overall deadline with a non-zero exit and a readable
+   message. Hanging is the worst failure mode for a CLI an agent drives.
+3. Establish whether instance shutdown can damage another instance''s socket, and
+   if it can, stop it.
+
+## Note on the test
+
+Once the CLI fails fast, the existing e2e test should pass unchanged — it already
+tolerates other live instances and asserts only that its own socket is listed. No
+test change is expected to be needed, which is a good sign the test was right.', 'backlog', 'high', NULL, NULL, NULL, '2026-08-09 13:04:38.832', '2026-08-09 13:04:38.832', NULL, 'e0f9543c1f577de700f903b91ec6177f', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZDXYNZ7ND17G1BFM0G26W', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B3: Strip renders session load — rain density + elapsed counter', 'Make the strip show the weather. Blocked by **T-537** (the input must exist) and
+**T-538** (something must publish it).
+
+## What lands
+
+- `ClideStripHost` subscribes to `companion.load` alongside the state it already
+  follows, and passes the load through to `ClideFace`.
+- The `[ Ns ]` counter runs from the stamped turn start. It is main-session
+  information and belongs to the ambient layer with the rain, not to the face
+  (D-107 commitment 5) — it is already drawn in the bottom cue slot, so this is
+  wiring, not layout.
+
+**This is the first time the strip carries real information.** Until now it has
+rendered `idle` forever regardless of what the session was doing; after this the
+rain thickens when the session is working and the counter says how long.
+
+## Watch for
+
+- Seed from the store, then follow the bus — the bus has no retention, so a
+  subscriber alone shows the default until something happens to change. Same
+  shape as `CompanionStateBuilder`; probably the same widget grows a second
+  channel rather than a second builder wrapping the first.
+- The counter must not tick from the widget''s own clock. It renders elapsed from
+  a start instant; the widget does not time turns (the T-521 contract).
+- A turn that ends must clear it, not freeze it at the last value.
+
+## Done when
+
+Driving a long tool run in the running app visibly thickens the rain and starts
+the counter, and both return to idle when the turn ends. That is a `make run`
+check, not only a test — the point of the feature is that it reads at a glance.
+
+Done (2026-08-09) — automated half. **The live check is still outstanding; see
+the bottom.**
+
+## Shipped
+
+`CompanionStateBuilder` grew a second channel rather than being wrapped in
+another builder, as the ticket suggested: it now carries `load` and `busySince`
+alongside enabled/open, so the strip and the rail toggle still cannot disagree.
+`ClideStripHost` passes the load to `ClideFace` and turns the stamped instant
+into a running counter.
+
+## Two things the ticket did not anticipate
+
+**Seeding was impossible, so it asks instead.** The ticket says "seed from the
+store, then follow the bus" — but load is not a preference, so there is nothing
+to seed from, and `main.dart` activates extensions at line 636 and calls
+`runApp` at 649. The adapter''s opening announcement is therefore *always*
+published before any widget exists. Added a `companion.load.ask` channel: a
+renderer asks on mount and the adapter answers. That is the same request/announce
+grammar as `companion.set` / `companion.state`, and it also gives T-529''s CLI
+verbs a way to read the current load.
+
+Pre-answer default is `SessionLoad.absent` rather than something livelier —
+park-by-default is the safer bias for a surface whose power behaviour is a
+contract (D-107 commitment 4), and the answer arrives within a microtask.
+
+**The counter was gated on the wrong layer.** `FaceSpec.elapsed` made the `[ Ns ]`
+counter a property of the *face*, so under the D-107 split it would never have
+appeared — Clide sits at `idle` until Epic D. Gated on `busyFor != null` now, and
+`FaceSpec.elapsed` is deleted. It shares the bottom cue slot with the idle clock
+and wins while a turn runs: how long something has been going is more useful than
+the time of day.
+
+## Who ticks the counter
+
+The widget still does not time turns (the T-521 contract): the instant comes from
+the adapter, which stamped it. The *ticking* is the host''s — one tick a second,
+and only while a turn is running. Seconds are the counter''s granularity so
+anything faster is redraws nobody can read; while busy the face is already
+animating at frame rate so it costs nothing measurable; while idle there is no
+timer at all, which is what keeps it clear of the power ladder.
+
+A turn ending clears the counter rather than freezing it — a stopped counter left
+on screen reads as a turn still running.
+
+## Tests
+
+9 in `strip_load_test.dart`: load reaches the face, idle announces `calm` (only
+the pre-answer default is `absent`), mounting asks, the counter runs from the
+stamped start rather than from when the widget noticed (asserted with a start a
+minute in the past — a widget that restarted its own clock would report zero),
+clears on turn end, advances mid-turn, and leaves no timer behind.
+
+Suite: 8 + 4184 + 50, with one **pre-existing** failure unrelated to this work —
+`clide_cli_e2e_test` times out because the CLI itself hangs on a stale socket.
+Confirmed pre-existing by stashing this change and reproducing on the baseline;
+filed as **T-542**.
+
+## Still to do — the acceptance check is live, not automated
+
+"Driving a long tool run in the running app visibly thickens the rain and starts
+the counter, and both return to idle when the turn ends." That needs a real turn
+in a real session and has **not** been done. The tests prove the wiring; they
+cannot tell me it reads at a glance, which is the entire point of the feature.', 'in_progress', 'high', NULL, NULL, 'D-107', '2026-08-09 12:27:08.149', '2026-08-09 13:06:49.947', NULL, '1eeaf8645c545524f42de1713e3f8d0d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

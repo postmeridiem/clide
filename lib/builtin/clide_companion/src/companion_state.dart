@@ -15,6 +15,7 @@ import 'dart:async';
 
 import 'package:clide/builtin/clide_companion/src/companion_channel.dart';
 import 'package:clide/builtin/clide_companion/src/companion_settings.dart';
+import 'package:clide/builtin/clide_companion/src/session_load.dart';
 import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/kernel/src/facade.dart' show ClideKernel;
 import 'package:clide/widgets/src/clide_settings.dart';
@@ -22,13 +23,25 @@ import 'package:flutter/widgets.dart';
 
 /// What a companion surface needs to know to draw itself.
 class CompanionState {
-  const CompanionState({required this.enabled, required this.open});
+  const CompanionState({required this.enabled, required this.open, this.load = SessionLoad.absent, this.busySince});
 
   /// The kill switch: whether Clide exists for this repo at all.
   final bool enabled;
 
   /// Whether the strip is showing, as opposed to minimised to its rail button.
   final bool open;
+
+  /// What the **primary** session is doing — the weather (D-107 commitment 5).
+  ///
+  /// Defaults to [SessionLoad.absent] rather than something livelier: until the
+  /// ask is answered we do not know, and parking the render loop is the safer
+  /// bias for a surface whose power behaviour is a contract. The answer arrives
+  /// within a microtask of mount.
+  final SessionLoad load;
+
+  /// When the current turn started, or null when idle. Stamped by the adapter,
+  /// not by anything that renders.
+  final DateTime? busySince;
 
   /// Whether the strip should be in the tree.
   bool get stripVisible => enabled && open;
@@ -47,10 +60,13 @@ class CompanionStateBuilder extends StatefulWidget {
 
 class _CompanionStateBuilderState extends State<CompanionStateBuilder> {
   StreamSubscription<Message>? _sub;
+  StreamSubscription<Message>? _loadSub;
   MessageBus? _bus;
 
   bool _enabled = kCompanionEnabledDefault;
   bool _open = kCompanionOpenDefault;
+  SessionLoad _load = SessionLoad.absent;
+  DateTime? _busySince;
   bool _seeded = false;
 
   @override
@@ -68,8 +84,11 @@ class _CompanionStateBuilderState extends State<CompanionStateBuilder> {
     final bus = ClideKernel.maybeOf(context)?.messages;
     if (identical(bus, _bus)) return;
     _sub?.cancel();
+    _loadSub?.cancel();
     _bus = bus;
-    _sub = bus?.subscribe(publisher: clideCompanionPublisher, channel: companionStateChannel).listen((m) {
+    if (bus == null) return;
+
+    _sub = bus.subscribe(publisher: clideCompanionPublisher, channel: companionStateChannel).listen((m) {
       if (!mounted) return;
       // Fields absent from an announcement are left alone — a message about
       // `open` says nothing about `enabled`.
@@ -81,14 +100,33 @@ class _CompanionStateBuilderState extends State<CompanionStateBuilder> {
         _open = open;
       });
     });
+
+    _loadSub = bus.subscribe(publisher: clideCompanionPublisher, channel: companionLoadChannel).listen((m) {
+      if (!mounted) return;
+      final busy = m.data['busy'] as bool? ?? false;
+      final sinceMs = m.data['busySinceMs'] as int?;
+      // `calm` rather than `absent` when idle: the adapter only publishes at all
+      // when it is watching, so an announcement is itself evidence a session
+      // exists. `absent` is the pre-answer default, not an announced value.
+      final load = busy ? SessionLoad.working : SessionLoad.calm;
+      final since = sinceMs == null ? null : DateTime.fromMillisecondsSinceEpoch(sinceMs);
+      if (load == _load && since == _busySince) return;
+      setState(() {
+        _load = load;
+        _busySince = since;
+      });
+    });
+
+    askCompanionLoad(bus);
   }
 
   @override
   void dispose() {
     _sub?.cancel();
+    _loadSub?.cancel();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => widget.builder(context, CompanionState(enabled: _enabled, open: _open));
+  Widget build(BuildContext context) => widget.builder(context, CompanionState(enabled: _enabled, open: _open, load: _load, busySince: _busySince));
 }

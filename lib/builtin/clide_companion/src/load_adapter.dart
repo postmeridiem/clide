@@ -32,6 +32,7 @@ class CompanionLoadAdapter {
 
   ClaudeSessionOrchestrator? _orchestrator;
   StreamSubscription<bool>? _busySub;
+  StreamSubscription<Message>? _asks;
 
   bool _busy = false;
   DateTime? _busySince;
@@ -42,6 +43,9 @@ class CompanionLoadAdapter {
     _orchestrator?.removeListener(_onOrchestratorChange);
     _orchestrator = orchestrator;
     _orchestrator?.addListener(_onOrchestratorChange);
+    // Renderers mount long after this first announcement — extensions activate
+    // before `runApp` — so they ask, and this answers.
+    _asks ??= _messages.subscribe(publisher: clideCompanionPublisher, channel: companionLoadAskChannel).listen((_) => _publish());
     _bindPrimary();
   }
 
@@ -50,6 +54,8 @@ class CompanionLoadAdapter {
     _orchestrator = null;
     _busySub?.cancel();
     _busySub = null;
+    _asks?.cancel();
+    _asks = null;
   }
 
   void _onOrchestratorChange() => _bindPrimary();
@@ -87,6 +93,10 @@ class CompanionLoadAdapter {
     if (!busy) _busySince = null;
     _busy = busy;
     _announced = true;
-    publishCompanionLoad(_messages, busy: busy, busySinceMs: _busySince?.millisecondsSinceEpoch);
+    _publish();
   }
+
+  /// Announce the current value unconditionally — the answer to an ask, where
+  /// the whole point is to repeat something the asker missed.
+  void _publish() => publishCompanionLoad(_messages, busy: _busy, busySinceMs: _busySince?.millisecondsSinceEpoch);
 }
