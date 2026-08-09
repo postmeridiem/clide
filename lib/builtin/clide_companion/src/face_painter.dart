@@ -58,6 +58,7 @@ class ClideFacePainter extends CustomPainter {
     this.fontFamilyFallback,
     this.busyFor,
     this.lean,
+    this.clockLabel,
     this.rainFontSize = 11,
   }) : super(repaint: clock);
 
@@ -85,6 +86,15 @@ class ClideFacePainter extends CustomPainter {
   /// transition, which is what makes the lean read as a movement rather than a
   /// snap (D-107).
   final double? lean;
+
+  /// `HH:MM` for the idle state, supplied by the widget.
+  ///
+  /// Time-of-day is the one thing here that is not derived from the ticker, so
+  /// it is passed in rather than read from `DateTime.now()` inside `paint`.
+  /// That keeps the painter a pure function of its inputs and lets goldens pin
+  /// the clock instead of rendering a different image every minute. Null draws
+  /// no clock, whatever the spec says.
+  final String? clockLabel;
 
   final double rainFontSize;
 
@@ -183,8 +193,9 @@ class ClideFacePainter extends CustomPainter {
       canvas.drawParagraph(p, Offset(eyesX + eyesPara.maxIntrinsicWidth + mouthSize * 0.4, eyesY - mouthSize * 0.2));
     }
 
-    if (spec.clock) {
-      final p = cache.paragraph(_clockLabel(), color: muted, fontSize: mouthSize * 0.7, fontFamily: fontFamily, fontFamilyFallback: fontFamilyFallback);
+    final clock = clockLabel;
+    if (spec.clock && clock != null) {
+      final p = cache.paragraph(clock, color: muted, fontSize: mouthSize * 0.7, fontFamily: fontFamily, fontFamilyFallback: fontFamilyFallback);
       canvas.drawParagraph(p, Offset((size.width - p.maxIntrinsicWidth) / 2, eyesY + eyesPara.height * 1.9));
     }
   }
@@ -202,13 +213,6 @@ class ClideFacePainter extends CustomPainter {
   String _mouthNow(FaceSpec spec, double t) {
     if (!spec.talkCycle) return spec.mouth;
     return kTalkCycle[(t / (kTalkFrame.inMilliseconds / 1000)).floor() % kTalkCycle.length];
-  }
-
-  String _clockLabel() {
-    // Wall-clock is genuinely time-of-day, not animation state, so it is the one
-    // thing here that does not derive from the ticker.
-    final now = DateTime.now();
-    return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
   }
 
   /// Sweeping arc on the bezel — one half of the honest wait cue.
@@ -246,6 +250,7 @@ class ClideFacePainter extends CustomPainter {
       old.gaze != gaze ||
       old.lean != lean ||
       old.busyFor != busyFor ||
+      old.clockLabel != clockLabel ||
       old.rainFontSize != rainFontSize ||
       old.fontFamily != fontFamily ||
       // SurfaceTokens has no `==`, so identity is the correct comparison — a new

@@ -4482,3 +4482,452 @@ E (T-520) mounts its input box and answer surface inside C1''s strip. C1 therefo
 **internal composition** — face region, bubble region, input region — and settles it once, so
 E fills a slot rather than renegotiating layout. C2 owns height behaviour including the
 grow-to-cap-while-answering that E''s answers trigger; E should not implement its own resizing.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-08 22:48:02.404', '2026-08-09 03:02:02.287', NULL, '7dc2c6b50c46047a283ea80afc1b976e', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W71Q93S37DZF4ZJJ9QWJW', 'task', '06FY73XR4NJEPDARY06397RVVC', 'A5: ClideFace widget — ticker, reduced-motion gate, RepaintBoundary', 'The widget shell: owns the single `Ticker`, gates on reduced motion, isolates repaints, and
+exposes the T-521 props. After this, Epic A is done and Epic B has something to drive.
+
+Target: `lib/builtin/clide_companion/src/clide_face.dart`
+
+Blocked by T-524.
+
+## Public surface — exactly the T-521 contract
+
+```dart
+ClideFace({
+  Key? key,
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,
+})
+```
+
+Nothing else. If Epic B needs something more, that is a contract change negotiated on T-521,
+not a prop added quietly here.
+
+## One ticker
+
+`createTicker` via `SingleTickerProviderStateMixin`, closest existing model is
+`clide_marquee.dart:30` (raw `Ticker`, dt computed from the elapsed `Duration`). The ticker
+drives a `ValueNotifier<int>`/`ChangeNotifier` handed to the painter as `repaint:` — the
+widget itself does **not** `setState` per frame.
+
+**No `Timer.periodic`.** The repo''s animated widgets are all controller/ticker-driven
+specifically so tests can advance them with bounded pumps; timers break that.
+
+## Reduced motion is a hard gate
+
+```dart
+final reduced = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+```
+
+Checked in `didChangeDependencies`, ticker stopped when true, static frame painted instead.
+Precedent: `clide_marquee.dart:54`, `clide_spinner.dart:43`, `running_indicator.dart:71`.
+
+**This is not a courtesy.** `test/widgets/src/clide_marquee_test.dart:50` asserts
+`pumpAndSettle()` completes under `disableAnimations: true`; a perpetual ticker that ignores
+the flag wedges the whole suite for ~10 minutes. Write the equivalent assertion here.
+
+## `RepaintBoundary`
+
+Wrap the `CustomPaint`. This is the **second** use in the repo — the only other is the
+terminal render object (`lib/src/terminal/src/ui/render.dart:174`). Without it, a repaint of
+an animating layer can dirty ancestors, which is exactly what you do not want 30 times a
+second inside a panel that also hosts a detail view.
+
+## Sizing
+
+`LayoutBuilder` → the field''s column/row count derives from the box and the glyph advance
+width. Must survive the context panel''s **220–1000px** range (`layout_preset.dart:19`) and a
+short strip height. Degrade sensibly when very small rather than overflowing.
+
+## Done when
+
+- Renders every `FaceState` without error at both 220px and 1000px wide.
+- `pumpAndSettle()` completes under `disableAnimations: true` — the wedge guard.
+- Ticker disposes: pump the widget, then pump an empty tree, and assert no pending ticker
+  (the teardown pattern in `running_indicator_test.dart:29-45` and `clide_marquee_test.dart`).
+- Alchemist goldens at a **pinned ticker value** per state — a live animation is a bad golden,
+  so expose a test-only seam to hold the frame rather than sleeping.
+- Widget-level a11y: one stable `Semantics` label describing state in words
+  (D-20), with the animated glyphs under `ExcludeSemantics` — the
+  `running_indicator.dart` pattern. A screen reader should hear "Clide: thinking", never a
+  stream of box-drawing characters.
+
+From T-524: (1) The widget owns the ticker, advances the RainField, and updates the clock ValueNotifier<Duration>; the painter only reads. Keeping simulation out of paint() is what makes each frame a pure function of (clock, field, spec, tokens). (2) ClideFacePainter takes a nullable lean that falls back to gaze.leanPx — pass an interpolated value to animate the transition, which is the ''animated rather than snapped'' half of D-107. (3) hasInk-style alpha counting does NOT discriminate for this painter: the vignette is full-bleed so ~37300/38400 pixels have non-zero alpha. Goldens and any assertion finer than ''something was drawn'' must compare raw pixel bytes. (4) The idle clock label uses DateTime.now() — it is genuinely time-of-day, not animation state — so goldens covering idle must pin or avoid it.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 00:34:02.298', '2026-08-09 03:03:43.677', NULL, '8985bf738dd3e1663c3857f204a7a65a', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W71Q93S37DZF4ZJJ9QWJW', 'task', '06FY73XR4NJEPDARY06397RVVC', 'A5: ClideFace widget — ticker, reduced-motion gate, RepaintBoundary', 'The widget shell: owns the single `Ticker`, gates on reduced motion, isolates repaints, and
+exposes the T-521 props. After this, Epic A is done and Epic B has something to drive.
+
+Target: `lib/builtin/clide_companion/src/clide_face.dart`
+
+Blocked by T-524.
+
+## Public surface — exactly the T-521 contract
+
+```dart
+ClideFace({
+  Key? key,
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,
+})
+```
+
+Nothing else. If Epic B needs something more, that is a contract change negotiated on T-521,
+not a prop added quietly here.
+
+## One ticker
+
+`createTicker` via `SingleTickerProviderStateMixin`, closest existing model is
+`clide_marquee.dart:30` (raw `Ticker`, dt computed from the elapsed `Duration`). The ticker
+drives a `ValueNotifier<int>`/`ChangeNotifier` handed to the painter as `repaint:` — the
+widget itself does **not** `setState` per frame.
+
+**No `Timer.periodic`.** The repo''s animated widgets are all controller/ticker-driven
+specifically so tests can advance them with bounded pumps; timers break that.
+
+## Reduced motion is a hard gate
+
+```dart
+final reduced = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+```
+
+Checked in `didChangeDependencies`, ticker stopped when true, static frame painted instead.
+Precedent: `clide_marquee.dart:54`, `clide_spinner.dart:43`, `running_indicator.dart:71`.
+
+**This is not a courtesy.** `test/widgets/src/clide_marquee_test.dart:50` asserts
+`pumpAndSettle()` completes under `disableAnimations: true`; a perpetual ticker that ignores
+the flag wedges the whole suite for ~10 minutes. Write the equivalent assertion here.
+
+## `RepaintBoundary`
+
+Wrap the `CustomPaint`. This is the **second** use in the repo — the only other is the
+terminal render object (`lib/src/terminal/src/ui/render.dart:174`). Without it, a repaint of
+an animating layer can dirty ancestors, which is exactly what you do not want 30 times a
+second inside a panel that also hosts a detail view.
+
+## Sizing
+
+`LayoutBuilder` → the field''s column/row count derives from the box and the glyph advance
+width. Must survive the context panel''s **220–1000px** range (`layout_preset.dart:19`) and a
+short strip height. Degrade sensibly when very small rather than overflowing.
+
+## Done when
+
+- Renders every `FaceState` without error at both 220px and 1000px wide.
+- `pumpAndSettle()` completes under `disableAnimations: true` — the wedge guard.
+- Ticker disposes: pump the widget, then pump an empty tree, and assert no pending ticker
+  (the teardown pattern in `running_indicator_test.dart:29-45` and `clide_marquee_test.dart`).
+- Alchemist goldens at a **pinned ticker value** per state — a live animation is a bad golden,
+  so expose a test-only seam to hold the frame rather than sleeping.
+- Widget-level a11y: one stable `Semantics` label describing state in words
+  (D-20), with the animated glyphs under `ExcludeSemantics` — the
+  `running_indicator.dart` pattern. A screen reader should hear "Clide: thinking", never a
+  stream of box-drawing characters.
+
+From T-524: (1) The widget owns the ticker, advances the RainField, and updates the clock ValueNotifier<Duration>; the painter only reads. Keeping simulation out of paint() is what makes each frame a pure function of (clock, field, spec, tokens). (2) ClideFacePainter takes a nullable lean that falls back to gaze.leanPx — pass an interpolated value to animate the transition, which is the ''animated rather than snapped'' half of D-107. (3) hasInk-style alpha counting does NOT discriminate for this painter: the vignette is full-bleed so ~37300/38400 pixels have non-zero alpha. Goldens and any assertion finer than ''something was drawn'' must compare raw pixel bytes. (4) The idle clock label uses DateTime.now() — it is genuinely time-of-day, not animation state — so goldens covering idle must pin or avoid it.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 00:34:02.298', '2026-08-09 03:04:06.989', NULL, 'db5ba36df48eb471a4100f8a3122afe7', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY94EJJA4BFKCM729AVDY4V8', 'bug', '06FY73XR4NJEPDARY06397RVVC', 'Orbit arc does not read at strip aspect ratio', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-08-09 03:29:49.715', '2026-08-09 03:29:49.715', NULL, 'fb051928039553ca99636d56a247b5ef', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY94EJJA4BFKCM729AVDY4V8', 'bug', '06FY73XR4NJEPDARY06397RVVC', 'Orbit arc does not read at strip aspect ratio', 'Found on first visual inspection of the T-525 goldens
+(`test/goldens/goldens/linux/clide_face_states.png`, the `effort` scenario).
+
+## Symptom
+
+The orbit arc — one of the two honest wait cues — is drawn with `drawArc` on a rect inset
+from the widget bounds (`face_painter.dart`, `_paintOrbit`). DeskLock draws it on an 800×800
+**round** panel, where a bezel sweep reads exactly as intended. The chosen placement is a
+short wide strip: at 320×120 the inset rect is so eccentric that the arc renders as a stray
+curve across the lower-left corner rather than as anything orbiting the face. At 1000×110 it
+is worse.
+
+It does not look like a wait cue. It looks like a rendering bug.
+
+## Constraint on the fix
+
+DeskLock''s rule is adopted verbatim in D-107 and must hold: **a wait always shows an
+alive-and-working cue, and never a fake progress bar.** So the arc cannot simply be deleted —
+`effort` would lose half its wait signalling, leaving only the `[ Ns ]` counter and max rain.
+And whatever replaces it must not imply completion, because nothing here knows how long the
+turn will take.
+
+## Options
+
+- **Bottom-edge sweep** — a short bright segment travelling along the strip''s bottom edge.
+  Reads as activity at any aspect ratio, and is not a progress bar because it loops rather
+  than filling.
+- **Circular orbit around the face only** — keep a true circle, sized to the face group rather
+  than the widget bounds, so eccentricity never enters into it.
+- **Drop the arc, strengthen the counter** — rely on `[ Ns ]` plus 40-stream rain. Simplest,
+  but thins the cue to one channel.
+
+The second is closest to DeskLock''s intent; the first probably reads best in a strip. Worth a
+quick visual comparison before choosing, since this is the state the user sees during every
+long turn.
+
+## Notes
+
+- Purely visual; no test currently fails. `effort` still draws, and the wait cue is still
+  present — it is the *form* that is wrong at this aspect ratio.
+- Whatever lands should be goldened at 220px, 500px and 1000px wide, the range already
+  covered by `clide_face_widths.png`.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-09 03:29:49.715', '2026-08-09 03:30:10.778', NULL, 'c1d3b9dceb8dacd9e877f22e8b7c38f8', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W71Q93S37DZF4ZJJ9QWJW', 'task', '06FY73XR4NJEPDARY06397RVVC', 'A5: ClideFace widget — ticker, reduced-motion gate, RepaintBoundary', 'The widget shell: owns the single `Ticker`, gates on reduced motion, isolates repaints, and
+exposes the T-521 props. After this, Epic A is done and Epic B has something to drive.
+
+Target: `lib/builtin/clide_companion/src/clide_face.dart`
+
+Blocked by T-524.
+
+## Public surface — exactly the T-521 contract
+
+```dart
+ClideFace({
+  Key? key,
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,
+})
+```
+
+Nothing else. If Epic B needs something more, that is a contract change negotiated on T-521,
+not a prop added quietly here.
+
+## One ticker
+
+`createTicker` via `SingleTickerProviderStateMixin`, closest existing model is
+`clide_marquee.dart:30` (raw `Ticker`, dt computed from the elapsed `Duration`). The ticker
+drives a `ValueNotifier<int>`/`ChangeNotifier` handed to the painter as `repaint:` — the
+widget itself does **not** `setState` per frame.
+
+**No `Timer.periodic`.** The repo''s animated widgets are all controller/ticker-driven
+specifically so tests can advance them with bounded pumps; timers break that.
+
+## Reduced motion is a hard gate
+
+```dart
+final reduced = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+```
+
+Checked in `didChangeDependencies`, ticker stopped when true, static frame painted instead.
+Precedent: `clide_marquee.dart:54`, `clide_spinner.dart:43`, `running_indicator.dart:71`.
+
+**This is not a courtesy.** `test/widgets/src/clide_marquee_test.dart:50` asserts
+`pumpAndSettle()` completes under `disableAnimations: true`; a perpetual ticker that ignores
+the flag wedges the whole suite for ~10 minutes. Write the equivalent assertion here.
+
+## `RepaintBoundary`
+
+Wrap the `CustomPaint`. This is the **second** use in the repo — the only other is the
+terminal render object (`lib/src/terminal/src/ui/render.dart:174`). Without it, a repaint of
+an animating layer can dirty ancestors, which is exactly what you do not want 30 times a
+second inside a panel that also hosts a detail view.
+
+## Sizing
+
+`LayoutBuilder` → the field''s column/row count derives from the box and the glyph advance
+width. Must survive the context panel''s **220–1000px** range (`layout_preset.dart:19`) and a
+short strip height. Degrade sensibly when very small rather than overflowing.
+
+## Done when
+
+- Renders every `FaceState` without error at both 220px and 1000px wide.
+- `pumpAndSettle()` completes under `disableAnimations: true` — the wedge guard.
+- Ticker disposes: pump the widget, then pump an empty tree, and assert no pending ticker
+  (the teardown pattern in `running_indicator_test.dart:29-45` and `clide_marquee_test.dart`).
+- Alchemist goldens at a **pinned ticker value** per state — a live animation is a bad golden,
+  so expose a test-only seam to hold the frame rather than sleeping.
+- Widget-level a11y: one stable `Semantics` label describing state in words
+  (D-20), with the animated glyphs under `ExcludeSemantics` — the
+  `running_indicator.dart` pattern. A screen reader should hear "Clide: thinking", never a
+  stream of box-drawing characters.
+
+From T-524: (1) The widget owns the ticker, advances the RainField, and updates the clock ValueNotifier<Duration>; the painter only reads. Keeping simulation out of paint() is what makes each frame a pure function of (clock, field, spec, tokens). (2) ClideFacePainter takes a nullable lean that falls back to gaze.leanPx — pass an interpolated value to animate the transition, which is the ''animated rather than snapped'' half of D-107. (3) hasInk-style alpha counting does NOT discriminate for this painter: the vignette is full-bleed so ~37300/38400 pixels have non-zero alpha. Goldens and any assertion finer than ''something was drawn'' must compare raw pixel bytes. (4) The idle clock label uses DateTime.now() — it is genuinely time-of-day, not animation state — so goldens covering idle must pin or avoid it.
+
+## DONE (2026-08-09) — Epic A complete
+
+- `lib/builtin/clide_companion/src/clide_face.dart` — `ClideFace`.
+- `test/builtin/clide_companion/clide_face_test.dart` — 19 tests.
+- `test/goldens/clide_face_goldens_test.dart` + three golden images (states, gaze/lean,
+  width range).
+- `make analyze`, `make format`, `make test` clean. Parallel pool 4072 → 4094.
+
+Public surface is exactly the T-521 contract — `state`, `gaze`, `busyFor` — plus two
+`@visibleForTesting` seams (`debugFreezeAt`, `debugClockLabel`) that exist because a golden
+of a live animation is flaky by construction.
+
+## The goldens found two real defects
+
+**1. A pinned frame had no rain at all.** With the ticker stopped, `field.tick()` never runs,
+so the field stayed empty and every static frame lost the density signal — the single thing
+the rain exists to convey. The same applied to **reduced motion**, which is the more serious
+case: a reduced-motion user would have seen a bare face with no indication the session was
+busy. Fixed by priming the field to a steady state whenever the ticker will not be running,
+and re-priming on state change since density is per-state. A reduced-motion user now sees the
+density; they just do not see it move.
+
+**2. The orbit arc does not read at strip aspect ratio** — filed as **T-531**. It is drawn on
+a rect inset from the widget bounds, which works on DeskLock''s 800×800 round panel and renders
+as a stray curve across the corner on a 320×120 strip. Left as-is rather than redesigned here:
+the replacement is a design call (D-107 forbids anything that reads as a fake progress bar),
+and it deserves a visual comparison rather than my picking one unilaterally.
+
+## A test-harness trap worth knowing
+
+The a11y test "the label follows a state change" failed, and it looked like a widget bug —
+a stale screen-reader label would be a genuine defect, since Epic B changes `state` on a
+mounted face constantly.
+
+It was the **shared `harness()`**. It wraps its child in
+`Overlay(initialEntries: [OverlayEntry(builder: (_) => child)])`, and `initialEntries` is
+consumed only on the Overlay''s *first* build. On later pumps the `OverlayState` is preserved
+and keeps an entry closing over the **original** child, so `pumpWidget` with a new prop never
+reaches the widget under test. Any test that changes a prop and re-pumps through `harness()`
+is silently asserting against a stale tree.
+
+This test builds the same services tree without the Overlay, which nothing here needed. The
+widget was correct all along, and there is now a dedicated test proving the label follows a
+live state change.
+
+## Power ladder — the widget half
+
+`_syncTicker` runs only when motion is allowed, the frame is not pinned, **and there is
+something to animate**. That last clause is D-107''s contract in code: an `error` face over a
+drained field has no moving parts, so the loop parks itself. Two tests hold both directions —
+`error` stops ticking after the field drains, and `effort` keeps ticking rather than being
+parked while still working.
+
+## Notes for Epic B (T-517)
+
+- The contract held: `state`, `gaze`, `busyFor`, nothing added.
+- `busyFor` is yours. The face never times turns.
+- Changing `state` on a mounted face works and is tested; no remount needed.
+- Under reduced motion the face still shows density, so mapping load to `rainStreams` remains
+  meaningful even with animation off.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 00:34:02.298', '2026-08-09 03:30:36.942', NULL, 'fd4436fbfc7bacd5c9f28840a273f7b3', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W71Q93S37DZF4ZJJ9QWJW', 'task', '06FY73XR4NJEPDARY06397RVVC', 'A5: ClideFace widget — ticker, reduced-motion gate, RepaintBoundary', 'The widget shell: owns the single `Ticker`, gates on reduced motion, isolates repaints, and
+exposes the T-521 props. After this, Epic A is done and Epic B has something to drive.
+
+Target: `lib/builtin/clide_companion/src/clide_face.dart`
+
+Blocked by T-524.
+
+## Public surface — exactly the T-521 contract
+
+```dart
+ClideFace({
+  Key? key,
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,
+})
+```
+
+Nothing else. If Epic B needs something more, that is a contract change negotiated on T-521,
+not a prop added quietly here.
+
+## One ticker
+
+`createTicker` via `SingleTickerProviderStateMixin`, closest existing model is
+`clide_marquee.dart:30` (raw `Ticker`, dt computed from the elapsed `Duration`). The ticker
+drives a `ValueNotifier<int>`/`ChangeNotifier` handed to the painter as `repaint:` — the
+widget itself does **not** `setState` per frame.
+
+**No `Timer.periodic`.** The repo''s animated widgets are all controller/ticker-driven
+specifically so tests can advance them with bounded pumps; timers break that.
+
+## Reduced motion is a hard gate
+
+```dart
+final reduced = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+```
+
+Checked in `didChangeDependencies`, ticker stopped when true, static frame painted instead.
+Precedent: `clide_marquee.dart:54`, `clide_spinner.dart:43`, `running_indicator.dart:71`.
+
+**This is not a courtesy.** `test/widgets/src/clide_marquee_test.dart:50` asserts
+`pumpAndSettle()` completes under `disableAnimations: true`; a perpetual ticker that ignores
+the flag wedges the whole suite for ~10 minutes. Write the equivalent assertion here.
+
+## `RepaintBoundary`
+
+Wrap the `CustomPaint`. This is the **second** use in the repo — the only other is the
+terminal render object (`lib/src/terminal/src/ui/render.dart:174`). Without it, a repaint of
+an animating layer can dirty ancestors, which is exactly what you do not want 30 times a
+second inside a panel that also hosts a detail view.
+
+## Sizing
+
+`LayoutBuilder` → the field''s column/row count derives from the box and the glyph advance
+width. Must survive the context panel''s **220–1000px** range (`layout_preset.dart:19`) and a
+short strip height. Degrade sensibly when very small rather than overflowing.
+
+## Done when
+
+- Renders every `FaceState` without error at both 220px and 1000px wide.
+- `pumpAndSettle()` completes under `disableAnimations: true` — the wedge guard.
+- Ticker disposes: pump the widget, then pump an empty tree, and assert no pending ticker
+  (the teardown pattern in `running_indicator_test.dart:29-45` and `clide_marquee_test.dart`).
+- Alchemist goldens at a **pinned ticker value** per state — a live animation is a bad golden,
+  so expose a test-only seam to hold the frame rather than sleeping.
+- Widget-level a11y: one stable `Semantics` label describing state in words
+  (D-20), with the animated glyphs under `ExcludeSemantics` — the
+  `running_indicator.dart` pattern. A screen reader should hear "Clide: thinking", never a
+  stream of box-drawing characters.
+
+From T-524: (1) The widget owns the ticker, advances the RainField, and updates the clock ValueNotifier<Duration>; the painter only reads. Keeping simulation out of paint() is what makes each frame a pure function of (clock, field, spec, tokens). (2) ClideFacePainter takes a nullable lean that falls back to gaze.leanPx — pass an interpolated value to animate the transition, which is the ''animated rather than snapped'' half of D-107. (3) hasInk-style alpha counting does NOT discriminate for this painter: the vignette is full-bleed so ~37300/38400 pixels have non-zero alpha. Goldens and any assertion finer than ''something was drawn'' must compare raw pixel bytes. (4) The idle clock label uses DateTime.now() — it is genuinely time-of-day, not animation state — so goldens covering idle must pin or avoid it.
+
+## DONE (2026-08-09) — Epic A complete
+
+- `lib/builtin/clide_companion/src/clide_face.dart` — `ClideFace`.
+- `test/builtin/clide_companion/clide_face_test.dart` — 19 tests.
+- `test/goldens/clide_face_goldens_test.dart` + three golden images (states, gaze/lean,
+  width range).
+- `make analyze`, `make format`, `make test` clean. Parallel pool 4072 → 4094.
+
+Public surface is exactly the T-521 contract — `state`, `gaze`, `busyFor` — plus two
+`@visibleForTesting` seams (`debugFreezeAt`, `debugClockLabel`) that exist because a golden
+of a live animation is flaky by construction.
+
+## The goldens found two real defects
+
+**1. A pinned frame had no rain at all.** With the ticker stopped, `field.tick()` never runs,
+so the field stayed empty and every static frame lost the density signal — the single thing
+the rain exists to convey. The same applied to **reduced motion**, which is the more serious
+case: a reduced-motion user would have seen a bare face with no indication the session was
+busy. Fixed by priming the field to a steady state whenever the ticker will not be running,
+and re-priming on state change since density is per-state. A reduced-motion user now sees the
+density; they just do not see it move.
+
+**2. The orbit arc does not read at strip aspect ratio** — filed as **T-531**. It is drawn on
+a rect inset from the widget bounds, which works on DeskLock''s 800×800 round panel and renders
+as a stray curve across the corner on a 320×120 strip. Left as-is rather than redesigned here:
+the replacement is a design call (D-107 forbids anything that reads as a fake progress bar),
+and it deserves a visual comparison rather than my picking one unilaterally.
+
+## A test-harness trap worth knowing
+
+The a11y test "the label follows a state change" failed, and it looked like a widget bug —
+a stale screen-reader label would be a genuine defect, since Epic B changes `state` on a
+mounted face constantly.
+
+It was the **shared `harness()`**. It wraps its child in
+`Overlay(initialEntries: [OverlayEntry(builder: (_) => child)])`, and `initialEntries` is
+consumed only on the Overlay''s *first* build. On later pumps the `OverlayState` is preserved
+and keeps an entry closing over the **original** child, so `pumpWidget` with a new prop never
+reaches the widget under test. Any test that changes a prop and re-pumps through `harness()`
+is silently asserting against a stale tree.
+
+This test builds the same services tree without the Overlay, which nothing here needed. The
+widget was correct all along, and there is now a dedicated test proving the label follows a
+live state change.
+
+## Power ladder — the widget half
+
+`_syncTicker` runs only when motion is allowed, the frame is not pinned, **and there is
+something to animate**. That last clause is D-107''s contract in code: an `error` face over a
+drained field has no moving parts, so the loop parks itself. Two tests hold both directions —
+`error` stops ticking after the field drains, and `effort` keeps ticking rather than being
+parked while still working.
+
+## Notes for Epic B (T-517)
+
+- The contract held: `state`, `gaze`, `busyFor`, nothing added.
+- `busyFor` is yours. The face never times turns.
+- Changing `state` on a mounted face works and is tested; no remount needed.
+- Under reduced motion the face still shows density, so mapping load to `rainStreams` remains
+  meaningful even with animation off.', 'done', 'medium', NULL, NULL, NULL, '2026-08-09 00:34:02.298', '2026-08-09 03:30:41.037', NULL, 'b8e57bd73eddcf69ddd56befc18d1397', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
