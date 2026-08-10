@@ -15,6 +15,7 @@ import 'dart:async';
 
 import 'package:clide/builtin/clide_companion/src/clide_strip.dart';
 import 'package:clide/builtin/clide_companion/src/companion_state.dart';
+import 'package:clide/builtin/clide_companion/src/companion_voice.dart';
 import 'package:clide/kernel/src/facade.dart' show ClideKernel;
 import 'package:flutter/widgets.dart';
 
@@ -81,10 +82,23 @@ class _Strip extends StatefulWidget {
 class _StripState extends State<_Strip> {
   Timer? _tick;
 
+  /// Clide's own session: what he is saying and how he looks (T-548).
+  ///
+  /// Bound here rather than delivered over the bus. A remark spans nothing — it
+  /// travels from his session to the widget beside it — and T-561 removed the
+  /// last channel that carried something this local.
+  late final CompanionVoice _voice;
+
   @override
   void initState() {
     super.initState();
+    _voice = CompanionVoice(moodEnabled: () => widget.state.moodChannel)..start();
+    _voice.addListener(_onVoice);
     _syncTimer();
+  }
+
+  void _onVoice() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -96,6 +110,9 @@ class _StripState extends State<_Strip> {
   @override
   void dispose() {
     _tick?.cancel();
+    _voice
+      ..removeListener(_onVoice)
+      ..dispose();
     super.dispose();
   }
 
@@ -121,5 +138,5 @@ class _StripState extends State<_Strip> {
   }
 
   @override
-  Widget build(BuildContext context) => ClideStrip(load: widget.state.load, busyFor: _busyFor);
+  Widget build(BuildContext context) => ClideStrip(load: widget.state.load, busyFor: _busyFor, state: _voice.face, message: _voice.say);
 }

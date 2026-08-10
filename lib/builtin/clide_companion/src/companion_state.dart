@@ -30,7 +30,13 @@ class CompanionState {
     this.load = SessionLoad.absent,
     this.busySince,
     this.suspendWhenMinimised = kCompanionSuspendWhenMinimisedDefault,
+    this.moodChannel = kCompanionMoodChannelDefault,
   });
+
+  /// Whether a mood Clide names for himself is honoured (T-532). Off, his
+  /// expression comes from his session lifecycle alone. Applies live — the
+  /// prefix format needs no tool, so both settings spawn identically.
+  final bool moodChannel;
 
   /// Whether to stop animating while the window is minimised (T-541).
   ///
@@ -82,6 +88,7 @@ class _CompanionStateBuilderState extends State<CompanionStateBuilder> {
   SessionLoad _load = SessionLoad.absent;
   DateTime? _busySince;
   bool _suspendWhenMinimised = kCompanionSuspendWhenMinimisedDefault;
+  bool _moodChannel = kCompanionMoodChannelDefault;
   bool _seeded = false;
 
   @override
@@ -103,6 +110,7 @@ class _CompanionStateBuilderState extends State<CompanionStateBuilder> {
       _enabled = prefs.enabled;
       _open = prefs.open;
       _suspendWhenMinimised = prefs.suspendWhenMinimised;
+      _moodChannel = prefs.moodChannel;
       _seeded = true;
     }
 
@@ -167,6 +175,8 @@ class _CompanionStateBuilderState extends State<CompanionStateBuilder> {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      widget.builder(context, CompanionState(enabled: _enabled, open: _open, load: _load, busySince: _busySince, suspendWhenMinimised: _suspendWhenMinimised));
+  Widget build(BuildContext context) => widget.builder(
+    context,
+    CompanionState(enabled: _enabled, open: _open, load: _load, busySince: _busySince, suspendWhenMinimised: _suspendWhenMinimised, moodChannel: _moodChannel),
+  );
 }
