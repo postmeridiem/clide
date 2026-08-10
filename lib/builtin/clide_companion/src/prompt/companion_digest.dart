@@ -60,6 +60,30 @@ import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/builtin/claude/src/turn_signals.dart';
 import 'package:clide/builtin/clide_companion/src/prompt/digest_lines.dart';
 
+/// One completed turn, ready for the trigger to judge (T-547).
+///
+/// The digest emits this rather than a bare string because whether to *send* a
+/// turn depends on facts only the turn knows — did it fail, how long did it run
+/// — and re-deriving them downstream would mean a second thing watching the
+/// session for what this one already saw.
+class DigestTurn {
+  const DigestTurn({required this.text, required this.outcome, required this.ran});
+
+  /// The `[observed]` lines, ready to send.
+  final String text;
+
+  /// The CLI's verdict on the turn.
+  final TurnOutcome outcome;
+
+  /// How long the turn took, measured from the session's own busy stamp rather
+  /// than from when this class noticed — a digest that starts counting when it
+  /// subscribes would under-report every turn already in flight.
+  final Duration ran;
+
+  @override
+  String toString() => 'DigestTurn(${ran.inSeconds}s, ${outcome.isError ? 'failed' : 'ok'}, ${text.length} chars)';
+}
+
 /// The prose a turn contained, in arrival order.
 class _Turn {
   /// Keyed by uuid so a streamed message and its final rewrite collapse into
@@ -88,12 +112,23 @@ class CompanionDigest {
   final bool Function() _ingesting;
 
   final _turn = _Turn();
-  final _lines = StreamController<String>.broadcast();
+
+  /// When the turn in flight began.
+  ///
+  /// Stamped here rather than read at flush, because the session clears its own
+  /// `busySince` **before** announcing the outcome — reading it at turn end
+  /// yields null every time, which would report every turn as instantaneous and,
+  /// under the default frequency, quietly mean Clide is never asked about
+  /// anything. Seeded from the session's stamp when one exists, so a turn
+  /// already running when the digest attached is measured from its real start.
+  DateTime? _turnBegan;
+
+  final _lines = StreamController<DigestTurn>.broadcast();
   final _subs = <StreamSubscription<Object?>>[];
   var _started = false;
 
   /// The digest, one entry per completed exchange that had anything in it.
-  Stream<String> get lines => _lines.stream;
+  Stream<DigestTurn> get lines => _lines.stream;
 
   /// Begin following. Idempotent.
   void start() {
@@ -101,6 +136,7 @@ class CompanionDigest {
     _started = true;
     _subs
       ..add(_source.items.listen(_onItem))
+      ..add(_source.busy.listen(_onBusy))
       ..add(_source.turnOutcomes.listen(_onTurnEnd));
   }
 
@@ -110,6 +146,19 @@ class CompanionDigest {
     }
     _subs.clear();
     _lines.close();
+  }
+
+  void _onBusy(bool busy) {
+    if (busy) {
+      _turnBegan ??= _source.busySince ?? DateTime.now();
+    }
+  }
+
+  /// How long the turn that just ended ran for, and re-arm for the next one.
+  Duration _ran() {
+    final began = _turnBegan;
+    _turnBegan = null;
+    return began == null ? Duration.zero : DateTime.now().difference(began);
   }
 
   void _onItem(ConversationItem item) {
@@ -154,9 +203,9 @@ class CompanionDigest {
 
   /// A turn finished. Emit what it contained, if anything.
   ///
-  /// [outcome] is not read here — whether the turn failed is a *trigger*
-  /// question, and triggers are T-547's. This ticket decides only what may be
-  /// seen and how it is framed.
+  /// [outcome] rides along rather than being judged here: whether a turn is
+  /// worth spending a prompt on is the trigger's question (T-547), and this
+  /// class stays responsible only for what may be seen and how it is framed.
   void _onTurnEnd(TurnOutcome outcome) {
     if (_turn.isEmpty) {
       // Nothing admissible happened — a turn that was all tool work, or one
@@ -166,6 +215,7 @@ class CompanionDigest {
     }
     final line = observedExchange(prompt: _turn.prompts.values.join('\n'), reply: _turn.prose.values.join('\n\n'));
     _turn.clear();
-    if (line != null && !_lines.isClosed) _lines.add(line);
+    if (line == null || _lines.isClosed) return;
+    _lines.add(DigestTurn(text: line, outcome: outcome, ran: _ran()));
   }
 }

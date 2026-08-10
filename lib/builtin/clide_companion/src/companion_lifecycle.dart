@@ -47,6 +47,9 @@ import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/session_reader.dart';
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/clide_companion/src/companion_session.dart';
+import 'package:clide/builtin/clide_companion/src/companion_settings.dart';
+import 'package:clide/builtin/clide_companion/src/prompt/companion_digest.dart';
+import 'package:clide/builtin/clide_companion/src/prompt/companion_trigger.dart';
 import 'package:flutter/foundation.dart';
 
 /// The model the companion runs on.
@@ -67,15 +70,39 @@ const kCompanionToolDenial = 'Clide has no pane, so there is nobody here to appr
 /// Owns the companion `claude` process: spawns it, tears it down, and keeps it
 /// in step with the primary session.
 class CompanionSessionController extends ChangeNotifier {
-  CompanionSessionController({ClaudeSessionOrchestrator? orchestrator, String Function()? newSessionId, SessionReader? primary})
-    : _explicit = orchestrator,
-      _newSessionId = newSessionId ?? companionSessionId,
-      _primary = primary ?? SessionReader.primary(orchestrator: orchestrator) {
+  CompanionSessionController({
+    ClaudeSessionOrchestrator? orchestrator,
+    String Function()? newSessionId,
+    SessionReader? primary,
+    CompanionFrequency Function()? frequency,
+    DateTime Function()? now,
+  }) : _explicit = orchestrator,
+       _newSessionId = newSessionId ?? companionSessionId,
+       _primary = primary ?? SessionReader.primary(orchestrator: orchestrator) {
     _primary
       ..addListener(_onPrimaryChanged)
       ..start(orchestrator);
     _seenPrimary = _primary.managed;
+    _trigger = CompanionTrigger(frequency: frequency ?? () => _frequency, now: now);
+    _digest = CompanionDigest(source: _primary, ingesting: () => _ingesting)..start();
+    _digestSub = _digest.lines.listen(_onDigest);
+    _busySub = _primary.busy.listen((busy) {
+      if (busy) _trigger.turnStarted();
+    });
   }
+
+  /// What the developer sees of the conversation, and what he is asked about.
+  ///
+  /// Both live here rather than in the extension because they are bound to the
+  /// *session's* lifetime: a companion that is torn down must stop being fed,
+  /// and a digest outliving its session would queue prompts for nobody.
+  late final CompanionTrigger _trigger;
+  late final CompanionDigest _digest;
+  StreamSubscription<DigestTurn>? _digestSub;
+  StreamSubscription<bool>? _busySub;
+
+  /// Frequency, as desired state. Defaults until the first [sync].
+  CompanionFrequency _frequency = CompanionFrequency.notable;
 
   final ClaudeSessionOrchestrator? _explicit;
   final String Function() _newSessionId;
@@ -133,10 +160,19 @@ class CompanionSessionController extends ChangeNotifier {
   /// makes a language change, a rename, or an edited self-description take
   /// effect at all. A null brief means he cannot run; the caller has nothing to
   /// launch him with.
-  Future<void> sync({required bool enabled, required bool open, required String? root, required String? brief}) {
+  Future<void> sync({
+    required bool enabled,
+    required bool open,
+    required String? root,
+    required String? brief,
+    CompanionFrequency frequency = CompanionFrequency.notable,
+  }) {
     _enabled = enabled;
     _root = root;
     _brief = brief;
+    // Live, unlike the brief: the trigger reads it per event, so turning him
+    // down takes effect on the next turn rather than on the next restart.
+    _frequency = frequency;
     // Ingest stops with the kill switch too — off is off at every level, not
     // just the process one.
     _setIngesting(enabled && open);
@@ -162,6 +198,9 @@ class CompanionSessionController extends ChangeNotifier {
     if (_stopped) return _work;
     _stopped = true;
     _primary.removeListener(_onPrimaryChanged);
+    await _digestSub?.cancel();
+    await _busySub?.cancel();
+    _digest.dispose();
     _primary.dispose();
     await _serialize(_teardown);
     if (_notifierDisposed) return;
@@ -265,6 +304,20 @@ class CompanionSessionController extends ChangeNotifier {
     if (now != null) _seenPrimary = now;
     if (now == null || before == null || identical(now, before)) return;
     unawaited(restart());
+  }
+
+  /// A completed turn arrived. Ask the trigger whether it is worth a prompt,
+  /// and send it if so.
+  ///
+  /// The reason is derived here rather than by the digest, because it is a
+  /// question about *spending*: a failed turn is worth asking about at every
+  /// frequency, a quick lookup only at the chattiest.
+  void _onDigest(DigestTurn turn) {
+    final session = _managed?.session;
+    if (session == null) return;
+    final reason = turn.outcome.isError ? TriggerReason.turnFailed : TriggerReason.turnFinished;
+    if (!_trigger.admit(reason, ran: turn.ran)) return;
+    session.send(turn.text);
   }
 
   void _setIngesting(bool value) {

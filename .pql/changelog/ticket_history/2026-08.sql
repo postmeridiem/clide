@@ -13055,3 +13055,108 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYBN0EJ3B59YWV2Z9S54PRGG', 'status', 'review', 'done', NULL, '2026-08-10 15:01:53', '2026-08-10 15:01:53.063', '2026-08-10 15:01:53.063', NULL, '99e51579261de91fa883e01da81909b2', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVWFCBT56EDZJCT7Z55ZV4', 'status', 'review', 'done', NULL, '2026-08-10 15:02:16', '2026-08-10 15:02:16.385', '2026-08-10 15:02:16.385', NULL, 'f178677ba456a3fb82b52c1f532d9d6a', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYEPPFGKEWVTE5Q9K152905G', 'status', 'review', 'done', NULL, '2026-08-10 15:02:37', '2026-08-10 15:02:37.765', '2026-08-10 15:02:37.765', NULL, '64e37c3af578b032920cd5db8977f220', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVZ67S9VM9Y5JZ0HNSMAN4', 'status', 'backlog', 'in_progress', NULL, '2026-08-10 15:46:09', '2026-08-10 15:46:09.454', '2026-08-10 15:46:09.454', NULL, 'c675906c7d1673bfb8e7aee97fd1d420', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVZ67S9VM9Y5JZ0HNSMAN4', 'description', 'When Clide is *asked* to say something. Blocked by **T-546** — there has to be a
+digest before there is anything to remark on.
+
+## The trigger is the cost control
+
+D-107 fixes the shape: **notable events only, never per-token.** Turn finished,
+error, a long run crossing a threshold, a commit landing. Direct questions are
+always answered and are not subject to this.
+
+Under subscription auth the real currency is **quota drawn from the same pool
+already rate-limiting the primary session**, so a chatty trigger does not cost
+money so much as it costs the user their own session. That is the argument for
+keeping it stingy, and it is why this is its own ticket rather than a couple of
+lines inside the digest.
+
+`project.companion.frequency` (T-527) tunes the threshold within that shape:
+`rare` (errors and long runs only), `notable` (the default), `chatty` (also
+ordinary turns). It is already a setting with a UI and is read by nobody yet.
+
+## Watch for
+
+- **Debounce, and say what the debounce is.** "Turn finished" and "commit landed"
+  can arrive within a second of each other; two remarks about one event reads as
+  a malfunction.
+- A long run crossing a threshold should fire **once**, not once per check.
+- An error remark must not itself be triggered by the companion''s own failure —
+  that is a loop.
+- Cap what a single event can produce. `max_tokens` bounds one reply; nothing yet
+  bounds replies per minute, and that is this ticket''s job.
+
+## Worth measuring rather than assuming
+
+Once it runs, count what a realistic hour actually generates at each frequency
+setting before deciding the defaults are right. The initiative''s estimate was
+~50 comments per session, which is where the restart boundary came from — if the
+real number is 200, that boundary and the cost model both move.
+
+**Corollary of T-546''s ''absence is silence'':** state *changes* are not notable events.
+
+A session ending, starting, being minimised or coming back are things the tooling did, not things that happened in the work. None of them should trigger a remark. The notable-events list stays what D-107 says it is — turn finished, error, long run crossing a threshold, commit landed — all of which are events in the *conversation*.
+
+Worth stating because the signals are now conveniently available (T-557 surfaces turn outcome, T-551 forwards binding changes) and ''we can see it, so let us comment on it'' is exactly how an ambient surface becomes a nuisance. Availability is not a reason to speak.', 'When Clide is *asked* to say something. Blocked by **T-546** — there has to be a
+digest before there is anything to remark on.
+
+## The trigger is the cost control
+
+D-107 fixes the shape: **notable events only, never per-token.** Turn finished,
+error, a long run crossing a threshold, a commit landing. Direct questions are
+always answered and are not subject to this.
+
+Under subscription auth the real currency is **quota drawn from the same pool
+already rate-limiting the primary session**, so a chatty trigger does not cost
+money so much as it costs the user their own session. That is the argument for
+keeping it stingy, and it is why this is its own ticket rather than a couple of
+lines inside the digest.
+
+`project.companion.frequency` (T-527) tunes the threshold within that shape:
+`rare` (errors and long runs only), `notable` (the default), `chatty` (also
+ordinary turns). It is already a setting with a UI and is read by nobody yet.
+
+## Watch for
+
+- **Debounce, and say what the debounce is.** "Turn finished" and "commit landed"
+  can arrive within a second of each other; two remarks about one event reads as
+  a malfunction.
+- A long run crossing a threshold should fire **once**, not once per check.
+- An error remark must not itself be triggered by the companion''s own failure —
+  that is a loop.
+- Cap what a single event can produce. `max_tokens` bounds one reply; nothing yet
+  bounds replies per minute, and that is this ticket''s job.
+
+## Worth measuring rather than assuming
+
+Once it runs, count what a realistic hour actually generates at each frequency
+setting before deciding the defaults are right. The initiative''s estimate was
+~50 comments per session, which is where the restart boundary came from — if the
+real number is 200, that boundary and the cost model both move.
+
+**Corollary of T-546''s ''absence is silence'':** state *changes* are not notable events.
+
+A session ending, starting, being minimised or coming back are things the tooling did, not things that happened in the work. None of them should trigger a remark. The notable-events list stays what D-107 says it is — turn finished, error, long run crossing a threshold, commit landed — all of which are events in the *conversation*.
+
+Worth stating because the signals are now conveniently available (T-557 surfaces turn outcome, T-551 forwards binding changes) and ''we can see it, so let us comment on it'' is exactly how an ambient surface becomes a nuisance. Availability is not a reason to speak.
+
+Done 2026-08-10. lib/builtin/clide_companion/src/prompt/companion_trigger.dart + 11 tests, and wired: digest -> trigger -> session.send in CompanionSessionController.
+
+TWO FILTERS, DIFFERENT QUESTIONS. The trigger decides whether to spend anything at all (every prompt draws the primary session''s quota); the brief decides whether to speak once asked (measured ~1 remark per 8 exchanges). Kept separate because a model cannot bound its own spend — deciding not to answer still costs a turn.
+
+FREQUENCY LADDER, now read by something for the first time since T-527. rare = failures and long runs only, paced 10 min apart. notable = the above plus completed turns lasting >5s, paced 1 min. chatty = every completed exchange, paced 10s. The 5s floor is the honest version of ''notable'': clide cannot judge interesting, but it can tell a 2-second lookup from real work, and asking about a lookup spends a turn to be told nothing.
+
+DEBOUNCE (10s) is separate from pacing and deliberately so — one occurrence producing two signals is a different failure from going too fast, and a log that conflates them is useless.
+
+LONG RUN fires once per turn; turnStarted() re-arms it. A threshold that re-arms on each check is a metronome.
+
+STATE CHANGES ARE NOT EVENTS — encoded in the enum, which has no member for session start/end/minimise/restore, rather than in a comment. Test asserts the exact enum contents so adding one requires arguing for it.
+
+NO LOOP ON HIS OWN FAILURE: structural. The trigger only ever sees the primary reader''s events; the companion''s own errors are not an input to it.
+
+Bug caught while wiring, worth recording: _setBusy(false) runs BEFORE the result event announces the outcome, so reading session.busySince at turn end yields null every time. The digest would have reported every turn as instantaneous, and under the default frequency''s 5s floor that means Clide is never asked about anything — a total feature failure that no test would have flagged as such. The digest now stamps the turn start itself on the busy edge, seeded from busySince so a turn already running when it attached is measured from its real start.
+
+NOT DONE: D-107''s fourth notable event, a commit landing. Needs a git watcher — a second source with its own lifecycle — and the brief already catches commits from the prose (''Committed without a changelog entry'' is a line he sees). Added when something needs it.
+
+STILL TO MEASURE, per the ticket: what a realistic hour actually produces at each setting. The pacing numbers are reasoned, not observed, and the first live session is the chance to check them.', NULL, '2026-08-10 21:09:14', '2026-08-10 21:09:14.261', '2026-08-10 21:09:14.261', NULL, '9df8eae4ca36e8b3c1fd2e237f1c570d', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVZ67S9VM9Y5JZ0HNSMAN4', 'status', 'in_progress', 'review', NULL, '2026-08-10 21:09:36', '2026-08-10 21:09:36.507', '2026-08-10 21:09:36.507', NULL, '1e92dd7c37c55cf129ae3864b666fa70', 2) ON CONFLICT(hash) DO NOTHING;

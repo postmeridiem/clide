@@ -89,7 +89,7 @@ void main() {
     await orch.spawn(const SpawnSpec(id: kPrimarySessionId, role: 'primary', sessionId: 'p', cwd: '/repo'));
     reader = SessionReader.primary(orchestrator: orch)..start();
     digest = CompanionDigest(source: reader, ingesting: () => ingesting)..start();
-    digest.lines.listen(sent.add);
+    digest.lines.listen((t) => sent.add(t.text));
   }
 
   setUp(boot);

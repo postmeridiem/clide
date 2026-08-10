@@ -95,7 +95,13 @@ class ClideCompanionExtension extends ClideExtension {
     final controller = _session;
     if (ctx == null || controller == null) return;
     final prefs = _prefs;
-    await controller.sync(enabled: prefs.mayRunSession, open: prefs.open, root: ctx.project.current?.path, brief: await _brief(ctx, prefs));
+    await controller.sync(
+      enabled: prefs.mayRunSession,
+      open: prefs.open,
+      root: ctx.project.current?.path,
+      brief: await _brief(ctx, prefs),
+      frequency: prefs.frequency,
+    );
   }
 
   /// Compose Clide's system prompt: the locale's brief document, with the
