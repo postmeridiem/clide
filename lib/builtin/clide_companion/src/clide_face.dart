@@ -304,6 +304,9 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
   /// Screen-reader label. One stable phrase per state — a reader should hear
   /// "Clide: thinking", never a stream of box-drawing characters (D-20).
   String _semanticsLabel(BuildContext context) {
+    // The declared moods (T-532) get their own phrases rather than collapsing
+    // into a generic "Clide reacted": the mood IS the content for a
+    // screen-reader user, who gets none of the glyph.
     final key = switch (widget.state) {
       FaceState.idle => 'idle',
       FaceState.listening => 'listening',
@@ -312,6 +315,14 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
       FaceState.speaking => 'replying',
       FaceState.rage => 'error',
       FaceState.error => 'disconnected',
+      FaceState.watching => 'watching',
+      FaceState.amused => 'amused',
+      FaceState.unimpressed => 'unimpressed',
+      FaceState.concerned => 'concerned',
+      FaceState.approving => 'approving',
+      FaceState.tired => 'tired',
+      FaceState.surprised => 'surprised',
+      FaceState.resigned => 'resigned',
     };
     const english = {
       'idle': 'Clide is idle',
@@ -321,6 +332,14 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
       'replying': 'Clide is replying',
       'error': 'Clide hit an error',
       'disconnected': 'Clide is disconnected',
+      'watching': 'Clide is watching',
+      'amused': 'Clide is amused',
+      'unimpressed': 'Clide is unimpressed',
+      'concerned': 'Clide is concerned',
+      'approving': 'Clide approves',
+      'tired': 'Clide is tired',
+      'surprised': 'Clide is surprised',
+      'resigned': 'Clide is resigned',
     };
     return ClideSettings.i18n.string(context, 'face.semantics.$key', namespace: 'builtin.clide-companion', placeholder: english[key]!);
   }

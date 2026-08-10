@@ -51,7 +51,71 @@ enum FaceState {
 
   /// His session died. Rain stops dead and the face dims.
   error,
+
+  // -- Declared moods (T-532) ------------------------------------------------
+  //
+  // Everything above this line is driven by his session's mechanics. Everything
+  // below he chooses himself and names on a reply. They live in one enum because
+  // the *face* has one vocabulary — a painter that had to merge two would be the
+  // seam this file exists to prevent — and are separated by [declarable] rather
+  // than by type.
+  //
+  // Measured, not guessed: across 109 tuned turns he reached for `unimpressed`,
+  // `concerned`, `watching`, `approving` and `tired`, and never `amused`,
+  // `surprised` or `resigned`. The unused three are kept anyway — a vocabulary
+  // he can grow into costs one const each, and a mood he wants but cannot name
+  // is a silent failure that looks like the channel working.
+
+  /// Quietly observing. Narrowed, attentive, giving nothing away.
+  watching,
+
+  /// Something landed — a pun that worked, a joke in the work itself. His
+  /// warmest state, and by measurement his rarest.
+  amused,
+
+  /// Brows down, flat mouth. The quiet sibling of [rage]: same disapproval, no
+  /// heat. Most of what a dry senior actually feels.
+  unimpressed,
+
+  /// Something is going wrong and he can see it from here.
+  concerned,
+
+  /// A nod, not a beam. One-sided lift — he is not going to make a fuss.
+  approving,
+
+  /// Half-lidded. Long day.
+  tired,
+
+  /// Wide, briefly. Rare by construction: little surprises him.
+  surprised,
+
+  /// Weary acceptance. [tired] with a sigh rather than a flat line.
+  resigned,
 }
+
+/// Which states Clide may name for himself.
+///
+/// The mechanical ones ([listening], [pensive], [effort], [speaking], [error])
+/// are facts about his session that he is in no position to report — he cannot
+/// know his own process died — so offering them to him would invite a lie. He is
+/// handed exactly this set and validated against it (T-532); a value outside it
+/// is treated as no answer at all.
+extension FaceStateDeclarable on FaceState {
+  bool get declarable => switch (this) {
+    FaceState.listening || FaceState.pensive || FaceState.effort || FaceState.speaking || FaceState.error => false,
+    _ => true,
+  };
+}
+
+/// The vocabulary offered to Clide, in prompt order.
+///
+/// Derived from the enum rather than written out, so a state added here reaches
+/// the prompt without anyone remembering to update it — the failure mode this
+/// avoids is a face the painter can draw and the model has never heard of.
+final List<FaceState> kDeclarableFaces = [
+  for (final s in FaceState.values)
+    if (s.declarable) s,
+];
 
 /// Which way the pupils point — and, derived from it, which way the face leans.
 ///
@@ -156,6 +220,44 @@ const _rage = FaceSpec(eyes: '▼   ▼', mouth: '━', jitter: true);
 /// Stopping it is [SessionLoad.absent]'s job.
 const _error = FaceSpec(eyes: 'x   x', mouth: '-', opacity: 0.45);
 
+// -- Declared moods (T-532) --------------------------------------------------
+//
+// One grammar, so a state nobody has seen is still readable: **the eyes carry
+// arousal, the mouth carries valence.** Families share a brow deliberately, so
+// related feelings look related — `▼` runs unimpressed→rage, `=` runs
+// tired→resigned, `·` runs watching→pensive, `O` runs listening→surprised, `^`
+// runs speaking→amused. Each pair differs only in the mouth.
+//
+// Every glyph is already in [kVerifiedFaceGlyphs]. That is a constraint the set
+// was designed under, not a coincidence: the table exists because this bug class
+// has bitten twice, and a cohesive set is not worth a tofu box on Fira Mono.
+
+/// Narrowed and attentive. [_pensive]'s eyes without the working-it-out mouth.
+const _watching = FaceSpec(eyes: '·   ·', mouth: '-', blink: true);
+
+/// [_speaking]'s warm eyes, held still, over a smile.
+const _amused = FaceSpec(eyes: '^   ^', mouth: r'\_/', blink: true);
+
+/// [_rage]'s brow with the heat taken out — flat mouth, no jitter.
+const _unimpressed = FaceSpec(eyes: '▼   ▼', mouth: '-');
+
+/// Open eyes, unsettled mouth. Wider than [_watching]; not yet [_rage].
+const _concerned = FaceSpec(eyes: 'o   o', mouth: '~', blink: true);
+
+/// A nod. One-sided lift rather than [_idle]'s full `\_/` — deliberately small,
+/// because a dry senior does not beam. Worth watching on the real strip: it is a
+/// single glyph away from [_idle] and may not read at 20px.
+const _approving = FaceSpec(eyes: '-   -', mouth: '_/', blink: true);
+
+/// Half-lidded, flat.
+const _tired = FaceSpec(eyes: '=   =', mouth: '-', blink: true);
+
+/// Wide, mouth open. The only state that uses `O` in both rows.
+const _surprised = FaceSpec(eyes: 'O   O', mouth: 'O');
+
+/// [_tired] with a sigh instead of a flat line.
+const _resigned = FaceSpec(eyes: '=   =', mouth: '~');
+
 /// The drawing recipe for [state].
 FaceSpec specFor(FaceState state) => switch (state) {
   FaceState.idle => _idle,
@@ -165,6 +267,14 @@ FaceSpec specFor(FaceState state) => switch (state) {
   FaceState.speaking => _speaking,
   FaceState.rage => _rage,
   FaceState.error => _error,
+  FaceState.watching => _watching,
+  FaceState.amused => _amused,
+  FaceState.unimpressed => _unimpressed,
+  FaceState.concerned => _concerned,
+  FaceState.approving => _approving,
+  FaceState.tired => _tired,
+  FaceState.surprised => _surprised,
+  FaceState.resigned => _resigned,
 };
 
 /// Mouth frames cycled while [FaceSpec.talkCycle] is set.

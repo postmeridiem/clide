@@ -83,6 +83,10 @@ flutter:
     # <namespace>.json. Add a line per new locale folder.
     - assets/i18n/en_us/
     - assets/i18n/nl_nl/
+    # Clide's system prompt, one folder per locale, resolved through the same
+    # fallback chain as the catalogs (T-532). Deliberately a document rather
+    # than catalog keys — see companion_prompt.dart. Add a line per new locale.
+    - assets/clide/prompts/en_us/
     - assets/keymaps/
     - assets/licenses.yaml
     - assets/LICENSE

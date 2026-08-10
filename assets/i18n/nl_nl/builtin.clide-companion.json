@@ -1,25 +1,80 @@
 {
-  "settings.title": { "translation": "Clide" },
-  "settings.section.companion": { "translation": "Metgezel" },
-  "settings.field.enabled.label": { "translation": "Clide inschakelen" },
+  "face.semantics.amused": "Clide is geamuseerd",
+  "face.semantics.approving": "Clide keurt het goed",
+  "face.semantics.concerned": "Clide is bezorgd",
+  "face.semantics.disconnected": {
+    "translation": "Clide is niet verbonden"
+  },
+  "face.semantics.error": {
+    "translation": "Clide liep tegen een fout aan"
+  },
+  "face.semantics.idle": {
+    "translation": "Clide doet niets"
+  },
+  "face.semantics.listening": {
+    "translation": "Clide luistert"
+  },
+  "face.semantics.replying": {
+    "translation": "Clide antwoordt"
+  },
+  "face.semantics.resigned": "Clide legt zich erbij neer",
+  "face.semantics.surprised": "Clide is verrast",
+  "face.semantics.thinking": {
+    "translation": "Clide denkt na"
+  },
+  "face.semantics.tired": "Clide is moe",
+  "face.semantics.unimpressed": "Clide is niet onder de indruk",
+  "face.semantics.watching": "Clide kijkt mee",
+  "face.semantics.working": {
+    "translation": "Clide is bezig"
+  },
+  "rail.minimise": {
+    "translation": "Clide minimaliseren"
+  },
+  "rail.restore": {
+    "translation": "Clide tonen"
+  },
+  "settings.field.about.help": "Een regel of twee in je eigen woorden, geciteerd in zijn briefing. De enige plek waar je zijn karakter direct vormt.",
+  "settings.field.about.label": "Beschrijf jezelf voor Clide",
   "settings.field.enabled.help": {
     "translation": "Draait voor deze repository een tweede Claude-sessie die het gesprek volgt en erop reageert. Die verbruikt hetzelfde abonnementstegoed als je hoofdsessie. Uit verwijdert hem volledig — geen sessie, geen balk."
   },
-  "settings.field.frequency.label": { "translation": "Hoe vaak hij iets zegt" },
-  "settings.field.frequency.help": { "translation": "Nooit per bericht — dit bepaalt hoe opvallend een gebeurtenis moet zijn voordat Clide er iets over zegt." },
-  "settings.field.frequency.rare": { "translation": "Zelden — fouten en lange taken" },
-  "settings.field.frequency.notable": { "translation": "Opvallende gebeurtenissen" },
-  "settings.field.frequency.chatty": { "translation": "Spraakzaam" },
-  "settings.section.power": { "translation": "Energie" },
-  "settings.field.suspend.label": { "translation": "Pauzeren zolang het venster geminimaliseerd is" },
-  "settings.field.suspend.help": { "translation": "Stopt de animatie en breekt de sessie af zolang je er niet naar kijkt." },
-  "rail.minimise": { "translation": "Clide minimaliseren" },
-  "rail.restore": { "translation": "Clide tonen" },
-  "face.semantics.idle": { "translation": "Clide doet niets" },
-  "face.semantics.listening": { "translation": "Clide luistert" },
-  "face.semantics.thinking": { "translation": "Clide denkt na" },
-  "face.semantics.working": { "translation": "Clide is bezig" },
-  "face.semantics.replying": { "translation": "Clide antwoordt" },
-  "face.semantics.error": { "translation": "Clide liep tegen een fout aan" },
-  "face.semantics.disconnected": { "translation": "Clide is niet verbonden" }
+  "settings.field.enabled.label": {
+    "translation": "Clide inschakelen"
+  },
+  "settings.field.frequency.chatty": {
+    "translation": "Spraakzaam"
+  },
+  "settings.field.frequency.help": {
+    "translation": "Nooit per bericht — dit bepaalt hoe opvallend een gebeurtenis moet zijn voordat Clide er iets over zegt."
+  },
+  "settings.field.frequency.label": {
+    "translation": "Hoe vaak hij iets zegt"
+  },
+  "settings.field.frequency.notable": {
+    "translation": "Opvallende gebeurtenissen"
+  },
+  "settings.field.frequency.rare": {
+    "translation": "Zelden — fouten en lange taken"
+  },
+  "settings.field.moodChannel.help": "Hij benoemt bij elke opmerking hoe hij zich voelt en het gezicht volgt. Uit komt zijn uitdrukking uit wat zijn sessie doet. Dit wijzigen herstart hem.",
+  "settings.field.moodChannel.label": "Laat Clide zijn eigen uitdrukking kiezen",
+  "settings.field.suspend.help": {
+    "translation": "Stopt de animatie en breekt de sessie af zolang je er niet naar kijkt."
+  },
+  "settings.field.suspend.label": {
+    "translation": "Pauzeren zolang het venster geminimaliseerd is"
+  },
+  "settings.field.userName.help": "Hoe Clide je kent. Hij hoort het één keer en gebruikt het niet hardop.",
+  "settings.field.userName.label": "Je naam",
+  "settings.section.companion": {
+    "translation": "Metgezel"
+  },
+  "settings.section.power": {
+    "translation": "Energie"
+  },
+  "settings.section.you": "Jij",
+  "settings.title": {
+    "translation": "Clide"
+  }
 }

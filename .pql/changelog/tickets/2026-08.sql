@@ -14660,3 +14660,718 @@ This also absorbs a second complaint from the same session — a diagram authore
 - **Discoverability, not just a hidden tap target.** An invisible click region is not an affordance; it needs a hover cue, and it needs to be reachable without a mouse.
 - **D-20 (a11y is tier 0).** The open action needs a semantics label and a keyboard route, which the current element-scoped `GestureDetector` does not have.
 - **D-78 holds.** A lightbox is a view over display-only content, not an interaction with the model, so nothing about cards-are-display-only changes.', 'backlog', 'medium', NULL, NULL, 'D-103', '2026-08-10 14:07:31.464', '2026-08-10 14:07:31.464', NULL, 'a0e57bbd3a7eb30d2f7d98172c1518bc', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYBN0EJ3B59YWV2Z9S54PRGG', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'Clide prompt templates — system prompt, observed/direct framing, lifecycle notices', 'Clide''s prompt is the product. Everything else in Epic D is plumbing — this is
+where his voice, his restraint, and his sense of what is going on actually live.
+Split out of T-519 because "write the system prompt" buried in a plumbing epic
+gets three lines of attention and then ships as whatever the first draft was.
+
+## Deliverable
+
+A versioned set of prompt templates in one place, not string literals scattered
+across the session code. Each template documented with *why* it says what it
+says, because prompt text is the one part of this feature with no compiler, no
+type system and no test that can tell you it drifted.
+
+## Templates needed
+
+**1. System prompt.** Establishes:
+- Who Clide is — the IDE''s companion, watching a session he is not part of.
+- The observed/direct split (D-107): `[observed]` lines are a conversation
+  between the user and Claude that he is *watching* — remark rarely, briefly,
+  and never pretend to be a participant. `[direct]` lines are addressed to him —
+  always answer.
+- That he sees **prose only, never tool calls or results** (D-107). He must know
+  the shape of his own blindness, or he will confidently answer "what did that
+  tool do?" — the known v1 limitation. Better that he says he cannot see it.
+- Reply in the active locale (`app.locale`), one or two sentences, no preamble.
+- Silence is a valid response. This is the hardest thing to get a model to do
+  and deserves the most prompt real estate.
+
+**2. Turn digest.** How each observed exchange is framed:
+```
+[observed] <user>: <prompt text>
+[observed] claude: <assistant prose>
+```
+Open question the template has to answer: whether the user''s real name is used
+(it is available) or a neutral label, and whether Clide addresses them by it.
+
+**3. Direct address.** Distinguishing a question typed into Clide''s own input
+from the conversation he is watching. Same channel, different contract.
+
+**4. Lifecycle notices.** New, from the minimize design:
+- **Detach** — minimizing the strip stops the digest, so Clide *misses* that
+  stretch of conversation. On resume he is told he was detached and roughly how
+  long for. Explicitly worth playing with: an ambient companion that knows it
+  was away, and says something about it, is more alive than one that silently
+  has a gap. Try it before deciding whether it is charming or tiresome.
+- **Clear / restart** — the companion session tracks the primary''s clear and
+  restart windows so it lives alongside the main conversation rather than
+  accumulating context the user thinks they threw away.
+- **Session restart at ~50 comments** (cost control, per the initiative) is a
+  third kind of discontinuity. Decide whether Clide is told about this one at
+  all, or whether it should be seamless — it is our bookkeeping, not an event in
+  his world.
+
+## Constraints inherited
+
+- **Notable events only.** Turn finished, error, long run crossing a threshold,
+  commit landed. Never per-token. Direct questions always answered.
+- **Cap `max_tokens` ~100**, no thinking, and do **not** set `effort` — it errors
+  on Haiku 4.5.
+- **Cache shape matters more than brevity.** Haiku 4.5 has the highest prompt
+  cache minimum of any current model (4096 tokens); under that, `cache_control`
+  is silently ignored. A lean system prompt is therefore *uncached* for roughly
+  its first 20 comments — the opposite of the usual instinct. Weigh prompt
+  length against that threshold deliberately rather than trimming on reflex.
+
+## Not in scope
+
+Wiring, spawn, filtering and transport are T-519''s. This ticket owns the text
+and the rationale for the text.
+
+**Fifth template added — the mood side-channel (D-107 commitment 5, added
+2026-08-09).** This is now the highest-risk part of the prompt work, and it has
+an explicit kill condition.
+
+Clide declares his own emotional state on every reply; the face renders it. This
+is the only possible source for a reaction to *content* rather than to
+mechanics — "you have made this mistake before" — which is what the whole
+side-channel exists for, and which no derived signal can ever produce.
+
+## Requirement
+
+A demanded output template, not a hope. Two candidates to bake off against Haiku
+4.5 rather than choose on paper:
+
+- **Frontmatter-style** — a delimited header block before the prose.
+- **JSON** — `{"mood": "...", "say": "..."}`.
+
+Pick whichever Haiku follows most cleanly under the real system prompt, at the
+real reply length, across the real trigger events. This runs through the CLI in
+stream-json, so there is **no structured-output enforcement** — the model''s
+compliance is the only guarantee there is, which is why it is measured rather
+than assumed.
+
+## The kill condition, stated up front
+
+**If it is not very stable, it does not ship.** A malformed reply must never put
+scaffolding in the speech bubble; a user who sees `{"mood":` in Clide''s mouth has
+watched the illusion break, which costs more than the feature adds. So:
+
+- Parse defensively and **strip aggressively** — anything template-shaped that
+  survives parsing is removed from the displayed text, not passed through.
+- A missing or unparseable mood means **keep the previous expression**, never a
+  default reset and never a visible failure.
+- If the bake-off shows the format bleeding under any of the real triggers,
+  **drop the channel** and derive the expression mechanically from his session
+  lifecycle. That loses `rage` and the editorial states — accepted, versus
+  shipping something that visibly leaks.
+
+Measure it: run each candidate format over a realistic set of trigger events and
+count malformed replies. A format that is 95% clean is not clean — this renders
+on every remark, so a 1-in-20 failure is visible within minutes of use.
+
+## Vocabulary
+
+The mood values are the face states that have no mechanical source. Keep the set
+**small and closed**, and validate against it — an open vocabulary means the
+model invents a mood the face cannot render, which is a silent failure that looks
+like the channel working.
+
+**The templates themselves go through i18n** (raised 2026-08-09). Not just the
+chrome around them — the system prompt, the observed/direct framing and the
+lifecycle notices are all authored text, and authored text in this repo resolves
+through the catalog (D-21/D-102).
+
+Namespace `builtin.clide-companion`, alongside the settings labels that landed in
+T-527. Keys roughly `prompt.system`, `prompt.digest.observed`,
+`prompt.digest.direct`, `prompt.notice.detached`, `prompt.notice.cleared`.
+
+## This is in tension with D-107 and the tension should be resolved here
+
+D-107 currently says Clide''s replies "are model output and carry the locale via
+the prompt" — i.e. an English prompt containing an instruction to answer in the
+active locale. Localising the prompt itself is a different mechanism: a Dutch
+user gets a Dutch prompt, and the reply follows because the whole context is
+Dutch rather than because a line asked for it. The second usually produces better
+register and idiom; the first is easier to tune because there is one text.
+
+Whichever wins, say so explicitly in this ticket and amend D-107''s line if it
+changes — right now the record and this ticket describe two different designs.
+
+## The cost, stated plainly
+
+`test/a11y/i18n_coverage_test.dart` enforces **key parity between en_US and
+nl_NL** for every shipped catalog. Putting the system prompt in the catalog
+therefore obliges a Dutch system prompt, kept in sync, forever — and prompts are
+tuned iteratively, so every tuning pass is now two. That is a real recurring cost
+and worth weighing against the quality gain before committing to it, rather than
+discovering it on the first red build.
+
+A middle option exists: catalog the **user-visible** and register-carrying parts
+(the notices, the speaker labels) and keep the instruction body single-language.
+Weigh it; do not default into it silently.
+
+Cross-reference (2026-08-09): **T-558** — changing the UI language restarts the companion session, because the locale reaches Clide through the prompt rather than through a catalog.
+
+That ticket''s first argument depends on this one: if the prompt templates resolve through i18n as the user asked, the instruction text differs per locale and cannot be retro-applied to a running session. If the bake-off here concludes the templates stay single-language, say so on T-558 — its other two arguments (an English history pulls replies back to English; a half-translated overlay reads as a bug) stand without it, but the reasoning should not be left pointing at a decision that went the other way.', 'in_progress', 'high', NULL, NULL, 'D-107', '2026-08-09 09:21:47.664', '2026-08-10 14:08:47.372', NULL, 'be29b9d8176974d2ec0be88e8f4e69ff', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYBN0EJ3B59YWV2Z9S54PRGG', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'Clide prompt templates — system prompt, observed/direct framing, lifecycle notices', 'Clide''s prompt is the product. Everything else in Epic D is plumbing — this is
+where his voice, his restraint, and his sense of what is going on actually live.
+Split out of T-519 because "write the system prompt" buried in a plumbing epic
+gets three lines of attention and then ships as whatever the first draft was.
+
+## Deliverable
+
+A versioned set of prompt templates in one place, not string literals scattered
+across the session code. Each template documented with *why* it says what it
+says, because prompt text is the one part of this feature with no compiler, no
+type system and no test that can tell you it drifted.
+
+## Templates needed
+
+**1. System prompt.** Establishes:
+- Who Clide is — the IDE''s companion, watching a session he is not part of.
+- The observed/direct split (D-107): `[observed]` lines are a conversation
+  between the user and Claude that he is *watching* — remark rarely, briefly,
+  and never pretend to be a participant. `[direct]` lines are addressed to him —
+  always answer.
+- That he sees **prose only, never tool calls or results** (D-107). He must know
+  the shape of his own blindness, or he will confidently answer "what did that
+  tool do?" — the known v1 limitation. Better that he says he cannot see it.
+- Reply in the active locale (`app.locale`), one or two sentences, no preamble.
+- Silence is a valid response. This is the hardest thing to get a model to do
+  and deserves the most prompt real estate.
+
+**2. Turn digest.** How each observed exchange is framed:
+```
+[observed] <user>: <prompt text>
+[observed] claude: <assistant prose>
+```
+Open question the template has to answer: whether the user''s real name is used
+(it is available) or a neutral label, and whether Clide addresses them by it.
+
+**3. Direct address.** Distinguishing a question typed into Clide''s own input
+from the conversation he is watching. Same channel, different contract.
+
+**4. Lifecycle notices.** New, from the minimize design:
+- **Detach** — minimizing the strip stops the digest, so Clide *misses* that
+  stretch of conversation. On resume he is told he was detached and roughly how
+  long for. Explicitly worth playing with: an ambient companion that knows it
+  was away, and says something about it, is more alive than one that silently
+  has a gap. Try it before deciding whether it is charming or tiresome.
+- **Clear / restart** — the companion session tracks the primary''s clear and
+  restart windows so it lives alongside the main conversation rather than
+  accumulating context the user thinks they threw away.
+- **Session restart at ~50 comments** (cost control, per the initiative) is a
+  third kind of discontinuity. Decide whether Clide is told about this one at
+  all, or whether it should be seamless — it is our bookkeeping, not an event in
+  his world.
+
+## Constraints inherited
+
+- **Notable events only.** Turn finished, error, long run crossing a threshold,
+  commit landed. Never per-token. Direct questions always answered.
+- **Cap `max_tokens` ~100**, no thinking, and do **not** set `effort` — it errors
+  on Haiku 4.5.
+- **Cache shape matters more than brevity.** Haiku 4.5 has the highest prompt
+  cache minimum of any current model (4096 tokens); under that, `cache_control`
+  is silently ignored. A lean system prompt is therefore *uncached* for roughly
+  its first 20 comments — the opposite of the usual instinct. Weigh prompt
+  length against that threshold deliberately rather than trimming on reflex.
+
+## Not in scope
+
+Wiring, spawn, filtering and transport are T-519''s. This ticket owns the text
+and the rationale for the text.
+
+**Fifth template added — the mood side-channel (D-107 commitment 5, added
+2026-08-09).** This is now the highest-risk part of the prompt work, and it has
+an explicit kill condition.
+
+Clide declares his own emotional state on every reply; the face renders it. This
+is the only possible source for a reaction to *content* rather than to
+mechanics — "you have made this mistake before" — which is what the whole
+side-channel exists for, and which no derived signal can ever produce.
+
+## Requirement
+
+A demanded output template, not a hope. Two candidates to bake off against Haiku
+4.5 rather than choose on paper:
+
+- **Frontmatter-style** — a delimited header block before the prose.
+- **JSON** — `{"mood": "...", "say": "..."}`.
+
+Pick whichever Haiku follows most cleanly under the real system prompt, at the
+real reply length, across the real trigger events. This runs through the CLI in
+stream-json, so there is **no structured-output enforcement** — the model''s
+compliance is the only guarantee there is, which is why it is measured rather
+than assumed.
+
+## The kill condition, stated up front
+
+**If it is not very stable, it does not ship.** A malformed reply must never put
+scaffolding in the speech bubble; a user who sees `{"mood":` in Clide''s mouth has
+watched the illusion break, which costs more than the feature adds. So:
+
+- Parse defensively and **strip aggressively** — anything template-shaped that
+  survives parsing is removed from the displayed text, not passed through.
+- A missing or unparseable mood means **keep the previous expression**, never a
+  default reset and never a visible failure.
+- If the bake-off shows the format bleeding under any of the real triggers,
+  **drop the channel** and derive the expression mechanically from his session
+  lifecycle. That loses `rage` and the editorial states — accepted, versus
+  shipping something that visibly leaks.
+
+Measure it: run each candidate format over a realistic set of trigger events and
+count malformed replies. A format that is 95% clean is not clean — this renders
+on every remark, so a 1-in-20 failure is visible within minutes of use.
+
+## Vocabulary
+
+The mood values are the face states that have no mechanical source. Keep the set
+**small and closed**, and validate against it — an open vocabulary means the
+model invents a mood the face cannot render, which is a silent failure that looks
+like the channel working.
+
+**The templates themselves go through i18n** (raised 2026-08-09). Not just the
+chrome around them — the system prompt, the observed/direct framing and the
+lifecycle notices are all authored text, and authored text in this repo resolves
+through the catalog (D-21/D-102).
+
+Namespace `builtin.clide-companion`, alongside the settings labels that landed in
+T-527. Keys roughly `prompt.system`, `prompt.digest.observed`,
+`prompt.digest.direct`, `prompt.notice.detached`, `prompt.notice.cleared`.
+
+## This is in tension with D-107 and the tension should be resolved here
+
+D-107 currently says Clide''s replies "are model output and carry the locale via
+the prompt" — i.e. an English prompt containing an instruction to answer in the
+active locale. Localising the prompt itself is a different mechanism: a Dutch
+user gets a Dutch prompt, and the reply follows because the whole context is
+Dutch rather than because a line asked for it. The second usually produces better
+register and idiom; the first is easier to tune because there is one text.
+
+Whichever wins, say so explicitly in this ticket and amend D-107''s line if it
+changes — right now the record and this ticket describe two different designs.
+
+## The cost, stated plainly
+
+`test/a11y/i18n_coverage_test.dart` enforces **key parity between en_US and
+nl_NL** for every shipped catalog. Putting the system prompt in the catalog
+therefore obliges a Dutch system prompt, kept in sync, forever — and prompts are
+tuned iteratively, so every tuning pass is now two. That is a real recurring cost
+and worth weighing against the quality gain before committing to it, rather than
+discovering it on the first red build.
+
+A middle option exists: catalog the **user-visible** and register-carrying parts
+(the notices, the speaker labels) and keep the instruction body single-language.
+Weigh it; do not default into it silently.
+
+Cross-reference (2026-08-09): **T-558** — changing the UI language restarts the companion session, because the locale reaches Clide through the prompt rather than through a catalog.
+
+That ticket''s first argument depends on this one: if the prompt templates resolve through i18n as the user asked, the instruction text differs per locale and cannot be retro-applied to a running session. If the bake-off here concludes the templates stay single-language, say so on T-558 — its other two arguments (an English history pulls replies back to English; a half-translated overlay reads as a bug) stand without it, but the reasoning should not be left pointing at a decision that went the other way.', 'in_progress', 'high', NULL, NULL, 'D-107', '2026-08-09 09:21:47.664', '2026-08-10 14:09:13.096', NULL, '0c17d425590e625679642ffb321f76e4', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE8GBV5MVX2X928BTJ2399W', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'Changing the UI language restarts the companion session', 'Changing the UI language must restart the companion session.
+
+## The caveat does not apply — the change is live
+
+Checked before filing: `root_shell._applyLocale` reads `app.locale` on settings
+changes and calls `i18n.setLocale`, which reloads the catalogs and notifies. The
+UI relabels itself in place; **there is no restart to piggyback on**, so this
+needs handling explicitly.
+
+## Why a restart rather than a note mid-conversation
+
+The locale reaches Clide **through the prompt** — D-107 is explicit that his
+replies are model output, not catalog strings, and that the language is carried
+by the prompt rather than translated afterwards. So a language change is a change
+to his instructions, and there are three reasons that wants a fresh session
+rather than a mid-conversation correction:
+
+1. **The system prompt itself changes.** T-532 has the prompt templates resolving
+   through i18n; if that lands, the instruction text is different in the new
+   locale and cannot be retro-applied to a session that was started with the old
+   one.
+2. **"From now on, reply in Dutch" is weaker than starting in Dutch.** A session
+   whose entire history is English has a strong pull back toward it, and the
+   failure is quiet — the occasional English reply rather than an error.
+3. **The visible conversation would go bilingual.** The overlay shows one
+   conversation; half of it in the previous language reads as a bug.
+
+## Consequences to accept deliberately
+
+- **The visible history is lost.** Under the settled design the conversation *is*
+  the session''s transcript, so a restart starts a new one. Acceptable — switching
+  UI language is a deliberate, rare act — but it should be a decision here rather
+  than a surprise later.
+- **`app.locale` is app-scoped and the companion is per-repo.** One language
+  change restarts every workspace''s companion, not just the focused one. That is
+  correct, and worth being explicit about so it is not read as a bug.
+
+## Where it belongs
+
+The same place as the other lifecycle triggers (T-545): the kill switch tears
+down, `/clear` tears down, the primary''s clear/restart follows — and a locale
+change joins that list. Do not build a second mechanism for it.
+
+If T-532 concludes the prompt templates stay single-language after all, revisit:
+the argument in §1 weakens, though §2 and §3 stand on their own.
+
+Correction (2026-08-10, from T-532): this ticket''s first argument is RESTORED, having briefly looked dead.
+
+T-532 settled the prompt as a locale-routed document — assets/clide/prompts/<locale>/clide-brief.md, resolved through the same FallbackChain as the catalogs — rather than either catalog keys or one English text. So the instruction body genuinely differs per locale, and it cannot be retro-applied to a running session: changing the language changes the brief, and the brief is fixed at spawn.
+
+Also note root_shell._applyLocale calls i18n.setLocale LIVE — nothing restarts today, by design, so the UI relabels in place. The companion restart has to be wired explicitly; it does not come for free.
+
+The wiring is small under T-545: CompanionSessionController.sync() already takes desired state and tears down/respawns when it changes. Adding the locale to that state makes a language change a restart with no new mechanism.
+
+Same rule now covers three more settings T-532 added, all prompt-shaped and therefore all restart-on-change: app.companion.userName, app.companion.about, app.companion.moodChannel (the last also changes the spawn posture, not just the text).', 'backlog', 'medium', NULL, NULL, 'D-107', '2026-08-09 15:26:35.993', '2026-08-10 14:24:08.494', NULL, '54567221012857998aa60d45c91eb63d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYBN0EJ3B59YWV2Z9S54PRGG', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'Clide prompt templates — system prompt, observed/direct framing, lifecycle notices', 'Clide''s prompt is the product. Everything else in Epic D is plumbing — this is
+where his voice, his restraint, and his sense of what is going on actually live.
+Split out of T-519 because "write the system prompt" buried in a plumbing epic
+gets three lines of attention and then ships as whatever the first draft was.
+
+## Deliverable
+
+A versioned set of prompt templates in one place, not string literals scattered
+across the session code. Each template documented with *why* it says what it
+says, because prompt text is the one part of this feature with no compiler, no
+type system and no test that can tell you it drifted.
+
+## Templates needed
+
+**1. System prompt.** Establishes:
+- Who Clide is — the IDE''s companion, watching a session he is not part of.
+- The observed/direct split (D-107): `[observed]` lines are a conversation
+  between the user and Claude that he is *watching* — remark rarely, briefly,
+  and never pretend to be a participant. `[direct]` lines are addressed to him —
+  always answer.
+- That he sees **prose only, never tool calls or results** (D-107). He must know
+  the shape of his own blindness, or he will confidently answer "what did that
+  tool do?" — the known v1 limitation. Better that he says he cannot see it.
+- Reply in the active locale (`app.locale`), one or two sentences, no preamble.
+- Silence is a valid response. This is the hardest thing to get a model to do
+  and deserves the most prompt real estate.
+
+**2. Turn digest.** How each observed exchange is framed:
+```
+[observed] <user>: <prompt text>
+[observed] claude: <assistant prose>
+```
+Open question the template has to answer: whether the user''s real name is used
+(it is available) or a neutral label, and whether Clide addresses them by it.
+
+**3. Direct address.** Distinguishing a question typed into Clide''s own input
+from the conversation he is watching. Same channel, different contract.
+
+**4. Lifecycle notices.** New, from the minimize design:
+- **Detach** — minimizing the strip stops the digest, so Clide *misses* that
+  stretch of conversation. On resume he is told he was detached and roughly how
+  long for. Explicitly worth playing with: an ambient companion that knows it
+  was away, and says something about it, is more alive than one that silently
+  has a gap. Try it before deciding whether it is charming or tiresome.
+- **Clear / restart** — the companion session tracks the primary''s clear and
+  restart windows so it lives alongside the main conversation rather than
+  accumulating context the user thinks they threw away.
+- **Session restart at ~50 comments** (cost control, per the initiative) is a
+  third kind of discontinuity. Decide whether Clide is told about this one at
+  all, or whether it should be seamless — it is our bookkeeping, not an event in
+  his world.
+
+## Constraints inherited
+
+- **Notable events only.** Turn finished, error, long run crossing a threshold,
+  commit landed. Never per-token. Direct questions always answered.
+- **Cap `max_tokens` ~100**, no thinking, and do **not** set `effort` — it errors
+  on Haiku 4.5.
+- **Cache shape matters more than brevity.** Haiku 4.5 has the highest prompt
+  cache minimum of any current model (4096 tokens); under that, `cache_control`
+  is silently ignored. A lean system prompt is therefore *uncached* for roughly
+  its first 20 comments — the opposite of the usual instinct. Weigh prompt
+  length against that threshold deliberately rather than trimming on reflex.
+
+## Not in scope
+
+Wiring, spawn, filtering and transport are T-519''s. This ticket owns the text
+and the rationale for the text.
+
+**Fifth template added — the mood side-channel (D-107 commitment 5, added
+2026-08-09).** This is now the highest-risk part of the prompt work, and it has
+an explicit kill condition.
+
+Clide declares his own emotional state on every reply; the face renders it. This
+is the only possible source for a reaction to *content* rather than to
+mechanics — "you have made this mistake before" — which is what the whole
+side-channel exists for, and which no derived signal can ever produce.
+
+## Requirement
+
+A demanded output template, not a hope. Two candidates to bake off against Haiku
+4.5 rather than choose on paper:
+
+- **Frontmatter-style** — a delimited header block before the prose.
+- **JSON** — `{"mood": "...", "say": "..."}`.
+
+Pick whichever Haiku follows most cleanly under the real system prompt, at the
+real reply length, across the real trigger events. This runs through the CLI in
+stream-json, so there is **no structured-output enforcement** — the model''s
+compliance is the only guarantee there is, which is why it is measured rather
+than assumed.
+
+## The kill condition, stated up front
+
+**If it is not very stable, it does not ship.** A malformed reply must never put
+scaffolding in the speech bubble; a user who sees `{"mood":` in Clide''s mouth has
+watched the illusion break, which costs more than the feature adds. So:
+
+- Parse defensively and **strip aggressively** — anything template-shaped that
+  survives parsing is removed from the displayed text, not passed through.
+- A missing or unparseable mood means **keep the previous expression**, never a
+  default reset and never a visible failure.
+- If the bake-off shows the format bleeding under any of the real triggers,
+  **drop the channel** and derive the expression mechanically from his session
+  lifecycle. That loses `rage` and the editorial states — accepted, versus
+  shipping something that visibly leaks.
+
+Measure it: run each candidate format over a realistic set of trigger events and
+count malformed replies. A format that is 95% clean is not clean — this renders
+on every remark, so a 1-in-20 failure is visible within minutes of use.
+
+## Vocabulary
+
+The mood values are the face states that have no mechanical source. Keep the set
+**small and closed**, and validate against it — an open vocabulary means the
+model invents a mood the face cannot render, which is a silent failure that looks
+like the channel working.
+
+**The templates themselves go through i18n** (raised 2026-08-09). Not just the
+chrome around them — the system prompt, the observed/direct framing and the
+lifecycle notices are all authored text, and authored text in this repo resolves
+through the catalog (D-21/D-102).
+
+Namespace `builtin.clide-companion`, alongside the settings labels that landed in
+T-527. Keys roughly `prompt.system`, `prompt.digest.observed`,
+`prompt.digest.direct`, `prompt.notice.detached`, `prompt.notice.cleared`.
+
+## This is in tension with D-107 and the tension should be resolved here
+
+D-107 currently says Clide''s replies "are model output and carry the locale via
+the prompt" — i.e. an English prompt containing an instruction to answer in the
+active locale. Localising the prompt itself is a different mechanism: a Dutch
+user gets a Dutch prompt, and the reply follows because the whole context is
+Dutch rather than because a line asked for it. The second usually produces better
+register and idiom; the first is easier to tune because there is one text.
+
+Whichever wins, say so explicitly in this ticket and amend D-107''s line if it
+changes — right now the record and this ticket describe two different designs.
+
+## The cost, stated plainly
+
+`test/a11y/i18n_coverage_test.dart` enforces **key parity between en_US and
+nl_NL** for every shipped catalog. Putting the system prompt in the catalog
+therefore obliges a Dutch system prompt, kept in sync, forever — and prompts are
+tuned iteratively, so every tuning pass is now two. That is a real recurring cost
+and worth weighing against the quality gain before committing to it, rather than
+discovering it on the first red build.
+
+A middle option exists: catalog the **user-visible** and register-carrying parts
+(the notices, the speaker labels) and keep the instruction body single-language.
+Weigh it; do not default into it silently.
+
+Cross-reference (2026-08-09): **T-558** — changing the UI language restarts the companion session, because the locale reaches Clide through the prompt rather than through a catalog.
+
+That ticket''s first argument depends on this one: if the prompt templates resolve through i18n as the user asked, the instruction text differs per locale and cannot be retro-applied to a running session. If the bake-off here concludes the templates stay single-language, say so on T-558 — its other two arguments (an English history pulls replies back to English; a half-translated overlay reads as a bug) stand without it, but the reasoning should not be left pointing at a decision that went the other way.
+
+Done 2026-08-10. Prompt tuned live against Haiku 4.5 across five runs / 109 turns before any of it was written down; the measurements drove every choice below.
+
+FORMAT — the bake-off ran and the kill condition did NOT fire. The ticket''s premise was wrong: --json-schema DOES enforce structured output at CLI 2.1.226, via a forced StructuredOutput tool call. Measured and rejected anyway on two grounds paper could not see — it costs ~2x output (prose, then a synthetic turn demanding the tool call, then the same text restated), and it cannot be silent, which is incompatible with the brief''s hardest instruction. Shipped format is a [face] prefix line: 109 turns, zero malformed. Defensive rules implemented regardless (strip scaffolding, unreadable face keeps the previous expression, unknown name = no answer).
+
+I18N — resolved against BOTH designs on the table. Not catalog keys (parity test would oblige a Dutch system prompt in lockstep forever, doubling every tuning pass) and not one English text. The brief is a locale-routed DOCUMENT at assets/clide/prompts/<locale>/clide-brief.md walking the same FallbackChain as the catalogs. A native brief becomes a file someone adds; until then the chain falls through rather than half-translating. The reply-language instruction names the REQUESTED locale, not the one the document was found under, so falling back to English does not silently switch his language. D-107 amended; T-558''s first argument restored (it had briefly looked dead).
+
+NAMING — neutral labels in the transcript, name + free-text self-description injected once into the brief. Three new app-scoped settings: userName, about, moodChannel.
+
+TUNING, with numbers. v1: spoke 8/15, affirmed ordinary work, silent on the process skip he exists for, silent on a direct question (the brief never defined [direct] — my bug). v2: fixed direct, still silent on the skip. Diagnosis: ''you are not a scold'' read as ''a decision already made is off-limits''. v3 separated NOTICING ONCE from NAGGING and used a worked example (--no-verify) different from the test cases (changelog, review) — he generalised, catching both. v4 on a realistic feed (34 turns, 5 notable): 4/34 spoken, ZERO false positives on 30 mundane exchanges. Adding the self-check block made him more precise rather than quieter — 5/34, 4/5 notables. Final rate ~1 per 7-8 exchanges, which is a function of event density rather than chattiness.
+
+Behaviour worth keeping: he BANKS observations rather than interrupting. Twice he stayed silent on a ''hardcode it for now'' debt at the time and produced it unprompted at end of day when asked what he''d flag.
+
+FACE SET — extended FaceState by 8 declared moods with a real grammar (eyes carry arousal, mouth carries valence; families share a brow: ▼ unimpressed→rage, = tired→resigned, · watching→pensive, O listening→surprised, ^ speaking→amused). Zero new glyphs — designed inside kVerifiedFaceGlyphs on purpose. declarable/kDeclarableFaces splits the mechanical states (he cannot know his own process died) from the ones he may name, and the vocabulary is DERIVED from the enum into the prompt so the two cannot drift. Face goldens regenerated. Semantics labels + nl_NL parity added for all 8 (D-20).
+
+Cost, corrected: total_cost_usd is CUMULATIVE per session, not per turn — an earlier reading of it inflated per-exchange cost ~7x and briefly made the trigger design look cost-driven. Real figure ~$0.004-0.007/exchange, ~$0.12 for a 34-exchange day. Trigger design is quality-driven; T-547 does not need to precede T-546.
+
+NOT DONE (T-519''s, per scope): wiring the composed prompt into the spawn, SessionProfile.companion on SpawnSpec, --safe-mode/--disallowedTools posture, and the digest that produces these lines.
+
+Stale line for whoever picks up T-519: ''cap max_tokens ~100'' is not achievable — the CLI exposes no such flag. Length is held by the brief and by the parser''s kMaxRemarkChars backstop.', 'in_progress', 'high', NULL, NULL, 'D-107', '2026-08-09 09:21:47.664', '2026-08-10 14:24:35.293', NULL, '9e9cfbc5aa244e658369dba633e253e6', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYBN0EJ3B59YWV2Z9S54PRGG', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'Clide prompt templates — system prompt, observed/direct framing, lifecycle notices', 'Clide''s prompt is the product. Everything else in Epic D is plumbing — this is
+where his voice, his restraint, and his sense of what is going on actually live.
+Split out of T-519 because "write the system prompt" buried in a plumbing epic
+gets three lines of attention and then ships as whatever the first draft was.
+
+## Deliverable
+
+A versioned set of prompt templates in one place, not string literals scattered
+across the session code. Each template documented with *why* it says what it
+says, because prompt text is the one part of this feature with no compiler, no
+type system and no test that can tell you it drifted.
+
+## Templates needed
+
+**1. System prompt.** Establishes:
+- Who Clide is — the IDE''s companion, watching a session he is not part of.
+- The observed/direct split (D-107): `[observed]` lines are a conversation
+  between the user and Claude that he is *watching* — remark rarely, briefly,
+  and never pretend to be a participant. `[direct]` lines are addressed to him —
+  always answer.
+- That he sees **prose only, never tool calls or results** (D-107). He must know
+  the shape of his own blindness, or he will confidently answer "what did that
+  tool do?" — the known v1 limitation. Better that he says he cannot see it.
+- Reply in the active locale (`app.locale`), one or two sentences, no preamble.
+- Silence is a valid response. This is the hardest thing to get a model to do
+  and deserves the most prompt real estate.
+
+**2. Turn digest.** How each observed exchange is framed:
+```
+[observed] <user>: <prompt text>
+[observed] claude: <assistant prose>
+```
+Open question the template has to answer: whether the user''s real name is used
+(it is available) or a neutral label, and whether Clide addresses them by it.
+
+**3. Direct address.** Distinguishing a question typed into Clide''s own input
+from the conversation he is watching. Same channel, different contract.
+
+**4. Lifecycle notices.** New, from the minimize design:
+- **Detach** — minimizing the strip stops the digest, so Clide *misses* that
+  stretch of conversation. On resume he is told he was detached and roughly how
+  long for. Explicitly worth playing with: an ambient companion that knows it
+  was away, and says something about it, is more alive than one that silently
+  has a gap. Try it before deciding whether it is charming or tiresome.
+- **Clear / restart** — the companion session tracks the primary''s clear and
+  restart windows so it lives alongside the main conversation rather than
+  accumulating context the user thinks they threw away.
+- **Session restart at ~50 comments** (cost control, per the initiative) is a
+  third kind of discontinuity. Decide whether Clide is told about this one at
+  all, or whether it should be seamless — it is our bookkeeping, not an event in
+  his world.
+
+## Constraints inherited
+
+- **Notable events only.** Turn finished, error, long run crossing a threshold,
+  commit landed. Never per-token. Direct questions always answered.
+- **Cap `max_tokens` ~100**, no thinking, and do **not** set `effort` — it errors
+  on Haiku 4.5.
+- **Cache shape matters more than brevity.** Haiku 4.5 has the highest prompt
+  cache minimum of any current model (4096 tokens); under that, `cache_control`
+  is silently ignored. A lean system prompt is therefore *uncached* for roughly
+  its first 20 comments — the opposite of the usual instinct. Weigh prompt
+  length against that threshold deliberately rather than trimming on reflex.
+
+## Not in scope
+
+Wiring, spawn, filtering and transport are T-519''s. This ticket owns the text
+and the rationale for the text.
+
+**Fifth template added — the mood side-channel (D-107 commitment 5, added
+2026-08-09).** This is now the highest-risk part of the prompt work, and it has
+an explicit kill condition.
+
+Clide declares his own emotional state on every reply; the face renders it. This
+is the only possible source for a reaction to *content* rather than to
+mechanics — "you have made this mistake before" — which is what the whole
+side-channel exists for, and which no derived signal can ever produce.
+
+## Requirement
+
+A demanded output template, not a hope. Two candidates to bake off against Haiku
+4.5 rather than choose on paper:
+
+- **Frontmatter-style** — a delimited header block before the prose.
+- **JSON** — `{"mood": "...", "say": "..."}`.
+
+Pick whichever Haiku follows most cleanly under the real system prompt, at the
+real reply length, across the real trigger events. This runs through the CLI in
+stream-json, so there is **no structured-output enforcement** — the model''s
+compliance is the only guarantee there is, which is why it is measured rather
+than assumed.
+
+## The kill condition, stated up front
+
+**If it is not very stable, it does not ship.** A malformed reply must never put
+scaffolding in the speech bubble; a user who sees `{"mood":` in Clide''s mouth has
+watched the illusion break, which costs more than the feature adds. So:
+
+- Parse defensively and **strip aggressively** — anything template-shaped that
+  survives parsing is removed from the displayed text, not passed through.
+- A missing or unparseable mood means **keep the previous expression**, never a
+  default reset and never a visible failure.
+- If the bake-off shows the format bleeding under any of the real triggers,
+  **drop the channel** and derive the expression mechanically from his session
+  lifecycle. That loses `rage` and the editorial states — accepted, versus
+  shipping something that visibly leaks.
+
+Measure it: run each candidate format over a realistic set of trigger events and
+count malformed replies. A format that is 95% clean is not clean — this renders
+on every remark, so a 1-in-20 failure is visible within minutes of use.
+
+## Vocabulary
+
+The mood values are the face states that have no mechanical source. Keep the set
+**small and closed**, and validate against it — an open vocabulary means the
+model invents a mood the face cannot render, which is a silent failure that looks
+like the channel working.
+
+**The templates themselves go through i18n** (raised 2026-08-09). Not just the
+chrome around them — the system prompt, the observed/direct framing and the
+lifecycle notices are all authored text, and authored text in this repo resolves
+through the catalog (D-21/D-102).
+
+Namespace `builtin.clide-companion`, alongside the settings labels that landed in
+T-527. Keys roughly `prompt.system`, `prompt.digest.observed`,
+`prompt.digest.direct`, `prompt.notice.detached`, `prompt.notice.cleared`.
+
+## This is in tension with D-107 and the tension should be resolved here
+
+D-107 currently says Clide''s replies "are model output and carry the locale via
+the prompt" — i.e. an English prompt containing an instruction to answer in the
+active locale. Localising the prompt itself is a different mechanism: a Dutch
+user gets a Dutch prompt, and the reply follows because the whole context is
+Dutch rather than because a line asked for it. The second usually produces better
+register and idiom; the first is easier to tune because there is one text.
+
+Whichever wins, say so explicitly in this ticket and amend D-107''s line if it
+changes — right now the record and this ticket describe two different designs.
+
+## The cost, stated plainly
+
+`test/a11y/i18n_coverage_test.dart` enforces **key parity between en_US and
+nl_NL** for every shipped catalog. Putting the system prompt in the catalog
+therefore obliges a Dutch system prompt, kept in sync, forever — and prompts are
+tuned iteratively, so every tuning pass is now two. That is a real recurring cost
+and worth weighing against the quality gain before committing to it, rather than
+discovering it on the first red build.
+
+A middle option exists: catalog the **user-visible** and register-carrying parts
+(the notices, the speaker labels) and keep the instruction body single-language.
+Weigh it; do not default into it silently.
+
+Cross-reference (2026-08-09): **T-558** — changing the UI language restarts the companion session, because the locale reaches Clide through the prompt rather than through a catalog.
+
+That ticket''s first argument depends on this one: if the prompt templates resolve through i18n as the user asked, the instruction text differs per locale and cannot be retro-applied to a running session. If the bake-off here concludes the templates stay single-language, say so on T-558 — its other two arguments (an English history pulls replies back to English; a half-translated overlay reads as a bug) stand without it, but the reasoning should not be left pointing at a decision that went the other way.
+
+Done 2026-08-10. Prompt tuned live against Haiku 4.5 across five runs / 109 turns before any of it was written down; the measurements drove every choice below.
+
+FORMAT — the bake-off ran and the kill condition did NOT fire. The ticket''s premise was wrong: --json-schema DOES enforce structured output at CLI 2.1.226, via a forced StructuredOutput tool call. Measured and rejected anyway on two grounds paper could not see — it costs ~2x output (prose, then a synthetic turn demanding the tool call, then the same text restated), and it cannot be silent, which is incompatible with the brief''s hardest instruction. Shipped format is a [face] prefix line: 109 turns, zero malformed. Defensive rules implemented regardless (strip scaffolding, unreadable face keeps the previous expression, unknown name = no answer).
+
+I18N — resolved against BOTH designs on the table. Not catalog keys (parity test would oblige a Dutch system prompt in lockstep forever, doubling every tuning pass) and not one English text. The brief is a locale-routed DOCUMENT at assets/clide/prompts/<locale>/clide-brief.md walking the same FallbackChain as the catalogs. A native brief becomes a file someone adds; until then the chain falls through rather than half-translating. The reply-language instruction names the REQUESTED locale, not the one the document was found under, so falling back to English does not silently switch his language. D-107 amended; T-558''s first argument restored (it had briefly looked dead).
+
+NAMING — neutral labels in the transcript, name + free-text self-description injected once into the brief. Three new app-scoped settings: userName, about, moodChannel.
+
+TUNING, with numbers. v1: spoke 8/15, affirmed ordinary work, silent on the process skip he exists for, silent on a direct question (the brief never defined [direct] — my bug). v2: fixed direct, still silent on the skip. Diagnosis: ''you are not a scold'' read as ''a decision already made is off-limits''. v3 separated NOTICING ONCE from NAGGING and used a worked example (--no-verify) different from the test cases (changelog, review) — he generalised, catching both. v4 on a realistic feed (34 turns, 5 notable): 4/34 spoken, ZERO false positives on 30 mundane exchanges. Adding the self-check block made him more precise rather than quieter — 5/34, 4/5 notables. Final rate ~1 per 7-8 exchanges, which is a function of event density rather than chattiness.
+
+Behaviour worth keeping: he BANKS observations rather than interrupting. Twice he stayed silent on a ''hardcode it for now'' debt at the time and produced it unprompted at end of day when asked what he''d flag.
+
+FACE SET — extended FaceState by 8 declared moods with a real grammar (eyes carry arousal, mouth carries valence; families share a brow: ▼ unimpressed→rage, = tired→resigned, · watching→pensive, O listening→surprised, ^ speaking→amused). Zero new glyphs — designed inside kVerifiedFaceGlyphs on purpose. declarable/kDeclarableFaces splits the mechanical states (he cannot know his own process died) from the ones he may name, and the vocabulary is DERIVED from the enum into the prompt so the two cannot drift. Face goldens regenerated. Semantics labels + nl_NL parity added for all 8 (D-20).
+
+Cost, corrected: total_cost_usd is CUMULATIVE per session, not per turn — an earlier reading of it inflated per-exchange cost ~7x and briefly made the trigger design look cost-driven. Real figure ~$0.004-0.007/exchange, ~$0.12 for a 34-exchange day. Trigger design is quality-driven; T-547 does not need to precede T-546.
+
+NOT DONE (T-519''s, per scope): wiring the composed prompt into the spawn, SessionProfile.companion on SpawnSpec, --safe-mode/--disallowedTools posture, and the digest that produces these lines.
+
+Stale line for whoever picks up T-519: ''cap max_tokens ~100'' is not achievable — the CLI exposes no such flag. Length is held by the brief and by the parser''s kMaxRemarkChars backstop.', 'review', 'high', NULL, NULL, 'D-107', '2026-08-09 09:21:47.664', '2026-08-10 14:25:12.403', NULL, '3d111312ae9fcb9f44d583d5cd8495a8', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

@@ -178,6 +178,44 @@ class ClideCompanionExtension extends ClideExtension {
               ),
             ],
           ),
+          // Injected into Clide's brief once, at spawn (T-532). Changing any of
+          // these changes the prompt, so it restarts him — the same rule the
+          // language setting follows, and for the same reason.
+          SettingsSection(
+            label: 'You',
+            labelKey: 'settings.section.you',
+            fields: [
+              SettingsField(
+                key: kCompanionUserNameKey,
+                kind: SettingsFieldKind.text,
+                label: 'Your name',
+                labelKey: 'settings.field.userName.label',
+                help: 'What Clide knows you as. He is told once and told not to use it out loud.',
+                helpKey: 'settings.field.userName.help',
+                defaultValue: '',
+              ),
+              SettingsField(
+                key: kCompanionAboutKey,
+                kind: SettingsFieldKind.text,
+                label: 'Describe yourself to Clide',
+                labelKey: 'settings.field.about.label',
+                help: 'A line or two in your own words, quoted into his brief. The one place you shape his character directly.',
+                helpKey: 'settings.field.about.help',
+                defaultValue: '',
+              ),
+              SettingsField(
+                key: kCompanionMoodChannelKey,
+                kind: SettingsFieldKind.toggle,
+                label: 'Let Clide choose his own expression',
+                labelKey: 'settings.field.moodChannel.label',
+                help:
+                    'He names how he feels on each remark and the face follows. Off, his expression comes from what his session is doing. '
+                    'Changing this restarts him.',
+                helpKey: 'settings.field.moodChannel.help',
+                defaultValue: kCompanionMoodChannelDefault,
+              ),
+            ],
+          ),
           SettingsSection(
             label: 'Power',
             labelKey: 'settings.section.power',

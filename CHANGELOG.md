@@ -39,6 +39,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   a still frame and stops redrawing entirely; anything happening wakes it.
   (D-107, T-540)
 
+- **Clide has a voice.** A senior engineer who watches, stays quiet, and speaks
+  up when a step gets skipped or the same fix is tried a third time. Settings →
+  Clide takes your name, a line about yourself, and whether he picks his own
+  expression. (D-107, T-532)
+
 - **Clide runs a session.** A headless Haiku session starts with the workspace
   and follows it: the settings switch tears the process down, minimising only
   pauses it, and clearing the main pane clears Clide with it. His own

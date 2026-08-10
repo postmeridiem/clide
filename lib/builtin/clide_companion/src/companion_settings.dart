@@ -41,6 +41,38 @@ const kCompanionFrequencyKey = 'project.companion.frequency';
 /// which is a property of the machine.
 const kCompanionSuspendWhenMinimisedKey = 'app.companion.suspendWhenMinimised';
 
+/// What Clide calls the developer — injected into his brief **once** (T-532).
+///
+/// App-scoped, not per-repo: it describes the person, not the work. Empty is a
+/// legitimate value and yields no personal section at all, rather than a
+/// sentence with a hole in it.
+///
+/// He is told the name and told not to use it. Knowing who he is watching is
+/// what makes him a companion; saying it back every remark is what makes a
+/// companion sound like a salesperson.
+const kCompanionUserNameKey = 'app.companion.userName';
+
+/// Free text the developer writes about themselves, for Clide's brief (T-532).
+///
+/// The one place the user gets to shape his character directly. Injected
+/// verbatim as a quotation, so it reads as *theirs* rather than as another
+/// instruction from us.
+const kCompanionAboutKey = 'app.companion.about';
+
+/// Whether Clide names his own expression on each reply (T-532, D-107
+/// commitment 5).
+///
+/// On, he declares a face and the strip renders it — the only possible source
+/// for a reaction to *content* rather than mechanics. Off, expression is derived
+/// from his session lifecycle alone, which is D-107's own stated fallback, and
+/// the session runs with every tool denied.
+///
+/// **The setting is a posture, not a decoration.** The two branches spawn
+/// differently, so this cannot change on a live session (see
+/// [ClideCompanionSettings.mayRunSession]'s neighbours in T-545): flipping it
+/// restarts him.
+const kCompanionMoodChannelKey = 'app.companion.moodChannel';
+
 /// On by default — the strip ships visible, and a companion nobody can find is
 /// not a feature. The safety argument that would normally push a
 /// quota-spending default to *off* is answered by the scope instead: a repo
@@ -52,6 +84,12 @@ const kCompanionEnabledDefault = true;
 const kCompanionOpenDefault = true;
 
 const kCompanionSuspendWhenMinimisedDefault = true;
+
+/// On by default: the declared mood is the reason D-107 was amended to add the
+/// channel at all, and it measured at roughly twice the output of a bare reply —
+/// a few thousandths of a cent, against the only signal that can react to what
+/// was said rather than to what happened.
+const kCompanionMoodChannelDefault = true;
 
 /// How readily Clide comments. D-107 fixes the *shape* — notable events only,
 /// never per-token — and this tunes the threshold within it.
@@ -95,6 +133,23 @@ class ClideCompanionSettings {
   bool get open => _bool(kCompanionOpenKey, kCompanionOpenDefault);
 
   bool get suspendWhenMinimised => _bool(kCompanionSuspendWhenMinimisedKey, kCompanionSuspendWhenMinimisedDefault);
+
+  bool get moodChannel => _bool(kCompanionMoodChannelKey, kCompanionMoodChannelDefault);
+
+  /// What Clide calls the developer, or null when unset. Trimmed, and empty is
+  /// normalised to null so the prompt composer has one absent case rather than
+  /// two.
+  String? get userName => _text(kCompanionUserNameKey);
+
+  /// The developer's own description of themselves, or null.
+  String? get about => _text(kCompanionAboutKey);
+
+  String? _text(String key) {
+    final v = _read(key);
+    if (v is! String) return null;
+    final t = v.trim();
+    return t.isEmpty ? null : t;
+  }
 
   CompanionFrequency get frequency => CompanionFrequency.parse(_read(kCompanionFrequencyKey));
 
