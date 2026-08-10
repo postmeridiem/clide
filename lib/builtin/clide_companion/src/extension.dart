@@ -19,6 +19,7 @@ library;
 import 'dart:async';
 
 import 'package:clide/builtin/clide_companion/src/companion_channel.dart';
+import 'package:clide/builtin/clide_companion/src/companion_lifecycle.dart';
 import 'package:clide/builtin/clide_companion/src/companion_settings.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
@@ -26,6 +27,15 @@ import 'package:clide/kernel/kernel.dart';
 class ClideCompanionExtension extends ClideExtension {
   ClideExtensionContext? _ctx;
   StreamSubscription<Message>? _sets;
+
+  /// Owns the companion process (T-545). Held here because the two facts that
+  /// decide whether it may run — the kill switch and the strip's open state —
+  /// are preferences, and preferences are already this class's job.
+  CompanionSessionController? _session;
+
+  /// Exposed for the surfaces that will read the companion's conversation
+  /// (T-546 onward). Null before activation.
+  CompanionSessionController? get sessionController => _session;
 
   /// Last announced state, so a settings notification about somebody else's key
   /// — the store notifies on every write — does not republish ours.
@@ -50,10 +60,13 @@ class ClideCompanionExtension extends ClideExtension {
     _ctx = ctx;
     _sets = ctx.messages.subscribe(publisher: clideCompanionPublisher, channel: companionSetChannel).listen(_onSet);
     ctx.settings.addListener(_onSettingsChanged);
+    ctx.project.addListener(_onProjectChanged);
+    _session = CompanionSessionController();
     // Seed: announce once so anything already mounted agrees with the store.
     // Late subscribers seed themselves from the store instead — the bus does
     // not retain.
     _announce();
+    await _syncSession();
     // The primary session's load is no longer relayed from here (T-561): the
     // strip binds a `SessionReader` itself, so the extension owns preferences
     // and nothing else.
@@ -63,8 +76,27 @@ class ClideCompanionExtension extends ClideExtension {
   Future<void> deactivate() async {
     await _sets?.cancel();
     _ctx?.settings.removeListener(_onSettingsChanged);
+    _ctx?.project.removeListener(_onProjectChanged);
+    await _session?.shutdown();
+    _session = null;
     _ctx = null;
   }
+
+  /// Push the current desired state at the session controller.
+  ///
+  /// Called on activation and on **every** settings notification, not only when
+  /// something companion-shaped changed: the controller compares before acting,
+  /// and the alternative — deciding here what counts as relevant — is how a kill
+  /// switch quietly stops killing.
+  Future<void> _syncSession() async {
+    final ctx = _ctx;
+    final controller = _session;
+    if (ctx == null || controller == null) return;
+    final prefs = _prefs;
+    await controller.sync(enabled: prefs.mayRunSession, open: prefs.open, root: ctx.project.current?.path);
+  }
+
+  void _onProjectChanged() => unawaited(_syncSession());
 
   ClideCompanionSettings get _prefs {
     final ctx = _ctx;
@@ -88,7 +120,10 @@ class ClideCompanionExtension extends ClideExtension {
     _announce();
   }
 
-  void _onSettingsChanged() => _announce();
+  void _onSettingsChanged() {
+    _announce();
+    unawaited(_syncSession());
+  }
 
   void _announce() {
     final ctx = _ctx;

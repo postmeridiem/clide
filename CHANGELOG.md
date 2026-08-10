@@ -39,6 +39,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   a still frame and stops redrawing entirely; anything happening wakes it.
   (D-107, T-540)
 
+- **Clide runs a session.** A headless Haiku session starts with the workspace
+  and follows it: the settings switch tears the process down, minimising only
+  pauses it, and clearing the main pane clears Clide with it. His own
+  transcripts are kept out of `/resume`. (D-107, T-545)
+
 - **Nothing animates while the window is minimised.** Settings → Clide → Power
   turns the behaviour off if you'd rather it kept running. (D-107, T-541)
 

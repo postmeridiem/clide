@@ -126,6 +126,36 @@ String freshSessionId() {
   return _formatUuid(List<int>.generate(16, (_) => r.nextInt(256)));
 }
 
+// ---------------------------------------------------------------------------
+// The companion's session-id namespace (T-545, D-107)
+// ---------------------------------------------------------------------------
+
+/// Reserved first UUID group for Clide-companion sessions — `c11de` reads as
+/// "clide", padded to the group's eight hex digits.
+///
+/// **The id is the marker.** The companion is an ordinary persisted session
+/// (D-107, amended), so it leaves an ordinary `<uuid>.jsonl` in the project dir
+/// beside every other session — one per clide run — and clide has to recognise
+/// its own in order to keep them out of the `/resume` picker.
+///
+/// A sidecar marker file or a registry of ids elsewhere would both work and both
+/// drift: delete the registry and every past companion reappears in the picker;
+/// delete a transcript and the registry keeps a dead row. Encoding it in the id
+/// cannot drift, needs no I/O to check, and survives a reinstall. The cost is 32
+/// of the UUID's 122 random bits, leaving 90 — collision remains impossible in
+/// any practical sense.
+const kCompanionSessionIdPrefix = 'c11de000';
+
+/// A fresh session id in the companion's namespace. One per spawn — the
+/// companion never resumes (D-107: history is per clide run).
+String companionSessionId() => '$kCompanionSessionIdPrefix-${freshSessionId().substring(9)}';
+
+/// Whether [sessionId] belongs to a Clide-companion session.
+///
+/// Used to filter clide's own `/resume` picker. `claude --resume` outside clide
+/// still lists them; that is the accepted cost recorded in D-107.
+bool isCompanionSessionId(String sessionId) => sessionId.startsWith('$kCompanionSessionIdPrefix-');
+
 /// Deterministic, valid-format UUID derived from [seed] (same seed →
 /// same id). Expands an FNV-1a stream into 16 bytes.
 String _deterministicUuid(String seed) {

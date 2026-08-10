@@ -1,0 +1,244 @@
+/// The companion's process lifecycle (T-545, D-107).
+///
+/// Standing a session up is the easy half. The substance here is making it go
+/// away reliably, because this process spends the **same subscription quota**
+/// that rate-limits the session the user is actually driving (D-107 commitment
+/// 1) — a companion that outlives its off switch is the exact failure that
+/// switch exists to prevent.
+///
+/// Separate from [companion_session.dart], which names the id and hands out
+/// readers: reading a session and owning its process are different jobs with
+/// different lifetimes, and every consumer wants the first without the second.
+///
+/// ## Desired state in, process out
+///
+/// The controller reads nothing. [CompanionSessionController.sync] is handed the
+/// three facts that decide whether a process should exist — enabled, open,
+/// workspace — and brings the world into line. Everything that can change those
+/// facts already lives in the extension, and routing them through one call keeps
+/// this class testable without a kernel and keeps the "who decides" question
+/// answered in exactly one place.
+///
+/// ## The four causes, and why they differ
+///
+/// | Cause | Process | Ingest |
+/// |---|---|---|
+/// | kill switch off | **torn down** | stopped |
+/// | strip minimised / closed | kept | **paused** |
+/// | primary cleared or restarted | restarted with it | restarted |
+/// | context growth | nothing — autocompact handles it | continuous |
+///
+/// The kill switch is the only thing that drops the process. Minimising pauses
+/// [CompanionSessionController.ingesting] and leaves the session parked: quota is
+/// spent per *request*, not per second, so an idle session costs nothing but
+/// memory, and dropping it would make a five-second minimise throw away
+/// everything Clide knew. That keeps "off is off" meaning exactly one thing.
+///
+/// **Tracking the primary is not politeness.** `/clear` on the main pane means
+/// the user believes they threw that conversation away; a companion still
+/// holding it is a surprise and a quiet privacy problem, and it breaks the "he
+/// is watching *this* conversation" framing the whole surface rests on.
+library;
+
+import 'dart:async';
+
+import 'package:clide/builtin/claude/src/session_naming.dart';
+import 'package:clide/builtin/claude/src/session_orchestrator.dart';
+import 'package:clide/builtin/claude/src/session_reader.dart';
+import 'package:clide/builtin/claude/src/stream_json_session.dart';
+import 'package:clide/builtin/clide_companion/src/companion_session.dart';
+import 'package:flutter/foundation.dart';
+
+/// The model the companion runs on.
+///
+/// Applied as a `set_model` control request after spawn rather than a `--model`
+/// flag, matching how every other clide session picks its model
+/// (`applySessionDefaults`) — and avoiding a new [SpawnSpec] field for one
+/// caller. Effort is deliberately left unset: `--effort` errors on Haiku 4.5.
+const kCompanionModel = 'haiku';
+
+/// Refusal handed to any tool the companion asks to use.
+///
+/// It spawns `visible: false`, so a permission prompt has no pane to appear in
+/// and would leave the session waiting forever on an answer that cannot come.
+/// Denying is therefore the *lifecycle* correct answer, not a policy one.
+const kCompanionToolDenial = 'Clide has no pane, so there is nobody here to approve tool use. Answer from the conversation you have already been given.';
+
+/// Owns the companion `claude` process: spawns it, tears it down, and keeps it
+/// in step with the primary session.
+class CompanionSessionController extends ChangeNotifier {
+  CompanionSessionController({ClaudeSessionOrchestrator? orchestrator, String Function()? newSessionId, SessionReader? primary})
+    : _explicit = orchestrator,
+      _newSessionId = newSessionId ?? companionSessionId,
+      _primary = primary ?? SessionReader.primary(orchestrator: orchestrator) {
+    _primary
+      ..addListener(_onPrimaryChanged)
+      ..start(orchestrator);
+    _seenPrimary = _primary.managed;
+  }
+
+  final ClaudeSessionOrchestrator? _explicit;
+  final String Function() _newSessionId;
+  final SessionReader _primary;
+
+  ClaudeSessionOrchestrator? get _orchestrator => _explicit ?? activeSessionOrchestrator;
+
+  ManagedSession? _managed;
+  StreamSubscription<ToolPrompt?>? _prompts;
+  ManagedSession? _seenPrimary;
+
+  bool _enabled = false;
+  bool _ingesting = false;
+  String? _root;
+  Object? _spawnError;
+
+  /// No further process work — set by [shutdown]/[dispose]. Distinct from
+  /// [_notifierDisposed] because teardown outlives the synchronous
+  /// [ChangeNotifier.dispose] it may have been triggered by.
+  bool _stopped = false;
+  bool _notifierDisposed = false;
+
+  /// The live companion session, or null when none is running.
+  ManagedSession? get session => _managed;
+
+  /// Whether a companion process currently exists.
+  bool get running => _managed != null;
+
+  /// Whether the companion should be fed what it sees.
+  ///
+  /// False while the strip is closed, and the session stays up: a minimised
+  /// stretch is conversation Clide genuinely did not see, which is both the
+  /// honest privacy story and the cheapest power rung. T-546 gates the digest
+  /// on this; nothing here produces input.
+  bool get ingesting => _ingesting;
+
+  /// Why the last spawn failed, or null. A missing `claude` must leave the
+  /// controller idle and re-tryable, not wedged.
+  Object? get spawnError => _spawnError;
+
+  /// Bring the process into line with the desired state.
+  ///
+  /// Safe to call on every settings notification — it compares before acting,
+  /// so the common case (nothing relevant changed) does no work. Calls are
+  /// serialized against each other; spawning is asynchronous and two overlapping
+  /// syncs would otherwise race to own the same orchestrator id.
+  Future<void> sync({required bool enabled, required bool open, required String? root}) {
+    _enabled = enabled;
+    _root = root;
+    // Ingest stops with the kill switch too — off is off at every level, not
+    // just the process one.
+    _setIngesting(enabled && open);
+    return _serialize(_apply);
+  }
+
+  /// Drop the session and start a fresh one, keeping nothing.
+  ///
+  /// The teardown `/clear` reuses (T-156) and the one a primary respawn
+  /// triggers. A no-op while the companion is not meant to be running — a
+  /// disabled companion has nothing to clear.
+  Future<void> restart() => _serialize(() async {
+    await _teardown();
+    await _apply();
+  });
+
+  /// Terminal: tear the process down and stop following anything.
+  ///
+  /// Prefer this over [dispose] wherever the caller can await — killing a
+  /// process is asynchronous, and only this form does not return until it is
+  /// actually dead.
+  Future<void> shutdown() async {
+    if (_stopped) return _work;
+    _stopped = true;
+    _primary.removeListener(_onPrimaryChanged);
+    _primary.dispose();
+    await _serialize(_teardown);
+    if (_notifierDisposed) return;
+    _notifierDisposed = true;
+    super.dispose();
+  }
+
+  @override
+  void dispose() {
+    unawaited(shutdown());
+    if (_notifierDisposed) return;
+    _notifierDisposed = true;
+    super.dispose();
+  }
+
+  // -- internals -------------------------------------------------------------
+
+  Future<void> _work = Future<void>.value();
+
+  /// Run [action] after every previously queued one. A failure is contained so
+  /// one bad spawn cannot poison the queue for everything after it.
+  Future<void> _serialize(Future<void> Function() action) {
+    final next = _work.then((_) => action()).catchError((Object e) {
+      _spawnError = e;
+    });
+    _work = next;
+    return next;
+  }
+
+  Future<void> _apply() async {
+    if (_stopped) return;
+    final root = _root;
+    if (!_enabled || root == null) return _teardown();
+
+    final existing = _managed;
+    // A workspace switch in place means the running companion belongs to the
+    // old repo. The orchestrator would respawn it for us on the cwd change, but
+    // tearing down here keeps the session id fresh rather than reusing the one
+    // minted for the previous repo.
+    if (existing != null && existing.cwd == root) return;
+    if (existing != null) await _teardown();
+
+    final orch = _orchestrator;
+    if (orch == null) return;
+
+    _spawnError = null;
+    final managed = await orch.spawn(SpawnSpec(id: kCompanionSessionId, role: 'companion', sessionId: _newSessionId(), cwd: root, visible: false));
+    if (_stopped || !_enabled) {
+      // The switch went off while the process was starting. Honour the later
+      // intent rather than the one this call was issued under.
+      await orch.close(kCompanionSessionId);
+      return;
+    }
+    _managed = managed;
+    managed.session.setModel(kCompanionModel);
+    _prompts = managed.session.pendingPromptStream.listen(_denyPrompt);
+    notifyListeners();
+  }
+
+  Future<void> _teardown() async {
+    await _prompts?.cancel();
+    _prompts = null;
+    final had = _managed != null;
+    _managed = null;
+    await _orchestrator?.close(kCompanionSessionId);
+    if (had && !_notifierDisposed) notifyListeners();
+  }
+
+  /// Refuse tool use — see [kCompanionToolDenial]. Quiet, because a refusal the
+  /// companion did not ask a human for is not conversation.
+  void _denyPrompt(ToolPrompt? prompt) {
+    if (prompt == null) return;
+    _managed?.session.resolvePrompt(prompt.promptId, const DenyTool(kCompanionToolDenial, quiet: true));
+  }
+
+  /// The primary was swapped for a different session — `/clear`, `/resume`, an
+  /// account change. Only a replacement counts: the first attach has nothing to
+  /// restart, and a bare detach is the gap between a respawn's two halves.
+  void _onPrimaryChanged() {
+    final now = _primary.managed;
+    final before = _seenPrimary;
+    if (now != null) _seenPrimary = now;
+    if (now == null || before == null || identical(now, before)) return;
+    unawaited(restart());
+  }
+
+  void _setIngesting(bool value) {
+    if (_ingesting == value) return;
+    _ingesting = value;
+    if (!_notifierDisposed) notifyListeners();
+  }
+}

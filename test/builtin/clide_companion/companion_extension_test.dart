@@ -1,10 +1,31 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:clide/builtin/claude/src/session_orchestrator.dart';
+import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/clide_companion/src/companion_channel.dart';
+import 'package:clide/builtin/clide_companion/src/companion_session.dart';
 import 'package:clide/builtin/clide_companion/src/companion_settings.dart';
 import 'package:clide/builtin/clide_companion/src/extension.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
+
+class _FakeProc extends StreamJsonProcess {
+  final _ctl = StreamController<String>.broadcast();
+
+  @override
+  Stream<String> get lines => _ctl.stream;
+
+  @override
+  void writeLine(String line) {}
+
+  @override
+  Future<void> kill() async {
+    if (!_ctl.isClosed) await _ctl.close();
+  }
+}
 
 /// Plain `test`, not `testWidgets`: these persist settings, which is real file
 /// I/O, and awaiting that inside a widget test's fake-async clock hangs.
@@ -92,6 +113,61 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 20));
       await sub.cancel();
       expect(seen, 0, reason: 'a no-op set must not produce a state change');
+    });
+  });
+
+  group('the kill switch reaches the process (T-545)', () {
+    /// A workspace has to be open for a companion to exist at all, and the
+    /// orchestrator has to be the fake one — these tests are about wiring, not
+    /// about launching `claude`.
+    Future<void> openWorkspace() async {
+      final repo = Directory('${f.tempDir.path}/repo');
+      await Directory('${repo.path}/.git').create(recursive: true);
+      await f.services.project.open(repo.path);
+    }
+
+    setUp(() async {
+      activeSessionOrchestrator = ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => _FakeProc());
+      await openWorkspace();
+    });
+
+    tearDown(() => activeSessionOrchestrator = null);
+
+    ManagedSession? companion() => activeSessionOrchestrator?.byId(kCompanionSessionId);
+
+    test('opening a workspace with the companion enabled starts a session', () async {
+      await pumpEventQueue();
+      expect(companion(), isNotNull, reason: 'the default is enabled, so a workspace should have a companion');
+    });
+
+    test('flipping the preference off kills the running process', () async {
+      await pumpEventQueue();
+      expect(companion(), isNotNull);
+
+      await f.services.settings.set(kCompanionEnabledKey, false);
+      await pumpEventQueue();
+
+      expect(companion(), isNull, reason: 'the switch must re-check on change, not only at spawn');
+    });
+
+    test('minimising leaves the process alone', () async {
+      await pumpEventQueue();
+      final before = companion();
+
+      await f.services.settings.set(kCompanionOpenKey, false);
+      await pumpEventQueue();
+
+      expect(identical(companion(), before), isTrue, reason: 'closing the strip pauses ingest; it does not spend the session');
+      expect(ext.sessionController!.ingesting, isFalse);
+    });
+
+    test('deactivating tears the session down', () async {
+      await pumpEventQueue();
+      expect(companion(), isNotNull);
+
+      await f.services.extensions.deactivate(ext.id);
+
+      expect(companion(), isNull, reason: 'a process that outlives its extension outlives its off switch');
     });
   });
 

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:clide/builtin/claude/src/session_index.dart';
+import 'package:clide/builtin/claude/src/session_naming.dart';
 import 'package:test/test.dart';
 
 String userLine(String text) => jsonEncode({
@@ -66,6 +67,37 @@ void main() {
     test('empty / missing dir yields no sessions', () async {
       expect(await listSessions(dir), isEmpty);
       expect(await listSessions(Directory('${dir.path}/nope')), isEmpty);
+    });
+
+    group('companion transcripts (T-545)', () {
+      test('are listed by default, so anything measuring disk sees the truth', () async {
+        await writeSession(companionSessionId(), [userLine('a digest')]);
+        expect(await listSessions(dir), hasLength(1));
+      });
+
+      test('are excluded on request, which is what the /resume picker asks for', () async {
+        await writeSession(companionSessionId(), [userLine('a digest')]);
+        await writeSession(freshSessionId(), [userLine('real work')]);
+
+        final picker = await listSessions(dir, includeCompanions: false);
+
+        expect(picker, hasLength(1));
+        expect(picker.single.firstUser, 'real work');
+      });
+
+      test('are dropped before the cap, not after', () async {
+        // The reason the filter lives in listSessions rather than at the call
+        // site: clide writes one companion transcript per run, so filtering a
+        // capped list would let a busy week push every real session off the end.
+        for (var i = 0; i < 4; i++) {
+          await writeSession(companionSessionId(), [userLine('digest $i')]);
+        }
+        await writeSession(freshSessionId(), [userLine('real work')]);
+
+        final picker = await listSessions(dir, max: 3, includeCompanions: false);
+
+        expect(picker.map((s) => s.firstUser), contains('real work'));
+      });
     });
 
     test('summarises each session with first … last bookends', () async {

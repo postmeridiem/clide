@@ -11,6 +11,8 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:clide/builtin/claude/src/session_naming.dart';
+
 /// One session in the workspace, summarised for the picker.
 class SessionSummary {
   const SessionSummary({required this.id, required this.modified, this.firstUser, this.lastUser, this.sizeBytes = 0});
@@ -88,11 +90,18 @@ String? _userTextOf(String line) {
 /// Sessions in [dir] (the munged project dir), most-recently-modified first,
 /// capped at [max]. Each is summarised by bookend user prompts read from a
 /// bounded [window] at each end of its transcript.
-Future<List<SessionSummary>> listSessions(Directory dir, {int max = 20, int window = 128 * 1024}) async {
+///
+/// [includeCompanions] defaults to true, so anything measuring what is on disk
+/// sees the whole truth. The `/resume` picker passes false: a companion
+/// transcript is not something a user can meaningfully resume into a pane, and
+/// clide writes one per run (T-545). Filtering happens **before** the [max] cap
+/// rather than at the call site, or a busy week's companions would push real
+/// sessions off the end of the list.
+Future<List<SessionSummary>> listSessions(Directory dir, {int max = 20, int window = 128 * 1024, bool includeCompanions = true}) async {
   if (!await dir.exists()) return const [];
   final files = <File>[];
   await for (final e in dir.list(followLinks: false)) {
-    if (e is File && e.path.endsWith('.jsonl')) files.add(e);
+    if (e is File && e.path.endsWith('.jsonl') && (includeCompanions || !isCompanionSessionId(_sessionId(e.path)))) files.add(e);
   }
   final summaries = <SessionSummary>[];
   for (final f in files) {

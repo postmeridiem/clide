@@ -11,15 +11,20 @@
 /// touching the orchestrator, which is this ticket's whole job.
 library;
 
+import 'package:clide/builtin/claude/src/session_naming.dart' show kCompanionSessionIdPrefix;
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/session_reader.dart';
 
 /// Orchestrator id for the companion, in clide's own namespace.
 ///
 /// Namespaced rather than a bare name because Clide is a clide-owned session
-/// sitting alongside the user's: the prefix is what lets clide recognise its own
-/// — filtering companion transcripts out of the `/resume` picker (T-545) becomes
-/// a namespace check rather than a guess at a transcript's contents.
+/// sitting alongside the user's, and clide has to be able to recognise its own.
+///
+/// This is the **orchestrator** id, not the claude session id. The `/resume`
+/// picker lists transcripts, which are named for the latter, so filtering the
+/// companion out of it needed a second namespace on that side too —
+/// [kCompanionSessionIdPrefix] (T-545). Same idea, applied where the filenames
+/// actually are.
 ///
 /// Matches [clideCompanionPublisher] on the bus by construction: one name for
 /// one thing, whichever channel it travels on.

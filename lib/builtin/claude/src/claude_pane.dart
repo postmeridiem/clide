@@ -695,7 +695,9 @@ class _ClaudePaneState extends State<ClaudePane> {
     final dialog = _kernel?.dialog;
     if (root == null || dialog == null) return;
     final dir = Directory(claudeProjectDir(root));
-    final sessions = await listSessions(dir);
+    // Companion transcripts are excluded (T-545): clide writes one per run and
+    // none of them is a conversation a pane can usefully resume into.
+    final sessions = await listSessions(dir, includeCompanions: false);
     if (!mounted) return;
     final picked = await dialog.show<String>((ctx, dismiss) => SessionPickerDialog(sessions: sessions, onPick: (id) => dismiss(id), onCancel: dismiss));
     if (picked == null || !mounted) return;
