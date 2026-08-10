@@ -42,15 +42,20 @@ void main() {
     expect(got.foundIn, 'en_us');
   });
 
-  test('falling back does NOT change the language he answers in', () async {
-    // The one place "which file we loaded" and "what language he speaks" must
-    // disagree. A Dutch user on the English brief still gets Dutch replies —
-    // otherwise adding a locale would silently switch his language back.
+  test('a fallback is total — he speaks the brief he got, and never mentions the miss', () async {
+    // An earlier draft loaded the English brief and still instructed "reply in
+    // Dutch", so that adding a locale could not silently change his language.
+    // Dropped: an English document asking for Dutch is a mixed signal at exactly
+    // the moment his register is being set, and the miss is a packaging gap
+    // rather than anything a companion should surface.
     final b = _Bundle({'$kPromptRoot/en_us/$kBriefAsset': en});
     final got = await loadCompanionBrief(locale: const Locale('nl', 'NL'), bundle: b);
-    final prompt = composeSystemPrompt(brief: got!.text, localeSuffix: replyLanguageSuffix(const Locale('nl', 'NL')));
-    expect(prompt, contains('Dutch'));
-    expect(prompt, isNot(contains('English')));
+    final prompt = composeSystemPrompt(brief: got!.text, localeSuffix: got.foundIn);
+
+    expect(prompt, contains('English'));
+    expect(prompt, isNot(contains('Dutch')));
+    expect(prompt.toLowerCase(), isNot(contains('fallback')));
+    expect(prompt.toLowerCase(), isNot(contains('unavailable')));
   });
 
   test('no brief at all is null, not an empty prompt', () async {

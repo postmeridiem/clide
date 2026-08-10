@@ -25,12 +25,18 @@ const kBriefAsset = 'clide-brief.md';
 
 /// The brief for [locale], and the locale suffix it was actually found under.
 ///
-/// The suffix is returned rather than assumed because it is what
-/// [composeSystemPrompt] names as the reply language: if a Dutch user falls
-/// through to the English brief, the instruction inside it must still say
-/// **Dutch**, or falling back would silently change what language he answers in.
-/// That is the one place where "which file did we load" and "what language does
-/// he speak" must deliberately disagree.
+/// **[foundIn] is also the language he answers in**, deliberately. An earlier
+/// draft compensated for a miss — load the English brief but instruct "reply in
+/// Dutch" — so that adding a locale could never silently change his language.
+/// Dropped 2026-08-10: it buys little and costs context clarity, because an
+/// English document asking for Dutch is a mixed signal at exactly the moment his
+/// register is being set.
+///
+/// So a fallback is total. He speaks the language of the brief that exists, and
+/// nothing anywhere mentions the miss — a companion is not the place to surface
+/// a packaging gap. **Consequence, stated plainly:** until a locale has its own
+/// brief, that locale's users get an English Clide. Writing one is a file, not a
+/// code change.
 typedef LoadedBrief = ({String text, String foundIn});
 
 /// Read the first brief that exists along [locale]'s fallback chain.
@@ -54,7 +60,3 @@ Future<LoadedBrief?> loadCompanionBrief({required Locale locale, Locale defaultL
   }
   return null;
 }
-
-/// The suffix used to name the reply language, which is the **requested**
-/// locale rather than the one the document was found under. See [LoadedBrief].
-String replyLanguageSuffix(Locale locale) => FallbackChain.filenameSuffix(locale);
