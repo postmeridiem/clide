@@ -12907,3 +12907,148 @@ NOT DONE (T-519''s, per scope): wiring the composed prompt into the spawn, Sessi
 
 Stale line for whoever picks up T-519: ''cap max_tokens ~100'' is not achievable — the CLI exposes no such flag. Length is held by the brief and by the parser''s kMaxRemarkChars backstop.', NULL, '2026-08-10 14:24:35', '2026-08-10 14:24:35.293', '2026-08-10 14:24:35.293', NULL, '3994bf3c480bd19083076db527bdc82f', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYBN0EJ3B59YWV2Z9S54PRGG', 'status', 'in_progress', 'review', NULL, '2026-08-10 14:25:12', '2026-08-10 14:25:12.403', '2026-08-10 14:25:12.403', NULL, '350a994c1088a70bc66d32f2757a021e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVWFCBT56EDZJCT7Z55ZV4', 'status', 'backlog', 'in_progress', NULL, '2026-08-10 14:41:50', '2026-08-10 14:41:50.057', '2026-08-10 14:41:50.057', NULL, 'dcfd3ebc125adbb91e1def57a2124179', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVWFCBT56EDZJCT7Z55ZV4', 'description', 'What Clide is allowed to see, and how he is told who is talking. Blocked by
+**T-545** — there has to be a session to feed.
+
+## The filter is a privacy boundary, not a formatting choice
+
+Filter `session.items` to **`UserMessage` and `AssistantTextMessage` only**. Drop
+`AssistantToolUse`, `ToolResultMessage`, thinking, and the clide-injected
+image/drawing/icon cards. Item model: `transcript_reader.dart:41-267`.
+
+D-107 commitment 3 states this as a **scope and privacy boundary**: tool activity
+is where file contents, paths, credentials and command output live, and keeping
+it out means this surface structurally cannot leak what the main session touched.
+Any future feature requiring Clide to see tool activity **amends that record** —
+it is not a config flag, and it must not become one by accident here.
+
+So the filter should be written as an allow-list over item types, not a
+deny-list. A new item type appearing in the union must be invisible to Clide
+until someone decides otherwise; a deny-list would leak it silently.
+
+**Accepted consequence:** "what did that tool call do?" is unanswerable. Asking
+what Claude *said* works; asking what Claude *did* does not. Surface that in the
+UI rather than letting him bluff.
+
+## The wire format
+
+```
+[observed] <user>: <prompt text>
+[observed] claude: <assistant prose>
+[direct]   <user>: <question typed into Clide''s own input>
+```
+
+`observed` is a conversation he is watching; `direct` is addressed to him. The
+prompt text that explains the split is **T-532**, not here — this ticket owns
+producing the lines, that one owns what they mean to him.
+
+Open question for T-532 to settle and this ticket to implement: whether the real
+user name is used or a neutral label.
+
+## Watch for
+
+- **A partial-prefixed item is not necessarily still streaming.** The final
+  assistant event is rewritten to carry the same `partial-` uuid, so the prefix
+  means "came through the streaming path", not "arriving now" (found during
+  Epic B''s signal audit). Digesting on every partial update would send the same
+  message a dozen times.
+- Send one line per completed exchange, not per token.
+- The digest must **stop while the strip is minimised** (T-528 semantics, wired
+  in T-545): ingest is what pauses, so this is the thing being paused.
+
+**Absence is silence, not a line (2026-08-09).**
+
+Nothing goes into Clide''s prompt stream to describe a *lack* of activity. No ''no session is running'', no ''nothing happened'', no heartbeat. Every line we send him is an invitation to reply, and a line describing emptiness invites a remark about emptiness — which he would be right to make, because we told him something.
+
+This is a rule about the digest, not about the bus. `companion.load {busy: false}` is UI state that drives the rain and must keep firing on absence, or the strip shows stale weather (T-538 has a test for it). The two must not be conflated: one is a signal to a renderer, the other is text to a model.
+
+Concretely:
+
+- A session ending, a session not existing, an ingest pause (minimised, T-528) — none of these produce digest lines.
+- Discontinuities are **narrated on resume, not during** (T-532''s detach notice), and that is a different thing: it is context for the next real exchange, not an event to comment on.
+- A digest turn with nothing in it should not be sent at all. If the filter yields no lines, there is no prompt.
+
+The failure this prevents is a companion that talks about the tooling instead of the work — the surest way to make an ambient surface annoying.', 'What Clide is allowed to see, and how he is told who is talking. Blocked by
+**T-545** — there has to be a session to feed.
+
+## The filter is a privacy boundary, not a formatting choice
+
+Filter `session.items` to **`UserMessage` and `AssistantTextMessage` only**. Drop
+`AssistantToolUse`, `ToolResultMessage`, thinking, and the clide-injected
+image/drawing/icon cards. Item model: `transcript_reader.dart:41-267`.
+
+D-107 commitment 3 states this as a **scope and privacy boundary**: tool activity
+is where file contents, paths, credentials and command output live, and keeping
+it out means this surface structurally cannot leak what the main session touched.
+Any future feature requiring Clide to see tool activity **amends that record** —
+it is not a config flag, and it must not become one by accident here.
+
+So the filter should be written as an allow-list over item types, not a
+deny-list. A new item type appearing in the union must be invisible to Clide
+until someone decides otherwise; a deny-list would leak it silently.
+
+**Accepted consequence:** "what did that tool call do?" is unanswerable. Asking
+what Claude *said* works; asking what Claude *did* does not. Surface that in the
+UI rather than letting him bluff.
+
+## The wire format
+
+```
+[observed] <user>: <prompt text>
+[observed] claude: <assistant prose>
+[direct]   <user>: <question typed into Clide''s own input>
+```
+
+`observed` is a conversation he is watching; `direct` is addressed to him. The
+prompt text that explains the split is **T-532**, not here — this ticket owns
+producing the lines, that one owns what they mean to him.
+
+Open question for T-532 to settle and this ticket to implement: whether the real
+user name is used or a neutral label.
+
+## Watch for
+
+- **A partial-prefixed item is not necessarily still streaming.** The final
+  assistant event is rewritten to carry the same `partial-` uuid, so the prefix
+  means "came through the streaming path", not "arriving now" (found during
+  Epic B''s signal audit). Digesting on every partial update would send the same
+  message a dozen times.
+- Send one line per completed exchange, not per token.
+- The digest must **stop while the strip is minimised** (T-528 semantics, wired
+  in T-545): ingest is what pauses, so this is the thing being paused.
+
+**Absence is silence, not a line (2026-08-09).**
+
+Nothing goes into Clide''s prompt stream to describe a *lack* of activity. No ''no session is running'', no ''nothing happened'', no heartbeat. Every line we send him is an invitation to reply, and a line describing emptiness invites a remark about emptiness — which he would be right to make, because we told him something.
+
+This is a rule about the digest, not about the bus. `companion.load {busy: false}` is UI state that drives the rain and must keep firing on absence, or the strip shows stale weather (T-538 has a test for it). The two must not be conflated: one is a signal to a renderer, the other is text to a model.
+
+Concretely:
+
+- A session ending, a session not existing, an ingest pause (minimised, T-528) — none of these produce digest lines.
+- Discontinuities are **narrated on resume, not during** (T-532''s detach notice), and that is a different thing: it is context for the next real exchange, not an event to comment on.
+- A digest turn with nothing in it should not be sent at all. If the filter yields no lines, there is no prompt.
+
+The failure this prevents is a companion that talks about the tooling instead of the work — the surest way to make an ambient surface annoying.
+
+Done 2026-08-10. lib/builtin/clide_companion/src/prompt/companion_digest.dart + 11 tests.
+
+ALLOW-LIST, as specified. UserMessage and AssistantTextMessage only; every other member of the sealed union is named and returned from explicitly rather than defaulted, so an omission is visible in review. Two exclusions the ticket did not name but that follow from the same reasoning:
+
+- injected UserMessages (skill loads, slash expansions, system reminders) — not typed by anyone, and passing them on would have Clide watching the developer say things they never said.
+- synthetic AssistantTextMessages (/usage output, ''not available here'', clide''s own injected notices) — clide chrome, not the model. Him remarking on our notices is the tooling-narration failure the surface exists to avoid.
+- sidechain / parentToolUseId items are dropped too: a subagent''s conversation about a subagent''s task, carrying the same tool-shaped content the boundary excludes.
+
+TURN BOUNDARY. Flushes on the turn''s result event, never on item arrival — which is the only correct trigger given the partial- rewrite, not merely an optimisation. Accumulating into a map keyed by uuid collapses a dozen streaming updates and the final rewrite into one entry with the complete text winning. Test drives four streamed chunks under one id and asserts a single line carrying the last version.
+
+PAUSE DROPS, DOES NOT BUFFER. ingesting is consulted at item arrival, not at flush: whether he was watching THEN is what decides whether he saw it. A pause mid-turn keeps only the part that was watched. Replaying on resume would make the pause a lie and bury him at the moment he became visible.
+
+ABSENCE IS SILENCE. A turn with nothing admissible emits nothing at all — asserted for an empty turn and for three consecutive ones (the heartbeat case).
+
+Note on the half-exchange: a turn of pure tool work still emits the user''s prompt alone. Deliberate — the prompt is what the developer SAID, and it is exactly the case his core job needs (''just use --no-verify'' may get a reply with no prose at all).
+
+Leak test is real rather than notional: it drives actual tool_use/tool_result/thinking events through the real session parser with a credential in the tool result, and asserts none of it survives.
+
+NOT WIRED, and deliberately not. Nothing consumes these lines yet: the companion still spawns as a generic session because the composed brief is not yet passed at spawn (T-532 left that to T-519 too). Feeding digest lines to a briefless session would produce a generic assistant commenting on the conversation, which is worse than nothing. The remaining work is one coherent step — SessionProfile.companion on SpawnSpec, --safe-mode + the tool posture, the brief at spawn, and digest.lines into the session — and splitting it across tickets would leave a half-connected feature in main.', NULL, '2026-08-10 14:56:53', '2026-08-10 14:56:53.500', '2026-08-10 14:56:53.500', NULL, '0b51edee210195e9e28a9d1729ad20f6', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVWFCBT56EDZJCT7Z55ZV4', 'status', 'in_progress', 'review', NULL, '2026-08-10 14:57:19', '2026-08-10 14:57:19.161', '2026-08-10 14:57:19.161', NULL, 'e66ae788a91c88ef33166a149cd133c2', 2) ON CONFLICT(hash) DO NOTHING;
