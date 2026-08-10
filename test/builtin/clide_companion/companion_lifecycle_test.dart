@@ -43,6 +43,11 @@ class _FakeProc extends StreamJsonProcess {
 /// T-545 — the companion's process lifecycle. The kill switch is the load-
 /// bearing case: it must drop a *running* process, not merely refuse the next
 /// one, because a hidden companion still spends the primary session's quota.
+/// A stand-in for the composed system prompt (T-532). Its content does not
+/// matter here — only that it is present, since a companion without one is
+/// refused rather than launched.
+const _brief = 'You are Clide.';
+
 void main() {
   late ClaudeSessionOrchestrator orch;
   final procs = <_FakeProc>[];
@@ -75,7 +80,7 @@ void main() {
       final c = controller();
       addTearDown(c.shutdown);
 
-      await c.sync(enabled: true, open: true, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
 
       expect(c.running, isTrue);
       expect(procs, hasLength(1));
@@ -86,7 +91,7 @@ void main() {
       final c = controller();
       addTearDown(c.shutdown);
 
-      await c.sync(enabled: false, open: true, root: '/repo');
+      await c.sync(enabled: false, open: true, root: '/repo', brief: _brief);
 
       expect(c.running, isFalse);
       expect(procs, isEmpty, reason: 'a disabled companion must not start a process to then hide it');
@@ -95,9 +100,9 @@ void main() {
     test('turning it off tears a running process down', () async {
       final c = controller();
       addTearDown(c.shutdown);
-      await c.sync(enabled: true, open: true, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
 
-      await c.sync(enabled: false, open: true, root: '/repo');
+      await c.sync(enabled: false, open: true, root: '/repo', brief: _brief);
 
       expect(c.running, isFalse);
       expect(procs.single.killed, isTrue, reason: 'off must kill the process, not just stop rendering — it spends the same quota either way');
@@ -107,10 +112,10 @@ void main() {
     test('turning it back on starts a fresh session, not the old one', () async {
       final c = controller();
       addTearDown(c.shutdown);
-      await c.sync(enabled: true, open: true, root: '/repo');
-      await c.sync(enabled: false, open: true, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
+      await c.sync(enabled: false, open: true, root: '/repo', brief: _brief);
 
-      await c.sync(enabled: true, open: true, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
 
       expect(procs, hasLength(2));
       expect(ids.toSet(), hasLength(2), reason: 'off is off — coming back must not resume what was torn down');
@@ -120,7 +125,7 @@ void main() {
       final c = controller();
       addTearDown(c.shutdown);
 
-      await c.sync(enabled: true, open: true, root: null);
+      await c.sync(enabled: true, open: true, root: null, brief: _brief);
 
       expect(c.running, isFalse);
     });
@@ -130,10 +135,10 @@ void main() {
     test('pauses ingest and keeps the process', () async {
       final c = controller();
       addTearDown(c.shutdown);
-      await c.sync(enabled: true, open: true, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
       final before = c.session;
 
-      await c.sync(enabled: true, open: false, root: '/repo');
+      await c.sync(enabled: true, open: false, root: '/repo', brief: _brief);
 
       expect(c.ingesting, isFalse, reason: 'a minimised stretch is conversation Clide genuinely did not see');
       expect(c.running, isTrue);
@@ -144,10 +149,10 @@ void main() {
     test('restoring resumes ingest without respawning', () async {
       final c = controller();
       addTearDown(c.shutdown);
-      await c.sync(enabled: true, open: true, root: '/repo');
-      await c.sync(enabled: true, open: false, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
+      await c.sync(enabled: true, open: false, root: '/repo', brief: _brief);
 
-      await c.sync(enabled: true, open: true, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
 
       expect(c.ingesting, isTrue);
       expect(procs, hasLength(1));
@@ -156,9 +161,9 @@ void main() {
     test('the kill switch stops ingest too', () async {
       final c = controller();
       addTearDown(c.shutdown);
-      await c.sync(enabled: true, open: true, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
 
-      await c.sync(enabled: false, open: true, root: '/repo');
+      await c.sync(enabled: false, open: true, root: '/repo', brief: _brief);
 
       expect(c.ingesting, isFalse, reason: 'off is off at every level, not only the process one');
     });
@@ -168,11 +173,11 @@ void main() {
     test('re-syncing the same state does not respawn', () async {
       final c = controller();
       addTearDown(c.shutdown);
-      await c.sync(enabled: true, open: true, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
       final before = c.session;
 
-      await c.sync(enabled: true, open: true, root: '/repo');
-      await c.sync(enabled: true, open: true, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
 
       expect(procs, hasLength(1), reason: 'sync runs on every settings notification, so it must compare before acting');
       expect(identical(c.session, before), isTrue);
@@ -181,9 +186,9 @@ void main() {
     test('a workspace switch spawns a companion for the new repo', () async {
       final c = controller();
       addTearDown(c.shutdown);
-      await c.sync(enabled: true, open: true, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
 
-      await c.sync(enabled: true, open: true, root: '/other');
+      await c.sync(enabled: true, open: true, root: '/other', brief: _brief);
 
       expect(procs, hasLength(2));
       expect(c.session!.cwd, '/other');
@@ -200,7 +205,7 @@ void main() {
       await spawnPrimary('p-1');
       final c = controller();
       addTearDown(c.shutdown);
-      await c.sync(enabled: true, open: true, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
       expect(procs, hasLength(2), reason: 'primary + companion');
       final before = c.session;
 
@@ -215,7 +220,7 @@ void main() {
     test('the primary merely appearing does not restart anything', () async {
       final c = controller();
       addTearDown(c.shutdown);
-      await c.sync(enabled: true, open: true, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
       final before = c.session;
 
       await spawnPrimary('p-1');
@@ -230,7 +235,7 @@ void main() {
     test('runs on haiku', () async {
       final c = controller();
       addTearDown(c.shutdown);
-      await c.sync(enabled: true, open: true, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
 
       final setModel = procs.single.control.firstWhere((m) => (m['request'] as Map?)?['subtype'] == 'set_model');
       expect((setModel['request'] as Map)['model'], kCompanionModel);
@@ -239,7 +244,7 @@ void main() {
     test('refuses tool use rather than waiting for an approval that cannot come', () async {
       final c = controller();
       addTearDown(c.shutdown);
-      await c.sync(enabled: true, open: true, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
 
       procs.single.askToUseTool();
       await pumpEventQueue();
@@ -254,7 +259,7 @@ void main() {
   group('shutdown', () {
     test('kills the process', () async {
       final c = controller();
-      await c.sync(enabled: true, open: true, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
 
       await c.shutdown();
 
@@ -264,7 +269,7 @@ void main() {
 
     test('is idempotent', () async {
       final c = controller();
-      await c.sync(enabled: true, open: true, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
 
       await c.shutdown();
       await c.shutdown();
@@ -287,7 +292,7 @@ void main() {
       final c = CompanionSessionController(orchestrator: broken, newSessionId: nextId);
       addTearDown(c.shutdown);
 
-      await c.sync(enabled: true, open: true, root: '/repo');
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
       expect(c.running, isFalse);
       expect(c.spawnError, isA<StateError>());
 

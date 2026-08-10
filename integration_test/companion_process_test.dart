@@ -1,11 +1,3 @@
-import 'dart:io';
-
-import 'package:clide/builtin/claude/src/session_naming.dart';
-import 'package:clide/builtin/claude/src/session_orchestrator.dart';
-import 'package:clide/builtin/clide_companion/src/companion_lifecycle.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:integration_test/integration_test.dart';
-
 /// The kill switch against a **real `claude` process** (T-545, D-107).
 ///
 /// `companion_lifecycle_test.dart` proves the controller calls `kill()`; it
@@ -20,6 +12,20 @@ import 'package:integration_test/integration_test.dart';
 /// Finding it by PID: the companion's session id is on the command line as
 /// `--session-id <uuid>`, and that id is unique per spawn, so `pgrep -f` matches
 /// exactly this child and nothing else on the machine.
+library;
+
+import 'dart:io';
+
+import 'package:clide/builtin/claude/src/session_naming.dart';
+import 'package:clide/builtin/claude/src/session_orchestrator.dart';
+import 'package:clide/builtin/clide_companion/src/companion_lifecycle.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:integration_test/integration_test.dart';
+
+/// Enough of a brief to launch with — a companion without one is refused rather
+/// than started, so this cannot be omitted.
+const _brief = 'You are Clide, an IDE companion. Say nothing.';
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -40,7 +46,7 @@ void main() {
     final root = Directory.current.path;
 
     await tester.runAsync(() async {
-      await companion.sync(enabled: true, open: true, root: root);
+      await companion.sync(enabled: true, open: true, root: root, brief: _brief);
       // `claude` takes a moment to be a process worth finding.
       await Future<void>.delayed(const Duration(seconds: 3));
     });
@@ -49,7 +55,7 @@ void main() {
     expect(running, hasLength(1), reason: 'exactly one companion process per workspace — not zero, and not two');
 
     await tester.runAsync(() async {
-      await companion.sync(enabled: false, open: true, root: root);
+      await companion.sync(enabled: false, open: true, root: root, brief: _brief);
       // kill() has already awaited the real exit; this only covers the gap
       // between the child dying and the kernel reaping it.
       await Future<void>.delayed(const Duration(milliseconds: 500));

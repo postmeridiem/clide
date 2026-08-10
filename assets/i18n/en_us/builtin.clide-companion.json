@@ -57,7 +57,7 @@
   "settings.field.frequency.rare": {
     "translation": "Rarely — errors and long runs"
   },
-  "settings.field.moodChannel.help": "He names how he feels on each remark and the face follows. Off, his expression comes from what his session is doing. Changing this restarts him.",
+  "settings.field.moodChannel.help": "He names how he feels on each remark and the face follows. Off, his expression comes from what his session is doing.",
   "settings.field.moodChannel.label": "Let Clide choose his own expression",
   "settings.field.suspend.help": {
     "translation": "Stops the animation and tears the session down while you are not looking at it."

@@ -20,6 +20,8 @@ import 'dart:async';
 
 import 'package:clide/builtin/clide_companion/src/companion_channel.dart';
 import 'package:clide/builtin/clide_companion/src/companion_lifecycle.dart';
+import 'package:clide/builtin/clide_companion/src/prompt/brief_loader.dart';
+import 'package:clide/builtin/clide_companion/src/prompt/companion_prompt.dart';
 import 'package:clide/builtin/clide_companion/src/companion_settings.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
@@ -93,7 +95,22 @@ class ClideCompanionExtension extends ClideExtension {
     final controller = _session;
     if (ctx == null || controller == null) return;
     final prefs = _prefs;
-    await controller.sync(enabled: prefs.mayRunSession, open: prefs.open, root: ctx.project.current?.path);
+    await controller.sync(enabled: prefs.mayRunSession, open: prefs.open, root: ctx.project.current?.path, brief: await _brief(ctx, prefs));
+  }
+
+  /// Compose Clide's system prompt: the locale's brief document, with the
+  /// developer's name, their self-description and the face vocabulary filled in
+  /// (T-532).
+  ///
+  /// Recomposed on every sync rather than cached, because every input to it is a
+  /// live preference. The controller compares the result and only respawns when
+  /// it actually differs, so recomposing costs a string build and nothing else —
+  /// and caching here would be a second place for "did the prompt change" to be
+  /// decided, which is how a rename silently fails to take effect.
+  Future<String?> _brief(ClideExtensionContext ctx, ClideCompanionSettings prefs) async {
+    final loaded = await loadCompanionBrief(locale: ctx.i18n.currentLocale, defaultLocale: ctx.i18n.defaultLocale);
+    if (loaded == null) return null;
+    return composeSystemPrompt(brief: loaded.text, localeSuffix: loaded.foundIn, name: prefs.userName, about: prefs.about);
   }
 
   void _onProjectChanged() => unawaited(_syncSession());
@@ -208,9 +225,7 @@ class ClideCompanionExtension extends ClideExtension {
                 kind: SettingsFieldKind.toggle,
                 label: 'Let Clide choose his own expression',
                 labelKey: 'settings.field.moodChannel.label',
-                help:
-                    'He names how he feels on each remark and the face follows. Off, his expression comes from what his session is doing. '
-                    'Changing this restarts him.',
+                help: 'He names how he feels on each remark and the face follows. Off, his expression comes from what his session is doing.',
                 helpKey: 'settings.field.moodChannel.help',
                 defaultValue: kCompanionMoodChannelDefault,
               ),

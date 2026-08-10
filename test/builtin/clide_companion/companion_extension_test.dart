@@ -30,6 +30,11 @@ class _FakeProc extends StreamJsonProcess {
 /// Plain `test`, not `testWidgets`: these persist settings, which is real file
 /// I/O, and awaiting that inside a widget test's fake-async clock hangs.
 void main() {
+  // The extension loads Clide's brief off `rootBundle` (T-532), and a companion
+  // without one is refused rather than launched — so without a binding these
+  // tests would see "no session" and read it as a lifecycle bug.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late KernelFixture f;
   late ClideCompanionExtension ext;
 

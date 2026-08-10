@@ -57,7 +57,7 @@
   "settings.field.frequency.rare": {
     "translation": "Zelden — fouten en lange taken"
   },
-  "settings.field.moodChannel.help": "Hij benoemt bij elke opmerking hoe hij zich voelt en het gezicht volgt. Uit komt zijn uitdrukking uit wat zijn sessie doet. Dit wijzigen herstart hem.",
+  "settings.field.moodChannel.help": "Hij benoemt bij elke opmerking hoe hij zich voelt en het gezicht volgt. Uit komt zijn uitdrukking uit wat zijn sessie doet.",
   "settings.field.moodChannel.label": "Laat Clide zijn eigen uitdrukking kiezen",
   "settings.field.suspend.help": {
     "translation": "Stopt de animatie en breekt de sessie af zolang je er niet naar kijkt."

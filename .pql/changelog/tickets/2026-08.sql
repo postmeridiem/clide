@@ -15601,3 +15601,287 @@ Note on the half-exchange: a turn of pure tool work still emits the user''s prom
 Leak test is real rather than notional: it drives actual tool_use/tool_result/thinking events through the real session parser with a credential in the tool result, and asserts none of it survives.
 
 NOT WIRED, and deliberately not. Nothing consumes these lines yet: the companion still spawns as a generic session because the composed brief is not yet passed at spawn (T-532 left that to T-519 too). Feeding digest lines to a briefless session would produce a generic assistant commenting on the conversation, which is worse than nothing. The remaining work is one coherent step — SessionProfile.companion on SpawnSpec, --safe-mode + the tool posture, the brief at spawn, and digest.lines into the session — and splitting it across tickets would leave a half-connected feature in main.', 'review', 'high', NULL, NULL, 'D-107', '2026-08-09 14:31:27.330', '2026-08-10 14:57:19.161', NULL, '6260e3e84f7ae23f1defc69080d9be80', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYBN0EJ3B59YWV2Z9S54PRGG', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'Clide prompt templates — system prompt, observed/direct framing, lifecycle notices', 'Clide''s prompt is the product. Everything else in Epic D is plumbing — this is
+where his voice, his restraint, and his sense of what is going on actually live.
+Split out of T-519 because "write the system prompt" buried in a plumbing epic
+gets three lines of attention and then ships as whatever the first draft was.
+
+## Deliverable
+
+A versioned set of prompt templates in one place, not string literals scattered
+across the session code. Each template documented with *why* it says what it
+says, because prompt text is the one part of this feature with no compiler, no
+type system and no test that can tell you it drifted.
+
+## Templates needed
+
+**1. System prompt.** Establishes:
+- Who Clide is — the IDE''s companion, watching a session he is not part of.
+- The observed/direct split (D-107): `[observed]` lines are a conversation
+  between the user and Claude that he is *watching* — remark rarely, briefly,
+  and never pretend to be a participant. `[direct]` lines are addressed to him —
+  always answer.
+- That he sees **prose only, never tool calls or results** (D-107). He must know
+  the shape of his own blindness, or he will confidently answer "what did that
+  tool do?" — the known v1 limitation. Better that he says he cannot see it.
+- Reply in the active locale (`app.locale`), one or two sentences, no preamble.
+- Silence is a valid response. This is the hardest thing to get a model to do
+  and deserves the most prompt real estate.
+
+**2. Turn digest.** How each observed exchange is framed:
+```
+[observed] <user>: <prompt text>
+[observed] claude: <assistant prose>
+```
+Open question the template has to answer: whether the user''s real name is used
+(it is available) or a neutral label, and whether Clide addresses them by it.
+
+**3. Direct address.** Distinguishing a question typed into Clide''s own input
+from the conversation he is watching. Same channel, different contract.
+
+**4. Lifecycle notices.** New, from the minimize design:
+- **Detach** — minimizing the strip stops the digest, so Clide *misses* that
+  stretch of conversation. On resume he is told he was detached and roughly how
+  long for. Explicitly worth playing with: an ambient companion that knows it
+  was away, and says something about it, is more alive than one that silently
+  has a gap. Try it before deciding whether it is charming or tiresome.
+- **Clear / restart** — the companion session tracks the primary''s clear and
+  restart windows so it lives alongside the main conversation rather than
+  accumulating context the user thinks they threw away.
+- **Session restart at ~50 comments** (cost control, per the initiative) is a
+  third kind of discontinuity. Decide whether Clide is told about this one at
+  all, or whether it should be seamless — it is our bookkeeping, not an event in
+  his world.
+
+## Constraints inherited
+
+- **Notable events only.** Turn finished, error, long run crossing a threshold,
+  commit landed. Never per-token. Direct questions always answered.
+- **Cap `max_tokens` ~100**, no thinking, and do **not** set `effort` — it errors
+  on Haiku 4.5.
+- **Cache shape matters more than brevity.** Haiku 4.5 has the highest prompt
+  cache minimum of any current model (4096 tokens); under that, `cache_control`
+  is silently ignored. A lean system prompt is therefore *uncached* for roughly
+  its first 20 comments — the opposite of the usual instinct. Weigh prompt
+  length against that threshold deliberately rather than trimming on reflex.
+
+## Not in scope
+
+Wiring, spawn, filtering and transport are T-519''s. This ticket owns the text
+and the rationale for the text.
+
+**Fifth template added — the mood side-channel (D-107 commitment 5, added
+2026-08-09).** This is now the highest-risk part of the prompt work, and it has
+an explicit kill condition.
+
+Clide declares his own emotional state on every reply; the face renders it. This
+is the only possible source for a reaction to *content* rather than to
+mechanics — "you have made this mistake before" — which is what the whole
+side-channel exists for, and which no derived signal can ever produce.
+
+## Requirement
+
+A demanded output template, not a hope. Two candidates to bake off against Haiku
+4.5 rather than choose on paper:
+
+- **Frontmatter-style** — a delimited header block before the prose.
+- **JSON** — `{"mood": "...", "say": "..."}`.
+
+Pick whichever Haiku follows most cleanly under the real system prompt, at the
+real reply length, across the real trigger events. This runs through the CLI in
+stream-json, so there is **no structured-output enforcement** — the model''s
+compliance is the only guarantee there is, which is why it is measured rather
+than assumed.
+
+## The kill condition, stated up front
+
+**If it is not very stable, it does not ship.** A malformed reply must never put
+scaffolding in the speech bubble; a user who sees `{"mood":` in Clide''s mouth has
+watched the illusion break, which costs more than the feature adds. So:
+
+- Parse defensively and **strip aggressively** — anything template-shaped that
+  survives parsing is removed from the displayed text, not passed through.
+- A missing or unparseable mood means **keep the previous expression**, never a
+  default reset and never a visible failure.
+- If the bake-off shows the format bleeding under any of the real triggers,
+  **drop the channel** and derive the expression mechanically from his session
+  lifecycle. That loses `rage` and the editorial states — accepted, versus
+  shipping something that visibly leaks.
+
+Measure it: run each candidate format over a realistic set of trigger events and
+count malformed replies. A format that is 95% clean is not clean — this renders
+on every remark, so a 1-in-20 failure is visible within minutes of use.
+
+## Vocabulary
+
+The mood values are the face states that have no mechanical source. Keep the set
+**small and closed**, and validate against it — an open vocabulary means the
+model invents a mood the face cannot render, which is a silent failure that looks
+like the channel working.
+
+**The templates themselves go through i18n** (raised 2026-08-09). Not just the
+chrome around them — the system prompt, the observed/direct framing and the
+lifecycle notices are all authored text, and authored text in this repo resolves
+through the catalog (D-21/D-102).
+
+Namespace `builtin.clide-companion`, alongside the settings labels that landed in
+T-527. Keys roughly `prompt.system`, `prompt.digest.observed`,
+`prompt.digest.direct`, `prompt.notice.detached`, `prompt.notice.cleared`.
+
+## This is in tension with D-107 and the tension should be resolved here
+
+D-107 currently says Clide''s replies "are model output and carry the locale via
+the prompt" — i.e. an English prompt containing an instruction to answer in the
+active locale. Localising the prompt itself is a different mechanism: a Dutch
+user gets a Dutch prompt, and the reply follows because the whole context is
+Dutch rather than because a line asked for it. The second usually produces better
+register and idiom; the first is easier to tune because there is one text.
+
+Whichever wins, say so explicitly in this ticket and amend D-107''s line if it
+changes — right now the record and this ticket describe two different designs.
+
+## The cost, stated plainly
+
+`test/a11y/i18n_coverage_test.dart` enforces **key parity between en_US and
+nl_NL** for every shipped catalog. Putting the system prompt in the catalog
+therefore obliges a Dutch system prompt, kept in sync, forever — and prompts are
+tuned iteratively, so every tuning pass is now two. That is a real recurring cost
+and worth weighing against the quality gain before committing to it, rather than
+discovering it on the first red build.
+
+A middle option exists: catalog the **user-visible** and register-carrying parts
+(the notices, the speaker labels) and keep the instruction body single-language.
+Weigh it; do not default into it silently.
+
+Cross-reference (2026-08-09): **T-558** — changing the UI language restarts the companion session, because the locale reaches Clide through the prompt rather than through a catalog.
+
+That ticket''s first argument depends on this one: if the prompt templates resolve through i18n as the user asked, the instruction text differs per locale and cannot be retro-applied to a running session. If the bake-off here concludes the templates stay single-language, say so on T-558 — its other two arguments (an English history pulls replies back to English; a half-translated overlay reads as a bug) stand without it, but the reasoning should not be left pointing at a decision that went the other way.
+
+Done 2026-08-10. Prompt tuned live against Haiku 4.5 across five runs / 109 turns before any of it was written down; the measurements drove every choice below.
+
+FORMAT — the bake-off ran and the kill condition did NOT fire. The ticket''s premise was wrong: --json-schema DOES enforce structured output at CLI 2.1.226, via a forced StructuredOutput tool call. Measured and rejected anyway on two grounds paper could not see — it costs ~2x output (prose, then a synthetic turn demanding the tool call, then the same text restated), and it cannot be silent, which is incompatible with the brief''s hardest instruction. Shipped format is a [face] prefix line: 109 turns, zero malformed. Defensive rules implemented regardless (strip scaffolding, unreadable face keeps the previous expression, unknown name = no answer).
+
+I18N — resolved against BOTH designs on the table. Not catalog keys (parity test would oblige a Dutch system prompt in lockstep forever, doubling every tuning pass) and not one English text. The brief is a locale-routed DOCUMENT at assets/clide/prompts/<locale>/clide-brief.md walking the same FallbackChain as the catalogs. A native brief becomes a file someone adds; until then the chain falls through rather than half-translating. The reply-language instruction names the REQUESTED locale, not the one the document was found under, so falling back to English does not silently switch his language. D-107 amended; T-558''s first argument restored (it had briefly looked dead).
+
+NAMING — neutral labels in the transcript, name + free-text self-description injected once into the brief. Three new app-scoped settings: userName, about, moodChannel.
+
+TUNING, with numbers. v1: spoke 8/15, affirmed ordinary work, silent on the process skip he exists for, silent on a direct question (the brief never defined [direct] — my bug). v2: fixed direct, still silent on the skip. Diagnosis: ''you are not a scold'' read as ''a decision already made is off-limits''. v3 separated NOTICING ONCE from NAGGING and used a worked example (--no-verify) different from the test cases (changelog, review) — he generalised, catching both. v4 on a realistic feed (34 turns, 5 notable): 4/34 spoken, ZERO false positives on 30 mundane exchanges. Adding the self-check block made him more precise rather than quieter — 5/34, 4/5 notables. Final rate ~1 per 7-8 exchanges, which is a function of event density rather than chattiness.
+
+Behaviour worth keeping: he BANKS observations rather than interrupting. Twice he stayed silent on a ''hardcode it for now'' debt at the time and produced it unprompted at end of day when asked what he''d flag.
+
+FACE SET — extended FaceState by 8 declared moods with a real grammar (eyes carry arousal, mouth carries valence; families share a brow: ▼ unimpressed→rage, = tired→resigned, · watching→pensive, O listening→surprised, ^ speaking→amused). Zero new glyphs — designed inside kVerifiedFaceGlyphs on purpose. declarable/kDeclarableFaces splits the mechanical states (he cannot know his own process died) from the ones he may name, and the vocabulary is DERIVED from the enum into the prompt so the two cannot drift. Face goldens regenerated. Semantics labels + nl_NL parity added for all 8 (D-20).
+
+Cost, corrected: total_cost_usd is CUMULATIVE per session, not per turn — an earlier reading of it inflated per-exchange cost ~7x and briefly made the trigger design look cost-driven. Real figure ~$0.004-0.007/exchange, ~$0.12 for a 34-exchange day. Trigger design is quality-driven; T-547 does not need to precede T-546.
+
+NOT DONE (T-519''s, per scope): wiring the composed prompt into the spawn, SessionProfile.companion on SpawnSpec, --safe-mode/--disallowedTools posture, and the digest that produces these lines.
+
+Stale line for whoever picks up T-519: ''cap max_tokens ~100'' is not achievable — the CLI exposes no such flag. Length is held by the brief and by the parser''s kMaxRemarkChars backstop.', 'done', 'high', NULL, NULL, 'D-107', '2026-08-09 09:21:47.664', '2026-08-10 15:01:53.062', NULL, '4772cba7b99be1244f8c48fd7699d7ec', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVWFCBT56EDZJCT7Z55ZV4', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'D2: Digest filter and observed/direct framing', 'What Clide is allowed to see, and how he is told who is talking. Blocked by
+**T-545** — there has to be a session to feed.
+
+## The filter is a privacy boundary, not a formatting choice
+
+Filter `session.items` to **`UserMessage` and `AssistantTextMessage` only**. Drop
+`AssistantToolUse`, `ToolResultMessage`, thinking, and the clide-injected
+image/drawing/icon cards. Item model: `transcript_reader.dart:41-267`.
+
+D-107 commitment 3 states this as a **scope and privacy boundary**: tool activity
+is where file contents, paths, credentials and command output live, and keeping
+it out means this surface structurally cannot leak what the main session touched.
+Any future feature requiring Clide to see tool activity **amends that record** —
+it is not a config flag, and it must not become one by accident here.
+
+So the filter should be written as an allow-list over item types, not a
+deny-list. A new item type appearing in the union must be invisible to Clide
+until someone decides otherwise; a deny-list would leak it silently.
+
+**Accepted consequence:** "what did that tool call do?" is unanswerable. Asking
+what Claude *said* works; asking what Claude *did* does not. Surface that in the
+UI rather than letting him bluff.
+
+## The wire format
+
+```
+[observed] <user>: <prompt text>
+[observed] claude: <assistant prose>
+[direct]   <user>: <question typed into Clide''s own input>
+```
+
+`observed` is a conversation he is watching; `direct` is addressed to him. The
+prompt text that explains the split is **T-532**, not here — this ticket owns
+producing the lines, that one owns what they mean to him.
+
+Open question for T-532 to settle and this ticket to implement: whether the real
+user name is used or a neutral label.
+
+## Watch for
+
+- **A partial-prefixed item is not necessarily still streaming.** The final
+  assistant event is rewritten to carry the same `partial-` uuid, so the prefix
+  means "came through the streaming path", not "arriving now" (found during
+  Epic B''s signal audit). Digesting on every partial update would send the same
+  message a dozen times.
+- Send one line per completed exchange, not per token.
+- The digest must **stop while the strip is minimised** (T-528 semantics, wired
+  in T-545): ingest is what pauses, so this is the thing being paused.
+
+**Absence is silence, not a line (2026-08-09).**
+
+Nothing goes into Clide''s prompt stream to describe a *lack* of activity. No ''no session is running'', no ''nothing happened'', no heartbeat. Every line we send him is an invitation to reply, and a line describing emptiness invites a remark about emptiness — which he would be right to make, because we told him something.
+
+This is a rule about the digest, not about the bus. `companion.load {busy: false}` is UI state that drives the rain and must keep firing on absence, or the strip shows stale weather (T-538 has a test for it). The two must not be conflated: one is a signal to a renderer, the other is text to a model.
+
+Concretely:
+
+- A session ending, a session not existing, an ingest pause (minimised, T-528) — none of these produce digest lines.
+- Discontinuities are **narrated on resume, not during** (T-532''s detach notice), and that is a different thing: it is context for the next real exchange, not an event to comment on.
+- A digest turn with nothing in it should not be sent at all. If the filter yields no lines, there is no prompt.
+
+The failure this prevents is a companion that talks about the tooling instead of the work — the surest way to make an ambient surface annoying.
+
+Done 2026-08-10. lib/builtin/clide_companion/src/prompt/companion_digest.dart + 11 tests.
+
+ALLOW-LIST, as specified. UserMessage and AssistantTextMessage only; every other member of the sealed union is named and returned from explicitly rather than defaulted, so an omission is visible in review. Two exclusions the ticket did not name but that follow from the same reasoning:
+
+- injected UserMessages (skill loads, slash expansions, system reminders) — not typed by anyone, and passing them on would have Clide watching the developer say things they never said.
+- synthetic AssistantTextMessages (/usage output, ''not available here'', clide''s own injected notices) — clide chrome, not the model. Him remarking on our notices is the tooling-narration failure the surface exists to avoid.
+- sidechain / parentToolUseId items are dropped too: a subagent''s conversation about a subagent''s task, carrying the same tool-shaped content the boundary excludes.
+
+TURN BOUNDARY. Flushes on the turn''s result event, never on item arrival — which is the only correct trigger given the partial- rewrite, not merely an optimisation. Accumulating into a map keyed by uuid collapses a dozen streaming updates and the final rewrite into one entry with the complete text winning. Test drives four streamed chunks under one id and asserts a single line carrying the last version.
+
+PAUSE DROPS, DOES NOT BUFFER. ingesting is consulted at item arrival, not at flush: whether he was watching THEN is what decides whether he saw it. A pause mid-turn keeps only the part that was watched. Replaying on resume would make the pause a lie and bury him at the moment he became visible.
+
+ABSENCE IS SILENCE. A turn with nothing admissible emits nothing at all — asserted for an empty turn and for three consecutive ones (the heartbeat case).
+
+Note on the half-exchange: a turn of pure tool work still emits the user''s prompt alone. Deliberate — the prompt is what the developer SAID, and it is exactly the case his core job needs (''just use --no-verify'' may get a reply with no prose at all).
+
+Leak test is real rather than notional: it drives actual tool_use/tool_result/thinking events through the real session parser with a credential in the tool result, and asserts none of it survives.
+
+NOT WIRED, and deliberately not. Nothing consumes these lines yet: the companion still spawns as a generic session because the composed brief is not yet passed at spawn (T-532 left that to T-519 too). Feeding digest lines to a briefless session would produce a generic assistant commenting on the conversation, which is worse than nothing. The remaining work is one coherent step — SessionProfile.companion on SpawnSpec, --safe-mode + the tool posture, the brief at spawn, and digest.lines into the session — and splitting it across tickets would leave a half-connected feature in main.', 'done', 'high', NULL, NULL, 'D-107', '2026-08-09 14:31:27.330', '2026-08-10 15:02:16.385', NULL, '4806444ac9cfdd6d82049ca324f76c03', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYEPPFGKEWVTE5Q9K152905G', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R6: Collapse the companion load channel — the strip reads a SessionReader directly', 'Enabled by T-551, and settled with the user on 2026-08-09 after a MessageBus audit.
+
+`companion.load` exists only because a widget deep in the context column needed the primary session''s busy state and could not bind it — an extension had to. **The session reader removed that constraint**, so the strip can hold a `SessionReader.primary()` itself.
+
+Deletes: `companion.load`, `companion.load.ask`, and `CompanionLoadAdapter` entirely. That is a channel pair, an adapter, and — the actual reason this is worth doing — **the only request/response pattern in the codebase**. Every other bus user is one-way fire-and-forget; the ask/answer handshake was invented here, when `FilterStateCache` already showed the house answer to ''the bus does not retain''.
+
+Survives untouched: `companion.set` / `companion.state`. Settings and open/closed genuinely span surfaces — a rail button in the status bar and a strip in the context column — and that pair matches `filter.set`/`filter.state` exactly.
+
+## The one real dependency
+
+`busySince`. A widget mounting mid-turn sees `busy: true` but not when it started, which is the whole reason the stamp lives in a long-lived adapter today. **Move it onto the session**, beside `phase` and `turnOutcome` (T-557): it is a fact about the session, `_setBusy(true)` has exactly one call site, and no consumer should be re-deriving it. Then the reader forwards it and the adapter has nothing left to own.
+
+## Scope
+
+Partially undoes T-538 and T-539 — deliberately, and their tests are the guide to what must keep working. The behaviour to preserve exactly:
+
+- absence still reads as not-busy, so the strip never shows stale weather;
+- the counter still runs from the stamped start, not from when the widget noticed;
+- the counter clears rather than freezing when a turn ends.
+
+Those are the assertions worth carrying across; the tests around the adapter and the ask channel go with the code they describe.
+
+Done 2026-08-09. companion.load + companion.load.ask + CompanionLoadAdapter deleted; the strip holds a SessionReader.primary() and derives SessionLoad from attached/busy. busySince moved onto StreamJsonSession (injectable clock) and read through by the reader.
+
+The three behaviours that had to survive are asserted in strip_load_test.dart, now driving a real orchestrator instead of publishing at the strip: absence reads absent, the counter runs from the session''s stamp for a strip that mounts mid-turn, and the counter clears rather than freezes at turn end. Two more added: a session appearing after the strip is picked up (the case the handshake was invented for), and the strip publishes nothing on companion.load.*.
+
+One bug worth recording: the load binding was left in didChangeDependencies, whose bus-rebind path cancels _loadSub — so the subscription died a microtask after it was created and the strip only ever showed the seeded value. Moved to initState; the reader takes nothing from the tree.', 'done', 'high', NULL, NULL, NULL, '2026-08-09 16:28:36.100', '2026-08-10 15:02:37.765', NULL, 'db128345fb7c5e2a66cca4c9ca615072', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

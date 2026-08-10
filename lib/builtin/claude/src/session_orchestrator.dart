@@ -35,6 +35,42 @@ const _resumeTailBytes = 256 * 1024;
 /// [ClaudeStreamJsonProcess.start]; tests inject a fake.
 typedef ProcessFactory = Future<StreamJsonProcess> Function({required List<String> sessionArgs, required String cwd, Map<String, String>? env});
 
+/// What kind of session this is, which decides the shape of its argv.
+///
+/// One axis rather than a scatter of booleans, because the two shapes differ in
+/// four places at once and a caller that set three of them would get a session
+/// that was neither thing. Adding a profile is how a new kind of hosted session
+/// arrives (D-105's vibe CLI is the next candidate), and it keeps every decision
+/// about how to launch `claude` in the one place that already makes them.
+enum SessionProfile {
+  /// A working agent: the default system prompt plus clide's context note, the
+  /// skills nudge, `clide …` pre-approved, and the full tool suite. Everything
+  /// clide has spawned until now.
+  agent,
+
+  /// Clide the companion (T-532, D-107): a commentator, not an agent.
+  ///
+  /// Four differences, each load-bearing and each measured:
+  ///
+  ///  * **`--system-prompt` replaces** the default rather than appending to it.
+  ///    He is not a coding assistant with a personality bolted on.
+  ///  * **`--safe-mode`.** Verified: without it he reads the workspace's
+  ///    CLAUDE.md unprompted — clide's *and* the parent estate's — which is a
+  ///    larger and more opinionated influence on his voice than his own brief.
+  ///    It also cuts the context roughly threefold.
+  ///  * **`--disallowedTools '*'`.** He has no business touching anything, and
+  ///    a *partial* deny is worse than none: blocking Bash and Read pushed the
+  ///    model to Glob, which was not on the list, and it happily listed the
+  ///    repo. Deny-all collapses the context to just the brief.
+  ///  * **No clide preamble, no skills nudge, no `clide` pre-approval.** All
+  ///    three tell him he is an IDE agent with a CLI to drive, which is the
+  ///    opposite of what he is.
+  ///
+  /// The account binding in the env delta is kept — he runs under the same
+  /// account as the session he is watching.
+  companion,
+}
+
 /// What to spawn. [id] is the orchestrator's stable key (e.g. `primary`,
 /// `teammate:tyre`); [sessionId] is claude's `--session-id`.
 class SpawnSpec {
@@ -51,7 +87,18 @@ class SpawnSpec {
     this.memberName,
     this.forkSourceSessionId,
     this.effort,
+    this.profile = SessionProfile.agent,
+    this.systemPrompt,
   });
+
+  /// Which launch shape to use. See [SessionProfile].
+  final SessionProfile profile;
+
+  /// The system prompt that **replaces** claude's own. Only read for
+  /// [SessionProfile.companion]; a companion without one is refused rather than
+  /// launched, because a briefless companion is a generic assistant wearing
+  /// Clide's face, which is worse than no companion at all.
+  final String? systemPrompt;
 
   final String id;
   final String role;
@@ -227,7 +274,14 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
 
   final Map<String, Future<ManagedSession>> _spawning = {};
 
+  /// `--disallowedTools` wildcard. Measured: a partial deny list is worse than
+  /// none, because the model hunts for whatever was left off it.
+  static const kDenyAllTools = '*';
+
   Future<ManagedSession> _spawn(SpawnSpec spec) async {
+    if (spec.profile == SessionProfile.companion && (spec.systemPrompt?.trim().isEmpty ?? true)) {
+      throw ArgumentError('a companion session needs a system prompt; a briefless one is a generic assistant wearing its face');
+    }
     final existing = _sessions[spec.id];
     if (existing != null) {
       if (existing.cwd == spec.cwd) return existing;
@@ -266,13 +320,20 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
       boundConfigDir: (cwd) => accountRegistry?.accountForWorkspace(cwd)?.dir,
       pathPreset: pathPresetFor,
     );
-    sessionArgs = [
-      '--append-system-prompt',
-      preambles.join('\n\n'),
-      ...bootstrap.extraArgs,
-      if (spec.effort != null) ...['--effort', spec.effort!],
-      ...sessionArgs,
-    ];
+    sessionArgs = switch (spec.profile) {
+      // The companion keeps the env delta (account binding) and drops
+      // everything else: bootstrap.extraArgs is `--allowedTools <clide bash
+      // rule>`, which is both pointless for a session with no tools and, being
+      // an allow entry, would argue with the deny-all below.
+      SessionProfile.companion => ['--system-prompt', spec.systemPrompt!, '--safe-mode', '--disallowedTools', kDenyAllTools, ...sessionArgs],
+      SessionProfile.agent => [
+        '--append-system-prompt',
+        preambles.join('\n\n'),
+        ...bootstrap.extraArgs,
+        if (spec.effort != null) ...['--effort', spec.effort!],
+        ...sessionArgs,
+      ],
+    };
 
     final proc = await _factory(sessionArgs: sessionArgs, cwd: spec.cwd, env: bootstrap.envDelta);
     final session = StreamJsonSession(proc, mcpServers: mcpServers)..start();

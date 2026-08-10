@@ -63,14 +63,17 @@ const kCompanionAboutKey = 'app.companion.about';
 /// commitment 5).
 ///
 /// On, he declares a face and the strip renders it — the only possible source
-/// for a reaction to *content* rather than mechanics. Off, expression is derived
-/// from his session lifecycle alone, which is D-107's own stated fallback, and
-/// the session runs with every tool denied.
+/// for a reaction to *content* rather than mechanics. Off, his expression is
+/// derived from his session lifecycle alone, which is D-107's own stated
+/// fallback.
 ///
-/// **The setting is a posture, not a decoration.** The two branches spawn
-/// differently, so this cannot change on a live session (see
-/// [ClideCompanionSettings.mayRunSession]'s neighbours in T-545): flipping it
-/// restarts him.
+/// **Applies live.** An earlier design had this change the spawn — the mood
+/// needed a `StructuredOutput` tool call, so turning it off meant a different
+/// tool posture and therefore a restart. T-532 shipped the `[face]` prefix
+/// instead, which needs no tool at all, so both settings spawn identically and
+/// this is purely a question of whether the declared face is rendered or
+/// ignored. It costs about five tokens a remark, so it is a matter of taste
+/// rather than of cost.
 const kCompanionMoodChannelKey = 'app.companion.moodChannel';
 
 /// On by default — the strip ships visible, and a companion nobody can find is
@@ -86,9 +89,7 @@ const kCompanionOpenDefault = true;
 const kCompanionSuspendWhenMinimisedDefault = true;
 
 /// On by default: the declared mood is the reason D-107 was amended to add the
-/// channel at all, and it measured at roughly twice the output of a bare reply —
-/// a few thousandths of a cent, against the only signal that can react to what
-/// was said rather than to what happened.
+/// channel at all, and in the shipped format it costs a five-token prefix.
 const kCompanionMoodChannelDefault = true;
 
 /// How readily Clide comments. D-107 fixes the *shape* — notable events only,

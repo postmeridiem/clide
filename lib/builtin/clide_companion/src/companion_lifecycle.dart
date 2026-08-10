@@ -84,12 +84,17 @@ class CompanionSessionController extends ChangeNotifier {
   ClaudeSessionOrchestrator? get _orchestrator => _explicit ?? activeSessionOrchestrator;
 
   ManagedSession? _managed;
+
+  /// The brief the live session was launched with, so a changed one is
+  /// detectable. Cleared with the session.
+  String? _spawnedBrief;
   StreamSubscription<ToolPrompt?>? _prompts;
   ManagedSession? _seenPrimary;
 
   bool _enabled = false;
   bool _ingesting = false;
   String? _root;
+  String? _brief;
   Object? _spawnError;
 
   /// No further process work — set by [shutdown]/[dispose]. Distinct from
@@ -122,9 +127,16 @@ class CompanionSessionController extends ChangeNotifier {
   /// so the common case (nothing relevant changed) does no work. Calls are
   /// serialized against each other; spawning is asynchronous and two overlapping
   /// syncs would otherwise race to own the same orchestrator id.
-  Future<void> sync({required bool enabled, required bool open, required String? root}) {
+  ///
+  /// [brief] is the composed system prompt (T-532). It is desired state like the
+  /// rest: it is fixed at spawn, so **changing it restarts him** — which is what
+  /// makes a language change, a rename, or an edited self-description take
+  /// effect at all. A null brief means he cannot run; the caller has nothing to
+  /// launch him with.
+  Future<void> sync({required bool enabled, required bool open, required String? root, required String? brief}) {
     _enabled = enabled;
     _root = root;
+    _brief = brief;
     // Ingest stops with the kill switch too — off is off at every level, not
     // just the process one.
     _setIngesting(enabled && open);
@@ -182,21 +194,38 @@ class CompanionSessionController extends ChangeNotifier {
   Future<void> _apply() async {
     if (_stopped) return;
     final root = _root;
-    if (!_enabled || root == null) return _teardown();
+    final brief = _brief;
+    // No brief is not an error state to surface — it is a packaging gap, and a
+    // companion launched without one would be a stock assistant commenting on
+    // the conversation. Better absent than wrong.
+    if (!_enabled || root == null || brief == null || brief.trim().isEmpty) return _teardown();
 
     final existing = _managed;
     // A workspace switch in place means the running companion belongs to the
     // old repo. The orchestrator would respawn it for us on the cwd change, but
     // tearing down here keeps the session id fresh rather than reusing the one
     // minted for the previous repo.
-    if (existing != null && existing.cwd == root) return;
+    //
+    // A changed brief is the other reason to replace a live session: the prompt
+    // is argv, so there is no way to apply it to a running process.
+    if (existing != null && existing.cwd == root && brief == _spawnedBrief) return;
     if (existing != null) await _teardown();
 
     final orch = _orchestrator;
     if (orch == null) return;
 
     _spawnError = null;
-    final managed = await orch.spawn(SpawnSpec(id: kCompanionSessionId, role: 'companion', sessionId: _newSessionId(), cwd: root, visible: false));
+    final managed = await orch.spawn(
+      SpawnSpec(
+        id: kCompanionSessionId,
+        role: 'companion',
+        sessionId: _newSessionId(),
+        cwd: root,
+        visible: false,
+        profile: SessionProfile.companion,
+        systemPrompt: brief,
+      ),
+    );
     if (_stopped || !_enabled) {
       // The switch went off while the process was starting. Honour the later
       // intent rather than the one this call was issued under.
@@ -204,6 +233,7 @@ class CompanionSessionController extends ChangeNotifier {
       return;
     }
     _managed = managed;
+    _spawnedBrief = brief;
     managed.session.setModel(kCompanionModel);
     _prompts = managed.session.pendingPromptStream.listen(_denyPrompt);
     notifyListeners();
@@ -214,6 +244,7 @@ class CompanionSessionController extends ChangeNotifier {
     _prompts = null;
     final had = _managed != null;
     _managed = null;
+    _spawnedBrief = null;
     await _orchestrator?.close(kCompanionSessionId);
     if (had && !_notifierDisposed) notifyListeners();
   }
