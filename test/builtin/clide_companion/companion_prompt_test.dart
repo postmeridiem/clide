@@ -41,6 +41,24 @@ void main() {
       }
     });
 
+    test('authoring notes never reach him', () async {
+      // Caught on the first live launch: the shipped brief opens with an HTML
+      // comment explaining the file — ticket numbers, the fallback chain, "tuned
+      // over 109 turns" — and all of it was going into the system prompt, four
+      // paragraphs above the rule forbidding him to mention any of it.
+      const withNote = '<!-- T-532: why this file exists, and how it was tuned -->\nWatch. {about} {language} {faces}';
+      final out = composeSystemPrompt(brief: withNote, localeSuffix: 'en_us');
+
+      expect(out, isNot(contains('T-532')));
+      expect(out, isNot(contains('<!--')));
+      expect(out, startsWith('Watch.'));
+    });
+
+    test('a multi-line note is stripped whole, not line by line', () {
+      const withNote = '<!--\nline one\nline two\n-->\nWatch. {about} {language} {faces}';
+      expect(composeSystemPrompt(brief: withNote, localeSuffix: 'en_us'), isNot(contains('line two')));
+    });
+
     test('the language is named, not tagged', () {
       expect(composeSystemPrompt(brief: brief, localeSuffix: 'nl_nl'), contains('Reply in Dutch.'));
       expect(composeSystemPrompt(brief: brief, localeSuffix: 'en_us'), contains('Reply in English.'));

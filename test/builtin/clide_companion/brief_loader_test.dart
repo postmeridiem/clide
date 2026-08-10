@@ -80,4 +80,19 @@ void main() {
     expect(got.text, contains(kLanguagePlaceholder));
     expect(got.text, contains(kFacesPlaceholder));
   });
+
+  test('the shipped brief composes without leaking anything backstage', () async {
+    // The end-to-end version of the authoring-note bug, against the real asset:
+    // whatever we write in that file for our own benefit must not survive into
+    // what Clide is told.
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final got = await loadCompanionBrief(locale: const Locale('en', 'US'));
+    final prompt = composeSystemPrompt(brief: got!.text, localeSuffix: got.foundIn);
+
+    expect(prompt, isNot(contains('<!--')));
+    expect(prompt, isNot(contains('T-532')));
+    expect(prompt, isNot(contains('D-107')));
+    expect(prompt, isNot(contains('FallbackChain')));
+    expect(prompt, startsWith('You are Clide'), reason: 'the first thing he reads should be who he is');
+  });
 }

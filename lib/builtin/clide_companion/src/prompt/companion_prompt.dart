@@ -62,11 +62,26 @@ String languageNameFor(String localeSuffix) => _languageNames[localeSuffix.toLow
 /// context knows who he is watching without every line carrying a name.
 String composeSystemPrompt({required String brief, required String localeSuffix, String? name, String? about, List<FaceState>? faces}) {
   final vocabulary = (faces ?? kDeclarableFaces).map((f) => '[${f.name}]').join(' ');
-  return brief
+  return _stripAuthoringNotes(brief)
       .replaceAll(kAboutPlaceholder, _aboutBlock(name, about))
       .replaceAll(kLanguagePlaceholder, languageNameFor(localeSuffix))
-      .replaceAll(kFacesPlaceholder, vocabulary);
+      .replaceAll(kFacesPlaceholder, vocabulary)
+      .trim();
 }
+
+/// HTML comments in the brief are notes to **us**, and must never reach him.
+///
+/// Caught on the first live launch (2026-08-10): the brief opens with a comment
+/// explaining why the file exists — ticket numbers, the fallback chain, the a11y
+/// parity test, "tuned against Haiku 4.5 over 109 turns" — and every word of it
+/// was going into the system prompt. Roughly two hundred tokens telling Clide he
+/// is a construct, four paragraphs above the rule forbidding him to mention that
+/// he is one.
+///
+/// Stripped at compose time rather than deleted from the file: the rationale is
+/// exactly the kind of thing that must live beside the text it explains, or the
+/// next person to tune the prompt does it blind.
+String _stripAuthoringNotes(String brief) => brief.replaceAll(RegExp(r'<!--.*?-->', dotAll: true), '');
 
 /// The "who you are watching" paragraph, or empty when nothing is known.
 ///
