@@ -95,13 +95,40 @@ class ClideCompanionExtension extends ClideExtension {
     final controller = _session;
     if (ctx == null || controller == null) return;
     final prefs = _prefs;
-    await controller.sync(
-      enabled: prefs.mayRunSession,
-      open: prefs.open,
-      root: ctx.project.current?.path,
-      brief: await _brief(ctx, prefs),
-      frequency: prefs.frequency,
-    );
+    final root = await _workspaceRoot(ctx);
+    final brief = await _brief(ctx, prefs);
+    if (prefs.mayRunSession && (root == null || brief == null)) {
+      // Deciding not to run is legitimate; doing it silently is not. This exact
+      // combination — enabled, but no workspace — is what shipped first and it
+      // presented as "the companion is broken" with nothing anywhere to say why.
+      ctx.log.info('companion', 'not started: ${root == null ? 'no workspace root' : 'no brief for the active locale'}');
+    }
+    await controller.sync(enabled: prefs.mayRunSession, open: prefs.open, root: root, brief: brief, frequency: prefs.frequency);
+  }
+
+  /// Where Clide watches.
+  ///
+  /// **The same answer the Claude pane uses**, which is `files.root` over IPC —
+  /// not `ProjectManager.current`. Those two disagree, and the disagreement is
+  /// not theoretical: on a launch where no recent workspace carries the sticky
+  /// flag, `openStickyOrNothing` leaves `current` null while the pane resolves a
+  /// root anyway and spawns into it. The companion then had no workspace, no
+  /// session, and no complaint.
+  ///
+  /// `ProjectManager` stays as the fallback and as the *change* signal — it is
+  /// what notifies on a workspace switch — but it is not the source of truth for
+  /// where we are.
+  Future<String?> _workspaceRoot(ClideExtensionContext ctx) async {
+    final current = ctx.project.current?.path;
+    if (current != null) return current;
+    try {
+      final resp = await ctx.ipc.request('files.root');
+      final path = resp.ok ? resp.data['path'] as String? : null;
+      return (path?.isEmpty ?? true) ? null : path;
+    } catch (_) {
+      // No IPC yet (early boot, headless test). Absent, not broken.
+      return null;
+    }
   }
 
   /// Compose Clide's system prompt: the locale's brief document, with the
