@@ -12409,3 +12409,70 @@ Verified live 2026-08-10 against a real claude process: spawned via the orchestr
 
 Incidental finding worth carrying into T-546: claude writes no transcript until a prompt is sent, so a companion that spawns and idles leaves no <uuid>.jsonl at all. The /resume filter therefore has nothing to filter until ingest exists — it is correct but unexercised in practice today.', NULL, '2026-08-10 10:27:07', '2026-08-10 10:27:07.117', '2026-08-10 10:27:07.117', NULL, 'd8584bee004703b116c9d42acd52ae71', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVESRDEKKSK18PRSN72Y60', 'status', 'review', 'done', NULL, '2026-08-10 10:27:10', '2026-08-10 10:27:10.025', '2026-08-10 10:27:10.025', NULL, 'bfdd549a9e70836f9053afa9910530a3', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVESRDEKKSK18PRSN72Y60', 'status', 'done', 'done', NULL, '2026-08-10 10:28:14', '2026-08-10 10:28:14.114', '2026-08-10 10:28:14.114', NULL, 'd42b9a2598513c04aedcb308e0d5ae3b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYQTTXXA3R6X07ZX5DYNVKSG', 'description', 'Found while dogfooding `clide draw` during T-532 (2026-08-10).
+
+A document whose SVG text contained a raw `<` rendered as a **partial card with a success response**: 5 of 15 cells drew, the rest were silently dropped, and `clide draw` still answered `{"shown":true}`. Nothing on the card, in the response, or in the log said anything was missing. It was only caught because a human looked at a screenshot and counted.
+
+## Root cause
+
+`parseXml` (lib/src/svg/) is deliberately tolerant, and `buildSvgDocument` (lib/src/svg/svg_document.dart:23) only guards the null-root case. A parse break **mid-document** therefore yields a valid-looking, truncated tree that is indistinguishable from a genuinely short document. Every layer above it then reports success.
+
+## The fix has two halves, and they are not the same
+
+**1. Escaping belongs on the input side — clide''s side.** Anywhere clide *generates* markup from caller-supplied values, clide must XML-escape them (`&`, `<`, `>`). That is template lowering (the `d2`/`icon`/`compare` handlers, when they land) and any card field that reaches the SVG rather than the Flutter overlay. A caller writing a label containing an ampersand must not have to know SVG is the substrate — that is an implementation detail of ours leaking into their document. Today template lowering is unimplemented (draw_doc.dart is envelope-only), so this is a rule to build in rather than a bug to fix — which is exactly the cheap moment to do it.
+
+**2. Primitive mode cannot be escaped, so it must be validated.** Raw SVG is the escape hatch; escaping it would destroy the markup that is the whole point. So the requirement there is different: a parse break must **surface**. The card shows the error rather than a partial drawing, and `clide draw` exits non-zero rather than reporting shown. Half a diagram presented as a whole one is worse than a failure, because the user has no reason to distrust it.
+
+## Repro
+
+```json
+{"svg": "<svg viewBox=''0 0 200 60''><text x=''10'' y=''30''>a < b</text><circle cx=''150'' cy=''30'' r=''10'' fill=''red''/></svg>"}
+```
+
+Expected: an error. Actual: a card containing neither the text nor the circle, and `{"shown":true}`.
+
+## Watch for
+
+- The tolerant parser is tolerant on purpose (external d2/graphviz output is messy). The ask is not strictness — it is that dropping content is *reported*, not silent.
+- A test should assert the failure is visible, not just that the parser survives. "Does not crash" is what we already have and it is what let this through.', 'Found while dogfooding `clide draw` during T-532 (2026-08-10).
+
+A document whose SVG text contained a raw `<` rendered as a **partial card with a success response**: 5 of 15 cells drew, the rest were silently dropped, and `clide draw` still answered `{"shown":true}`. Nothing on the card, in the response, or in the log said anything was missing. It was only caught because a human looked at a screenshot and counted.
+
+## Root cause
+
+`parseXml` (lib/src/svg/) is deliberately tolerant, and `buildSvgDocument` (lib/src/svg/svg_document.dart:23) only guards the null-root case. A parse break **mid-document** therefore yields a valid-looking, truncated tree that is indistinguishable from a genuinely short document. Every layer above it then reports success.
+
+## The fix has two halves, and they are not the same
+
+**1. Escaping belongs on the input side — clide''s side.** Anywhere clide *generates* markup from caller-supplied values, clide must XML-escape them (`&`, `<`, `>`). That is template lowering (the `d2`/`icon`/`compare` handlers, when they land) and any card field that reaches the SVG rather than the Flutter overlay. A caller writing a label containing an ampersand must not have to know SVG is the substrate — that is an implementation detail of ours leaking into their document. Today template lowering is unimplemented (draw_doc.dart is envelope-only), so this is a rule to build in rather than a bug to fix — which is exactly the cheap moment to do it.
+
+**2. Primitive mode cannot be escaped, so it must be validated.** Raw SVG is the escape hatch; escaping it would destroy the markup that is the whole point. So the requirement there is different: a parse break must **surface**. The card shows the error rather than a partial drawing, and `clide draw` exits non-zero rather than reporting shown. Half a diagram presented as a whole one is worse than a failure, because the user has no reason to distrust it.
+
+## Repro
+
+```json
+{"svg": "<svg viewBox=''0 0 200 60''><text x=''10'' y=''30''>a < b</text><circle cx=''150'' cy=''30'' r=''10'' fill=''red''/></svg>"}
+```
+
+Expected: an error. Actual: a card containing neither the text nor the circle, and `{"shown":true}`.
+
+## Watch for
+
+- The tolerant parser is tolerant on purpose (external d2/graphviz output is messy). The ask is not strictness — it is that dropping content is *reported*, not silent.
+- A test should assert the failure is visible, not just that the parser survives. "Does not crash" is what we already have and it is what let this through.
+
+## Framed as a linter at the input boundary (2026-08-10)
+
+Better shape than erroring at paint time: validate in `clide draw` **before** the document is accepted, where a line and column still exist and the caller can be told what is wrong. By the time the painter has it, all it can say is ''something was dropped''.
+
+Framing it as a lint also widens the catch to a second silent-drop class that is already there. The schema defines a **bounded SVG subset**, and `_children` (svg_document.dart:131) returns null for anything outside it — `foreignObject`, filters, SMIL, `use`/`symbol`, gradients, patterns, `clipPath`. Those vanish exactly as quietly as my truncated document did. Someone pasting mermaid output (which leans on `foreignObject`) gets a blank card and no reason why.
+
+So: one linter, two rules.
+
+- **Well-formedness** — a parse break is an error. Reject, non-zero exit, name the position.
+- **Subset conformance** — an out-of-scope element is reported rather than dropped in silence. Warn rather than reject, since real d2/graphviz output carries harmless extras and refusing it would make the escape hatch useless.
+
+Exit codes follow the existing CLI contract (0 ok, 1 handled error). The tolerant parser stays tolerant — the change is that tolerance becomes *reported* instead of *invisible*.
+
+Escaping stays clide''s own job on generated markup (template mode, half 1 above); the linter governs primitive mode, where we cannot escape without destroying the document.', NULL, '2026-08-10 13:45:47', '2026-08-10 13:45:47.397', '2026-08-10 13:45:47.397', NULL, 'cf37e8433ce4cac50b11ca3963081109', 2) ON CONFLICT(hash) DO NOTHING;

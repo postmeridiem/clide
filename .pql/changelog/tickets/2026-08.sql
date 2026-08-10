@@ -14437,3 +14437,204 @@ Not yet exercised live — no ingest until T-546, so the session spawns and wait
 Verified live 2026-08-10 against a real claude process: spawned via the orchestrator (PID found by pgrep -f on the session id), flipped the switch off, pgrep returns nothing. Landed as integration_test/companion_process_test.dart — integration rather than the fast suite because it needs claude on PATH; no prompt is sent so no quota is spent.
 
 Incidental finding worth carrying into T-546: claude writes no transcript until a prompt is sent, so a companion that spawns and idles leaves no <uuid>.jsonl at all. The /resume filter therefore has nothing to filter until ingest exists — it is correct but unexercised in practice today.', 'done', 'high', NULL, NULL, 'D-107', '2026-08-09 14:29:35.299', '2026-08-10 10:27:10.025', NULL, '1ed0f872f68582fad73d968030741fd0', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVESRDEKKSK18PRSN72Y60', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'D1: Companion session lifecycle — spawn, kill switch, pause, restart', 'Stand the companion session up and — more importantly — make it go away reliably.
+Everything else in Epic D needs a live session, so this is first.
+
+## Spawn
+
+`ClaudeSessionOrchestrator.spawn(SpawnSpec(id: ''clide.companion'', visible: false, …))`
+already gives a headless stream-json session, idempotent per `(id, cwd)` and
+serialized against races. Precedent for spawning outside a pane: `_forkMember`
+(`claude_meta_sidebar.dart:256-274`).
+
+- `--model haiku`
+- `--no-session-persistence`, so it never writes into `~/.claude/projects`
+  (precedent: `claude_config.dart:576`)
+- Do **not** set `effort` — it errors on Haiku 4.5.
+- Thinking off, `max_tokens` ~100: a bad turn must not be able to produce an
+  essay.
+
+## Teardown is the substance of this ticket
+
+Four separate things must stop it, and they are not the same thing:
+
+| Cause | Required behaviour |
+|---|---|
+| kill switch off (`mayRunSession`, T-527) | **tear the process down**, not hide it |
+| strip minimised (`companion.state.open` false, T-528) | pause ingest; see below |
+| primary session cleared or restarted | companion goes with it |
+| ~50 comments | restart the session, preserving nothing |
+
+The gate already exists and is named for the question:
+`ClideCompanionSettings.mayRunSession`. Consult it before spawning **and** on
+every settings change — disabling has to kill a running process, since a hidden
+face still burning subscription quota is precisely the failure D-107''s kill
+switch exists to prevent.
+
+**Minimise pauses ingest rather than killing the session** (T-528''s settled
+semantics): a minimised stretch is conversation Clide genuinely did not see. That
+is the honest privacy story and the cheapest power rung — stronger than Epic B''s
+`night`, which stops rendering but not ingest. Whether it also drops the process
+after long enough is a judgement call worth making explicitly here rather than
+leaving implied.
+
+**Clear and restart track the primary.** Clide already owns `/clear`, `/resume`
+and `/compact` rather than forwarding them (T-156), so there is an existing
+interception point. Without this he keeps context the user believes they threw
+away — a surprise and a quiet privacy problem, and it defeats the "he is watching
+*this* conversation" framing.
+
+**The ~50-comment restart is cost control, not hygiene.** History re-sends every
+turn, so cost grows quadratically. A rolling window is the wrong fix: evicting
+the oldest line changes the cache prefix and every turn then pays full price.
+Grow-then-restart keeps cache hits within an epoch and bounds growth.
+
+## Watch for
+
+- The kill switch must be re-checked on change, not only at spawn.
+- Spawning is idempotent per `(id, cwd)` — a second workspace is a second
+  companion, which is correct, but means the id alone is not the identity.
+- Nothing here should add public API to `StreamJsonSession`; Epic B reads the
+  same class and any addition is a joint decision.
+
+Lifecycle settled with the product owner (2026-08-09), narrowing the teardown table above:
+
+**Minimising pauses ingest and keeps the process.** Restoring is then instant and he keeps the context he had. A parked `claude` process costs memory but no quota — quota is spent per request, not per second — so there is no cost argument for dropping it, and dropping it would make a quick minimise/restore lose everything he knew.
+
+**The settings kill switch is the only thing that force-drops the process.** Not minimise, not dormancy, not the window being hidden. That keeps ''off is off'' meaning exactly one thing and leaves every other rung as a pause.
+
+So the four causes in the table above resolve to:
+
+| Cause | Process | Ingest |
+|---|---|---|
+| kill switch off | **torn down** | stopped |
+| strip minimised / closed | kept | paused |
+| primary cleared or restarted | restarted with it | restarted |
+| ~50 comments | restarted | continuous |
+
+Related, from T-534 the same day: the visual conversation buffer is **in memory and is not cleared by any of these except the kill switch** — closing the strip pauses, and the ~50-comment restart resets what Clide *remembers* without touching what the popout *shows*. Do not conflate the two here.
+
+**Superseded 2026-08-09 (D-107 amended). Read this over the spawn and teardown
+sections above.**
+
+The companion is an **ordinary persisted session**, not a `--no-session-persistence`
+one. The user''s argument: the digest is lean prose, so there is nothing to hide,
+and a real session gets persistence, stoppability and teardown for free.
+
+He was right, and one of the justifications recorded that morning was simply
+wrong: Clide''s transcript is a **strict subset of what the primary session
+already persists** — the same prose with tool activity stripped. `--no-session-persistence`
+was protecting nothing.
+
+## What changes
+
+- **Drop `--no-session-persistence`.** Ordinary session, ordinary transcript.
+- **One session per clide run.** Fresh `--session-id` each launch; no resume
+  logic, no epoch bookkeeping. History is per-run, which is also what the answer
+  surface will show.
+- **The ~50-comment restart is deleted, not deferred.** It existed to bound
+  quadratic history growth. The CLI''s own autocompaction handles that, and clide
+  coordinates nothing — a second mechanism competing with autocompact would
+  fragment the very conversation the answer surface reads.
+- **`/clear` is the teardown**, reusing the interception clide already owns
+  (T-156), alongside the settings kill switch.
+- **Stoppability comes free.** No prompts means no requests means no quota; an
+  idle session simply waits.
+
+## The teardown table, restated
+
+| Cause | Process | Ingest |
+|---|---|---|
+| kill switch off | torn down | stopped |
+| `/clear` | torn down | stopped |
+| strip minimised / closed | kept | paused |
+| primary cleared or restarted | restarted with it | restarted |
+| context growth | *nothing* — autocompact handles it | continuous |
+
+## New, and this ticket owns it
+
+**Filter companion transcripts out of clide''s `/resume` picker.** It lists
+everything in `claudeProjectDir(root)` (`claude_pane.dart:692`), so without this
+the picker fills with companion sessions — one per clide launch. `claude --resume`
+outside clide will still list them; that is the accepted cost recorded in D-107.
+
+Done 2026-08-10. New: lib/builtin/clide_companion/src/companion_lifecycle.dart (CompanionSessionController) + companion_lifecycle_test.dart (19 cases). The controller reads nothing — sync(enabled, open, root) is the single entry point; the extension owns reading settings + project and calls it on every settings and project notification.
+
+Built as specified by the superseding note: ordinary persisted session, fresh companion session id per spawn, no 50-comment restart, no --no-session-persistence. Model is applied via setModel(''haiku'') after spawn rather than a --model flag, matching applySessionDefaults — so no new SpawnSpec field and no StreamJsonSession API added. Effort left unset.
+
+Resume-picker filter: kCompanionSessionIdPrefix (''c11de000'') reserves the first UUID group; listSessions gained includeCompanions (default true, so the storage manager still sees real bytes) and filters before the max cap. The T-555 doc comment claimed the orchestrator id would be the namespace check — corrected, since transcripts are named for the claude UUID, not the orchestrator id.
+
+Two things added beyond the ticket, both lifecycle consequences nothing else could own: tool prompts are auto-denied (visible: false means a permission prompt has no pane and would hang the turn forever), and a failed spawn is recorded on spawnError and leaves the queue re-tryable rather than wedged.
+
+Not yet exercised live — no ingest until T-546, so the session spawns and waits. Worth confirming on the next smoke test that exactly one companion process appears per workspace and dies with the settings switch.
+
+Verified live 2026-08-10 against a real claude process: spawned via the orchestrator (PID found by pgrep -f on the session id), flipped the switch off, pgrep returns nothing. Landed as integration_test/companion_process_test.dart — integration rather than the fast suite because it needs claude on PATH; no prompt is sent so no quota is spent.
+
+Incidental finding worth carrying into T-546: claude writes no transcript until a prompt is sent, so a companion that spawns and idles leaves no <uuid>.jsonl at all. The /resume filter therefore has nothing to filter until ingest exists — it is correct but unexercised in practice today.', 'done', 'high', NULL, NULL, 'D-107', '2026-08-09 14:29:35.299', '2026-08-10 10:28:14.113', NULL, 'c18ed28cbbca9e6fae30ca659c65cd68', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYQTTXXA3R6X07ZX5DYNVKSG', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Drawing card silently truncates a malformed SVG — escaping belongs on the input side', 'Found while dogfooding `clide draw` during T-532 (2026-08-10).
+
+A document whose SVG text contained a raw `<` rendered as a **partial card with a success response**: 5 of 15 cells drew, the rest were silently dropped, and `clide draw` still answered `{"shown":true}`. Nothing on the card, in the response, or in the log said anything was missing. It was only caught because a human looked at a screenshot and counted.
+
+## Root cause
+
+`parseXml` (lib/src/svg/) is deliberately tolerant, and `buildSvgDocument` (lib/src/svg/svg_document.dart:23) only guards the null-root case. A parse break **mid-document** therefore yields a valid-looking, truncated tree that is indistinguishable from a genuinely short document. Every layer above it then reports success.
+
+## The fix has two halves, and they are not the same
+
+**1. Escaping belongs on the input side — clide''s side.** Anywhere clide *generates* markup from caller-supplied values, clide must XML-escape them (`&`, `<`, `>`). That is template lowering (the `d2`/`icon`/`compare` handlers, when they land) and any card field that reaches the SVG rather than the Flutter overlay. A caller writing a label containing an ampersand must not have to know SVG is the substrate — that is an implementation detail of ours leaking into their document. Today template lowering is unimplemented (draw_doc.dart is envelope-only), so this is a rule to build in rather than a bug to fix — which is exactly the cheap moment to do it.
+
+**2. Primitive mode cannot be escaped, so it must be validated.** Raw SVG is the escape hatch; escaping it would destroy the markup that is the whole point. So the requirement there is different: a parse break must **surface**. The card shows the error rather than a partial drawing, and `clide draw` exits non-zero rather than reporting shown. Half a diagram presented as a whole one is worse than a failure, because the user has no reason to distrust it.
+
+## Repro
+
+```json
+{"svg": "<svg viewBox=''0 0 200 60''><text x=''10'' y=''30''>a < b</text><circle cx=''150'' cy=''30'' r=''10'' fill=''red''/></svg>"}
+```
+
+Expected: an error. Actual: a card containing neither the text nor the circle, and `{"shown":true}`.
+
+## Watch for
+
+- The tolerant parser is tolerant on purpose (external d2/graphviz output is messy). The ask is not strictness — it is that dropping content is *reported*, not silent.
+- A test should assert the failure is visible, not just that the parser survives. "Does not crash" is what we already have and it is what let this through.', 'backlog', 'medium', NULL, NULL, 'D-103', '2026-08-10 13:44:58.602', '2026-08-10 13:44:58.602', NULL, '23f05f6ec448a7dafbff91ba8bf2ffaa', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYQTTXXA3R6X07ZX5DYNVKSG', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Drawing card silently truncates a malformed SVG — escaping belongs on the input side', 'Found while dogfooding `clide draw` during T-532 (2026-08-10).
+
+A document whose SVG text contained a raw `<` rendered as a **partial card with a success response**: 5 of 15 cells drew, the rest were silently dropped, and `clide draw` still answered `{"shown":true}`. Nothing on the card, in the response, or in the log said anything was missing. It was only caught because a human looked at a screenshot and counted.
+
+## Root cause
+
+`parseXml` (lib/src/svg/) is deliberately tolerant, and `buildSvgDocument` (lib/src/svg/svg_document.dart:23) only guards the null-root case. A parse break **mid-document** therefore yields a valid-looking, truncated tree that is indistinguishable from a genuinely short document. Every layer above it then reports success.
+
+## The fix has two halves, and they are not the same
+
+**1. Escaping belongs on the input side — clide''s side.** Anywhere clide *generates* markup from caller-supplied values, clide must XML-escape them (`&`, `<`, `>`). That is template lowering (the `d2`/`icon`/`compare` handlers, when they land) and any card field that reaches the SVG rather than the Flutter overlay. A caller writing a label containing an ampersand must not have to know SVG is the substrate — that is an implementation detail of ours leaking into their document. Today template lowering is unimplemented (draw_doc.dart is envelope-only), so this is a rule to build in rather than a bug to fix — which is exactly the cheap moment to do it.
+
+**2. Primitive mode cannot be escaped, so it must be validated.** Raw SVG is the escape hatch; escaping it would destroy the markup that is the whole point. So the requirement there is different: a parse break must **surface**. The card shows the error rather than a partial drawing, and `clide draw` exits non-zero rather than reporting shown. Half a diagram presented as a whole one is worse than a failure, because the user has no reason to distrust it.
+
+## Repro
+
+```json
+{"svg": "<svg viewBox=''0 0 200 60''><text x=''10'' y=''30''>a < b</text><circle cx=''150'' cy=''30'' r=''10'' fill=''red''/></svg>"}
+```
+
+Expected: an error. Actual: a card containing neither the text nor the circle, and `{"shown":true}`.
+
+## Watch for
+
+- The tolerant parser is tolerant on purpose (external d2/graphviz output is messy). The ask is not strictness — it is that dropping content is *reported*, not silent.
+- A test should assert the failure is visible, not just that the parser survives. "Does not crash" is what we already have and it is what let this through.
+
+## Framed as a linter at the input boundary (2026-08-10)
+
+Better shape than erroring at paint time: validate in `clide draw` **before** the document is accepted, where a line and column still exist and the caller can be told what is wrong. By the time the painter has it, all it can say is ''something was dropped''.
+
+Framing it as a lint also widens the catch to a second silent-drop class that is already there. The schema defines a **bounded SVG subset**, and `_children` (svg_document.dart:131) returns null for anything outside it — `foreignObject`, filters, SMIL, `use`/`symbol`, gradients, patterns, `clipPath`. Those vanish exactly as quietly as my truncated document did. Someone pasting mermaid output (which leans on `foreignObject`) gets a blank card and no reason why.
+
+So: one linter, two rules.
+
+- **Well-formedness** — a parse break is an error. Reject, non-zero exit, name the position.
+- **Subset conformance** — an out-of-scope element is reported rather than dropped in silence. Warn rather than reject, since real d2/graphviz output carries harmless extras and refusing it would make the escape hatch useless.
+
+Exit codes follow the existing CLI contract (0 ok, 1 handled error). The tolerant parser stays tolerant — the change is that tolerance becomes *reported* instead of *invisible*.
+
+Escaping stays clide''s own job on generated markup (template mode, half 1 above); the linter governs primitive mode, where we cannot escape without destroying the document.', 'backlog', 'medium', NULL, NULL, 'D-103', '2026-08-10 13:44:58.602', '2026-08-10 13:45:47.397', NULL, '98f761a0da97b2fdac10f570028ccfb7', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
