@@ -159,6 +159,20 @@ class ClideCompanionExtension extends ClideExtension {
     return composeSystemPrompt(brief: loaded.text, localeSuffix: loaded.foundIn, name: prefs.userName, about: prefs.about);
   }
 
+  /// Drive a preference change the way the UI does — over `companion.set`, so
+  /// the extension applies it, persists it, and announces it from one place.
+  Future<IpcResponse> _set({bool? enabled, bool? open, String? frequency}) async {
+    final ctx = _ctx;
+    if (ctx == null) {
+      return IpcResponse.err(
+        id: '',
+        error: IpcError(code: 1, kind: 'inactive', message: 'the companion is not active'),
+      );
+    }
+    publishCompanionSet(ctx.messages, enabled: enabled, open: open, frequency: frequency);
+    return IpcResponse.ok(id: '', data: const {'status': 'set'});
+  }
+
   void _onProjectChanged() => unawaited(_syncSession());
 
   ClideCompanionSettings get _prefs {
@@ -210,6 +224,89 @@ class ClideCompanionExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
+    // -- The strip's chrome (T-529, D-6) --------------------------------------
+    //
+    // The strip is not a slot, so none of this came free — D-107 accepts the
+    // parity as hand-rolled. Each of these drives `companion.set` on the bus,
+    // which is the same path the rail button and the settings panel take: the
+    // extension applies it, persists it, and announces the result. One route in
+    // means the CLI cannot set a state the UI would disagree with.
+    //
+    // `show`/`hide` rather than a single toggle: a toggle cannot be made
+    // idempotent, so a script has no way to *ensure* a state — which is most of
+    // what an agent wants from a verb.
+    CommandContribution(
+      id: 'companion.show',
+      command: 'companion.show',
+      title: 'Clide: show the strip',
+      titleKey: 'command.show',
+      i18nNamespace: id,
+      run: (_) async => _set(open: true),
+    ),
+    CommandContribution(
+      id: 'companion.hide',
+      command: 'companion.hide',
+      title: 'Clide: minimise the strip',
+      titleKey: 'command.hide',
+      i18nNamespace: id,
+      run: (_) async => _set(open: false),
+    ),
+    CommandContribution(
+      id: 'companion.enable',
+      command: 'companion.enable',
+      title: 'Clide: enable for this repository',
+      titleKey: 'command.enable',
+      i18nNamespace: id,
+      run: (_) async => _set(enabled: true),
+    ),
+    CommandContribution(
+      id: 'companion.disable',
+      command: 'companion.disable',
+      title: 'Clide: disable for this repository',
+      titleKey: 'command.disable',
+      i18nNamespace: id,
+      run: (_) async => _set(enabled: false),
+    ),
+    CommandContribution(
+      id: 'companion.frequency',
+      command: 'companion.frequency',
+      title: 'Clide: how often he speaks',
+      titleKey: 'command.frequency',
+      i18nNamespace: id,
+      run: (args) async {
+        if (args.isEmpty) return IpcResponse.ok(id: '', data: {'frequency': _prefs.frequency.name});
+        final raw = args.first.trim();
+        final parsed = CompanionFrequency.parse(raw);
+        // `parse` falls back to `notable` for junk, which is right for a stored
+        // value and wrong for a command: a typo would silently set something
+        // the caller did not ask for.
+        if (parsed.name != raw) {
+          return IpcResponse.err(
+            id: '',
+            error: IpcError(code: 1, kind: 'bad-args', message: 'frequency must be one of: ${CompanionFrequency.values.map((f) => f.name).join(', ')}'),
+          );
+        }
+        return _set(frequency: parsed.name);
+      },
+    ),
+    CommandContribution(
+      id: 'companion.status',
+      command: 'companion.status',
+      title: 'Clide: report his state',
+      titleKey: 'command.status',
+      i18nNamespace: id,
+      run: (_) async {
+        final prefs = _prefs;
+        // `running` is deliberately separate from `enabled`: enabled is what the
+        // user asked for, running is what is true. They differ while a spawn is
+        // in flight, or when there is no workspace to run in — and a status verb
+        // that conflated them would report a companion that is not there.
+        return IpcResponse.ok(
+          id: '',
+          data: {'enabled': prefs.enabled, 'open': prefs.open, 'frequency': prefs.frequency.name, 'running': _session?.running ?? false},
+        );
+      },
+    ),
     CommandContribution(
       id: 'companion.ask',
       command: 'companion.ask',

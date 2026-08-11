@@ -14139,3 +14139,121 @@ The surface is ASKED, not reached into: open/focus bump ValueNotifier counters t
 
 One bug worth recording: dispose() resolved the extension via ClideKernel.maybeOf(context), which is an illegal ancestor lookup on a deactivated widget and broke six unrelated app tests. The reference is captured at subscribe time now.', NULL, '2026-08-11 19:34:57', '2026-08-11 19:34:57.729', '2026-08-11 19:34:57.729', NULL, 'a9104fca8996bc8f26f223085c993082', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC073C7GRWC1BX3V682TC', 'status', 'in_progress', 'review', NULL, '2026-08-11 19:34:57', '2026-08-11 19:34:57.755', '2026-08-11 19:34:57.755', NULL, '22c7a51795076244af8b8b79064262a4', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XSMQCBRVZWWMENNS3KKFM', 'status', 'backlog', 'in_progress', NULL, '2026-08-11 19:47:46', '2026-08-11 19:47:46.704', '2026-08-11 19:47:46.704', NULL, 'e57df583c8f5da274e8e34b90a675b36', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XSMQCBRVZWWMENNS3KKFM', 'status', 'in_progress', 'in_progress', NULL, '2026-08-11 19:47:53', '2026-08-11 19:47:53.864', '2026-08-11 19:47:53.864', NULL, '57587988e817d35d46d8739dbb155c0b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XSMQCBRVZWWMENNS3KKFM', 'description', NULL, 'The strip''s chrome, made addressable. D-6 says every UI action has a CLI verb and every verb has a UI affordance; **D-107 accepts that the strip''s half is hand-rolled**, because the strip is not a slot and inherits none of `panel`''s verbs.
+
+Distinct from T-567, which covers *talking to him* (ask / say / open / focus). This is the surface itself: whether he exists, whether he is showing, and how eagerly he speaks.
+
+## What is unaddressable today
+
+Verified against a live instance: `clide capabilities` lists 79 verbs and the only one touching the companion is `panel.resize`, which does not apply to it. So every one of these is a UI action with no CLI equivalent:
+
+- the rail button that minimises the strip (T-528)
+- the kill switch in settings (T-527)
+- the frequency selector (T-527)
+- and there is no way to *read* any of it back
+
+## The verbs
+
+- `companion.show` / `companion.hide` — the rail button''s two states.
+- `companion.enable` / `companion.disable` — the kill switch. Note this tears the process down, so it is not merely a display toggle.
+- `companion.frequency [rare|notable|chatty]` — set, or report when called with no argument.
+- `companion.status` — enabled, open, frequency, and **running**.
+
+## Constraints that shape it
+
+**Drive the same path the UI does.** Each setter publishes `companion.set` on the bus, which the extension already applies, persists and announces (T-527). One route in means the CLI cannot reach a state the UI would disagree with, and the observe half (`companion.state`) keeps working untouched. This is the drive/observe grammar T-270 established for filter boxes, reused rather than reinvented.
+
+**Pairs, not toggles.** `show`/`hide` rather than one toggle: a toggle cannot be made idempotent, so a script has no way to *ensure* a state — which is most of what an agent wants from a verb.
+
+**`running` is not `enabled`.** Enabled is what the user asked for; running is what is true. They differ while a spawn is in flight and whenever there is no workspace to run in, and a status verb that conflated them would cheerfully report a companion that is not there.
+
+**A typo must not set something.** `CompanionFrequency.parse` falls back to `notable` for junk, which is correct for reading a stored value and wrong for a command — so the verb validates and refuses instead.
+
+## Watch for
+
+- Titles need `titleKey` in the extension''s namespace (D-21/D-102), or the palette ships untranslatable.
+- These are settings-shaped, so most of them restart the companion (the brief is argv, T-545). `frequency` is the exception and applies live.', NULL, '2026-08-11 20:05:59', '2026-08-11 20:05:59.226', '2026-08-11 20:05:59.226', NULL, 'c672c1cf03a23cbf167652b5b36dd3df', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XSMQCBRVZWWMENNS3KKFM', 'description', 'The strip''s chrome, made addressable. D-6 says every UI action has a CLI verb and every verb has a UI affordance; **D-107 accepts that the strip''s half is hand-rolled**, because the strip is not a slot and inherits none of `panel`''s verbs.
+
+Distinct from T-567, which covers *talking to him* (ask / say / open / focus). This is the surface itself: whether he exists, whether he is showing, and how eagerly he speaks.
+
+## What is unaddressable today
+
+Verified against a live instance: `clide capabilities` lists 79 verbs and the only one touching the companion is `panel.resize`, which does not apply to it. So every one of these is a UI action with no CLI equivalent:
+
+- the rail button that minimises the strip (T-528)
+- the kill switch in settings (T-527)
+- the frequency selector (T-527)
+- and there is no way to *read* any of it back
+
+## The verbs
+
+- `companion.show` / `companion.hide` — the rail button''s two states.
+- `companion.enable` / `companion.disable` — the kill switch. Note this tears the process down, so it is not merely a display toggle.
+- `companion.frequency [rare|notable|chatty]` — set, or report when called with no argument.
+- `companion.status` — enabled, open, frequency, and **running**.
+
+## Constraints that shape it
+
+**Drive the same path the UI does.** Each setter publishes `companion.set` on the bus, which the extension already applies, persists and announces (T-527). One route in means the CLI cannot reach a state the UI would disagree with, and the observe half (`companion.state`) keeps working untouched. This is the drive/observe grammar T-270 established for filter boxes, reused rather than reinvented.
+
+**Pairs, not toggles.** `show`/`hide` rather than one toggle: a toggle cannot be made idempotent, so a script has no way to *ensure* a state — which is most of what an agent wants from a verb.
+
+**`running` is not `enabled`.** Enabled is what the user asked for; running is what is true. They differ while a spawn is in flight and whenever there is no workspace to run in, and a status verb that conflated them would cheerfully report a companion that is not there.
+
+**A typo must not set something.** `CompanionFrequency.parse` falls back to `notable` for junk, which is correct for reading a stored value and wrong for a command — so the verb validates and refuses instead.
+
+## Watch for
+
+- Titles need `titleKey` in the extension''s namespace (D-21/D-102), or the palette ships untranslatable.
+- These are settings-shaped, so most of them restart the companion (the brief is argv, T-545). `frequency` is the exception and applies live.', 'The strip''s chrome, made addressable. D-6 says every UI action has a CLI verb and every verb has a UI affordance; **D-107 accepts that the strip''s half is hand-rolled**, because the strip is not a slot and inherits none of `panel`''s verbs.
+
+Distinct from T-567, which covers *talking to him* (ask / say / open / focus). This is the surface itself: whether he exists, whether he is showing, and how eagerly he speaks.
+
+## What is unaddressable today
+
+Verified against a live instance: `clide capabilities` lists 79 verbs and the only one touching the companion is `panel.resize`, which does not apply to it. So every one of these is a UI action with no CLI equivalent:
+
+- the rail button that minimises the strip (T-528)
+- the kill switch in settings (T-527)
+- the frequency selector (T-527)
+- and there is no way to *read* any of it back
+
+## The verbs
+
+- `companion.show` / `companion.hide` — the rail button''s two states.
+- `companion.enable` / `companion.disable` — the kill switch. Note this tears the process down, so it is not merely a display toggle.
+- `companion.frequency [rare|notable|chatty]` — set, or report when called with no argument.
+- `companion.status` — enabled, open, frequency, and **running**.
+
+## Constraints that shape it
+
+**Drive the same path the UI does.** Each setter publishes `companion.set` on the bus, which the extension already applies, persists and announces (T-527). One route in means the CLI cannot reach a state the UI would disagree with, and the observe half (`companion.state`) keeps working untouched. This is the drive/observe grammar T-270 established for filter boxes, reused rather than reinvented.
+
+**Pairs, not toggles.** `show`/`hide` rather than one toggle: a toggle cannot be made idempotent, so a script has no way to *ensure* a state — which is most of what an agent wants from a verb.
+
+**`running` is not `enabled`.** Enabled is what the user asked for; running is what is true. They differ while a spawn is in flight and whenever there is no workspace to run in, and a status verb that conflated them would cheerfully report a companion that is not there.
+
+**A typo must not set something.** `CompanionFrequency.parse` falls back to `notable` for junk, which is correct for reading a stored value and wrong for a command — so the verb validates and refuses instead.
+
+## Watch for
+
+- Titles need `titleKey` in the extension''s namespace (D-21/D-102), or the palette ships untranslatable.
+- These are settings-shaped, so most of them restart the companion (the brief is argv, T-545). `frequency` is the exception and applies live.
+
+Done 2026-08-11. Six verbs + 8 tests, added to companion_verbs_test.dart alongside T-567''s.
+
+Refined first — the ticket was a bare title, so the scope was reconstructed from D-107''s parity commitment and from what a live instance actually reported: 79 verbs, none touching the companion.
+
+show/hide, enable/disable, frequency, status. Each setter publishes companion.set on the bus, so the extension applies, persists and announces from one place — the CLI cannot reach a state the UI would disagree with, and the observe half keeps working untouched. Reuses T-270''s drive/observe grammar rather than inventing one.
+
+Pairs rather than toggles: a toggle cannot be made idempotent, so a script has no way to ENSURE a state, which is most of what an agent wants.
+
+status separates enabled from running. Enabled is intent, running is fact; they differ while a spawn is in flight and whenever there is no workspace, and conflating them would report a companion that is not there. Asserted.
+
+frequency validates rather than trusting CompanionFrequency.parse, whose fallback to notable is right for reading a stored value and wrong for a command — a typo would silently set something the caller did not ask for. Asserted that nothing is written on a bad value.
+
+Test note worth keeping: these verbs return before the write lands, because they publish and the extension persists on the far side of the bus. Two tests initially failed on that and now await the companion.state announcement instead of reading straight after the call.', NULL, '2026-08-11 20:26:36', '2026-08-11 20:26:36.170', '2026-08-11 20:26:36.170', NULL, '253453b02ca83ad3d3a1e9a13f0f607d', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XSMQCBRVZWWMENNS3KKFM', 'status', 'in_progress', 'review', NULL, '2026-08-11 20:26:36', '2026-08-11 20:26:36.206', '2026-08-11 20:26:36.206', NULL, 'b875dae5d01da4d840eabacca0a291c8', 2) ON CONFLICT(hash) DO NOTHING;

@@ -52,6 +52,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   "what did that mean?" about what Claude just said. Always answered, and his
   face turns to you while you type. (D-107, T-564)
 
+- **The Clide strip is scriptable.** `companion.show` / `hide`, `enable` /
+  `disable`, `frequency` and `status` — the rail button, the kill switch and
+  the frequency selector, all addressable, plus a way to read the state back.
+  (D-6, T-529)
+
 - **Clide from the keyboard and the CLI.** `companion.ask`, `companion.say`,
   `companion.open` and `companion.focus` — ask him, read his last remark, open
   his conversation, or jump to his input without touching the mouse. (D-6,
