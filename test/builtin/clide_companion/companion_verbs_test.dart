@@ -152,6 +152,32 @@ void main() {
       expect(ext.openRequests.value, before + 1);
     });
 
+    test('with no strip mounted it refuses rather than reporting success', () async {
+      // Found in review: these reported "opened" whether or not anything was
+      // listening, so with the companion minimised the verb answered about a
+      // window that never appeared.
+      final announced = f.services.messages.subscribe(publisher: 'clide.companion', channel: 'companion.state').first;
+      await verb('companion.hide').run([]);
+      await announced;
+
+      final before = ext.openRequests.value;
+      final r = await verb('companion.open').run([]);
+
+      expect(r.ok, isFalse);
+      expect(r.error!.kind, 'no-surface');
+      expect(r.error!.message, contains('companion.show'), reason: 'a refusal should say how to fix it');
+      expect(ext.openRequests.value, before, reason: 'and nothing should have been asked for');
+    });
+
+    test('disabled says so, rather than telling you to un-minimise', () async {
+      final announced = f.services.messages.subscribe(publisher: 'clide.companion', channel: 'companion.state').first;
+      await verb('companion.disable').run([]);
+      await announced;
+
+      final r = await verb('companion.focus').run([]);
+      expect(r.error!.message, contains('disabled'));
+    });
+
     test('two opens are two events, not one', () async {
       // A bool would swallow the second, and "open it again" is a real thing to
       // want after dismissing by accident.

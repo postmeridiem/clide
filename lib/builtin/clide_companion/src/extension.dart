@@ -159,6 +159,33 @@ class ClideCompanionExtension extends ClideExtension {
     return composeSystemPrompt(brief: loaded.text, localeSuffix: loaded.foundIn, name: prefs.userName, about: prefs.about);
   }
 
+  /// Ask the strip to do something, and refuse when there is no strip.
+  ///
+  /// Found reviewing T-567: these bumped their counter and reported success
+  /// whether or not anything was listening. With the companion disabled or
+  /// minimised the strip is not mounted, so `companion.open` answered "opened"
+  /// about a window that never appeared — the same false success the `ask` verb
+  /// was written to avoid, two tickets later.
+  ///
+  /// The mount condition is `enabled && open`, matching `CompanionState`. It is
+  /// checked rather than counting listeners, because a listener count is a fact
+  /// about our wiring and this is a question about the user's screen.
+  Future<IpcResponse> _askSurface(ValueNotifier<int> requests, String status) async {
+    final prefs = _prefs;
+    if (!prefs.enabled || !prefs.open) {
+      return IpcResponse.err(
+        id: '',
+        error: IpcError(
+          code: 1,
+          kind: 'no-surface',
+          message: prefs.enabled ? 'the Clide strip is minimised — run companion.show first' : 'Clide is disabled for this repository',
+        ),
+      );
+    }
+    requests.value++;
+    return IpcResponse.ok(id: '', data: {'status': status});
+  }
+
   /// Drive a preference change the way the UI does — over `companion.set`, so
   /// the extension applies it, persists it, and announces it from one place.
   Future<IpcResponse> _set({bool? enabled, bool? open, String? frequency}) async {
@@ -347,10 +374,7 @@ class ClideCompanionExtension extends ClideExtension {
       title: 'Clide: open his conversation',
       titleKey: 'command.open',
       i18nNamespace: id,
-      run: (_) async {
-        openRequests.value++;
-        return IpcResponse.ok(id: '', data: const {'status': 'opened'});
-      },
+      run: (_) async => _askSurface(openRequests, 'opened'),
     ),
     CommandContribution(
       id: 'companion.focus',
@@ -358,10 +382,7 @@ class ClideCompanionExtension extends ClideExtension {
       title: 'Clide: focus his input',
       titleKey: 'command.focus',
       i18nNamespace: id,
-      run: (_) async {
-        focusRequests.value++;
-        return IpcResponse.ok(id: '', data: const {'status': 'focused'});
-      },
+      run: (_) async => _askSurface(focusRequests, 'focused'),
     ),
     SettingsCategoryContribution(
       id: 'clide-companion',
