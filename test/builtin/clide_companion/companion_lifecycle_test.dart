@@ -52,12 +52,14 @@ void main() {
   late ClaudeSessionOrchestrator orch;
   final procs = <_FakeProc>[];
   final ids = <String>[];
+  var spawnArgs = <String>[];
 
   setUp(() {
     procs.clear();
     ids.clear();
     orch = ClaudeSessionOrchestrator(
       processFactory: ({required sessionArgs, required cwd, env}) async {
+        spawnArgs = sessionArgs;
         final p = _FakeProc();
         procs.add(p);
         return p;
@@ -232,13 +234,16 @@ void main() {
   });
 
   group('the paneless session', () {
-    test('runs on haiku', () async {
+    test('runs on haiku, chosen at spawn rather than asked for afterwards', () async {
+      // A set_model control request is echoed into his conversation as a local
+      // command — a caveat block, a `/model` line and its stdout, at the head of
+      // his context. Found by reading his transcript on the first live run.
       final c = controller();
       addTearDown(c.shutdown);
       await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
 
-      final setModel = procs.single.control.firstWhere((m) => (m['request'] as Map?)?['subtype'] == 'set_model');
-      expect((setModel['request'] as Map)['model'], kCompanionModel);
+      expect(spawnArgs, containsAllInOrder(['--model', kCompanionModel]));
+      expect(procs.single.control.where((m) => (m['request'] as Map?)?['subtype'] == 'set_model'), isEmpty);
     });
 
     test('refuses tool use rather than waiting for an approval that cannot come', () async {

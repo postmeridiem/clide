@@ -54,10 +54,12 @@ import 'package:flutter/foundation.dart';
 
 /// The model the companion runs on.
 ///
-/// Applied as a `set_model` control request after spawn rather than a `--model`
-/// flag, matching how every other clide session picks its model
-/// (`applySessionDefaults`) — and avoiding a new [SpawnSpec] field for one
-/// caller. Effort is deliberately left unset: `--effort` errors on Haiku 4.5.
+/// Passed as `--model` at spawn, **not** as a `set_model` control request.
+/// The request route is right for an agent session, whose user can change model
+/// mid-session — but the CLI echoes it into the conversation as a local command,
+/// which put a caveat block, a `/model` line and its stdout at the head of
+/// Clide's context. Found by reading his transcript on the first live run.
+/// Effort is deliberately left unset: `--effort` errors on Haiku 4.5.
 const kCompanionModel = 'haiku';
 
 /// Refusal handed to any tool the companion asks to use.
@@ -263,6 +265,7 @@ class CompanionSessionController extends ChangeNotifier {
         visible: false,
         profile: SessionProfile.companion,
         systemPrompt: brief,
+        model: kCompanionModel,
       ),
     );
     if (_stopped || !_enabled) {
@@ -273,7 +276,6 @@ class CompanionSessionController extends ChangeNotifier {
     }
     _managed = managed;
     _spawnedBrief = brief;
-    managed.session.setModel(kCompanionModel);
     _prompts = managed.session.pendingPromptStream.listen(_denyPrompt);
     notifyListeners();
   }

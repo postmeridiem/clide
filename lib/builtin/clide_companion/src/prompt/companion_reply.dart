@@ -75,6 +75,19 @@ class CompanionReply {
 /// is worth discarding a good reply over.
 final _facePrefix = RegExp(r'^\s*\[([A-Za-z]+)\]\s*');
 
+/// A face tag that opened and never closed.
+///
+/// **An unterminated `[` is an unfinished reply, not prose**, and rendering it
+/// is the failure the kill condition names — seen live as a bare `[idle` sitting
+/// in the bubble. [CompanionVoice] now parses only at the turn boundary, which
+/// removes the mid-stream case, but this covers the one timing cannot: a reply
+/// cut off at `max_tokens` part-way through its own tag arrives at the boundary
+/// still broken.
+///
+/// Scoped to the first line, because that is the only place a tag may appear —
+/// a `[` anywhere later is his prose and none of our business.
+final _unterminatedTag = RegExp(r'^\s*\[[^\]\n]*$', multiLine: false);
+
 /// Leftover scaffolding to strip from the visible text.
 ///
 /// Belt and braces for shapes we have not seen but which the earlier designs
@@ -101,6 +114,14 @@ final Map<String, FaceState> _byName = {for (final f in FaceState.values) f.name
 CompanionReply parseCompanionReply(String raw) {
   var text = raw;
   FaceState? face;
+
+  // Before anything else: a first line that opens a tag and never closes it is
+  // scaffolding mid-flight. Drop that line; keep whatever real prose follows.
+  final firstBreak = text.indexOf('\n');
+  final firstLine = firstBreak < 0 ? text : text.substring(0, firstBreak);
+  if (_unterminatedTag.hasMatch(firstLine)) {
+    text = firstBreak < 0 ? '' : text.substring(firstBreak + 1);
+  }
 
   final m = _facePrefix.firstMatch(text);
   if (m != null) {

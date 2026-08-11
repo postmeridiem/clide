@@ -194,6 +194,31 @@ void main() {
         expect(r.say, 'still here');
       });
 
+      test('an unterminated tag never renders, however it was truncated', () {
+        // Seen live as a bare `[idle` in the bubble. The voice now parses only
+        // at the turn boundary, which removes the mid-stream case — this covers
+        // the one timing cannot: a reply cut off at max_tokens part-way through
+        // its own tag arrives at the boundary still broken.
+        for (final fragment in ['[', '[id', '[idle', '  [unimpress']) {
+          final r = parseCompanionReply(fragment);
+          expect(r.say, isEmpty, reason: '"$fragment" leaked into the bubble');
+          expect(r.face, isNull);
+        }
+      });
+
+      test('an unterminated tag is dropped but real prose under it survives', () {
+        final r = parseCompanionReply('[idl\nThose accumulate.');
+        expect(r.say, 'Those accumulate.');
+        expect(r.face, isNull, reason: 'the tag was never readable, so the previous expression holds');
+      });
+
+      test('a bracket in his actual prose is left alone', () {
+        // The guard is scoped to the first line for exactly this reason.
+        final r = parseCompanionReply('[concerned]\nThat [sic] is going to bite.');
+        expect(r.face, FaceState.concerned);
+        expect(r.say, 'That [sic] is going to bite.');
+      });
+
       test('garbage is silence, not an error and not visible', () {
         final r = parseCompanionReply('');
         expect(r.face, isNull);

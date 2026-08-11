@@ -32,8 +32,17 @@ void main() {
     );
   });
 
-  Future<void> spawnCompanion({String brief = 'You are Clide.'}) => orch.spawn(
-    SpawnSpec(id: 'clide.companion', role: 'companion', sessionId: 'c1', cwd: '/repo', visible: false, profile: SessionProfile.companion, systemPrompt: brief),
+  Future<void> spawnCompanion({String brief = 'You are Clide.', String? model = 'haiku'}) => orch.spawn(
+    SpawnSpec(
+      id: 'clide.companion',
+      role: 'companion',
+      sessionId: 'c1',
+      cwd: '/repo',
+      visible: false,
+      profile: SessionProfile.companion,
+      systemPrompt: brief,
+      model: model,
+    ),
   );
 
   Future<void> spawnAgent() => orch.spawn(const SpawnSpec(id: 'primary', role: 'primary', sessionId: 'p1', cwd: '/repo'));
@@ -70,6 +79,14 @@ void main() {
       expect(args, isNot(contains('--allowedTools')));
       expect(args.join(' '), isNot(contains('clide exposes its IDE')));
       expect(args.join(' '), isNot(contains('skills are available')));
+    });
+
+    test('takes its model as a flag, never as a control request', () async {
+      // A set_model request is echoed into the conversation as a local command,
+      // which put a caveat block, a `/model` line and its stdout at the head of
+      // his context — above the rule forbidding him to mention such things.
+      await spawnCompanion();
+      expect(args, containsAllInOrder(['--model', 'haiku']));
     });
 
     test('still creates its own session, so it gets a transcript like any other', () async {

@@ -16245,3 +16245,418 @@ State changes are encoded as ABSENT from the enum rather than noted in a comment
 Real bug caught while wiring: _setBusy(false) runs BEFORE the result event announces the outcome, so reading busySince at turn end yields null every time. Every turn would have been reported as instantaneous, and under notable''s 5-second floor that means Clide is never asked about anything at all — total feature failure that a green suite would have reported as fine. The digest stamps the turn start itself now.
 
 Not built: commitLanded, D-107''s fourth notable event. It needs a git watcher — a second source with its own lifecycle — and the brief already catches commits from the prose. Deferred with a reason rather than stubbed.', 'review', 'medium', NULL, NULL, 'D-107', '2026-08-09 14:31:49.567', '2026-08-10 21:29:19.699', NULL, 'c5dd11efde96bbf240644a050a3069cd', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVABZYX13P4B3DKDCDV6A50', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'E1: The direct input — an affordance that is obviously not the Claude composer', 'The thing that turns Clide from decoration into a tool. Everything it needs already exists: the `[direct]` tag and its formatter (`directQuestion`, T-546), the brief that teaches him a direct line is the one case where silence is wrong (T-532), and a live session to send it to (T-545).
+
+## Scope
+
+- An input row on the strip. Submit sends `directQuestion(text)` into the companion session.
+- **Bypasses the trigger entirely** (T-547) — no frequency gate, no pacing, no debounce. A question asked is always answered, and the trigger exists to bound *unsolicited* spend.
+- Focus puts the face into `FaceState.listening`, which exists for this and which the voice deliberately never produces on its own (T-548).
+
+## The part that is actually hard
+
+**It must be unmistakable which box you are typing into.** Two composers on one screen, reaching two different models, one of which can act on your repo and one of which cannot. A user who types a task into Clide''s box and waits is having a bad time; a user who types a question about the conversation into Claude''s box has spent real quota on the wrong model.
+
+Distinguish it structurally, not with a label: different placement, different affordance, a visible tie to the face. Test it with someone who has not read this ticket.
+
+## Constraints
+
+- Interaction zone, not inline. The bubble stays display-only (D-78); the input is its own region.
+- Placeholder is a catalog string (D-21/D-102) and must tolerate ~30% growth in Dutch. His *answers* are model output and are not catalog strings.
+- Two-column control pattern and no-double-edge-padding from the ui-design geometry reference.
+- The strip is ~110px and the column runs 220-1000px wide. At the narrow end an input row plus a face plus a bubble does not fit; decide what yields.', 'backlog', 'high', NULL, NULL, 'D-107', '2026-08-10 21:52:16.375', '2026-08-10 21:52:16.375', NULL, '114cd6af2ba32c52678569b8f95eaa20', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC020QGT81JNJ82SE98R0', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'E2: The answer grows the strip, then gives the space back', 'Settled by the T-514 spike, so this is implementation rather than design: **the strip grows to a capped height (~40% of the column) while answering, scrolls beyond that, and collapses back when idle.** Space is borrowed only while in use.
+
+## Why a cap and not just growth
+
+The strip already costs every detail view ~110px permanently (D-107 cost section, D-48 chrome budget). An answer that pushed that to half the column and stayed there would be a second, larger tax nobody agreed to. Borrowing is acceptable; keeping is not.
+
+## Watch for
+
+- **Collapse must not be a jump.** The strip is beside a detail view whose content will reflow; a snap back to 110px moves everything under the reader''s eye. Animate the give-back, and do not collapse while the pointer is inside it.
+- A direct answer is capped at three sentences by the brief and at `kMaxRemarkChars` by the parser, so growth is bounded before layout ever sees it. The scroll case is the long-tail, not the norm.
+- The ambient remark path is unchanged — a two-sentence remark must not grow the strip at all, or every notable event becomes a layout event.
+- Reduced motion: the growth is animation and D-107 makes `MediaQuery.disableAnimations` a hard gate, not a courtesy.', 'backlog', 'high', NULL, NULL, 'D-107', '2026-08-10 21:52:16.400', '2026-08-10 21:52:16.400', NULL, '9c448bb84524e7014b05ba51c783d929', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC04G6G5GCGXEBWX833S0', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'E3: The popout — his conversation, latest first', 'An expand control opens a light conversation view over the detail area: the full Clide exchange for this session, **latest first**, with a fetch limit and lazy loading on scroll, and a text box underneath to continue talking.
+
+## What it reads
+
+**His own transcript**, and nothing bespoke. Verified live on 2026-08-10: the companion writes an ordinary `<uuid>.jsonl` under `~/.claude/projects/<repo>/` like any other session, because D-107 was amended to drop `--no-session-persistence`. So this pages through a real transcript with the reader clide already has.
+
+**That dissolves T-534** — the bespoke append-only log was written when the companion was non-persisted and there was no record of anything he said. Close it rather than build it.
+
+## The filter is the same one
+
+Only actually-said things: his prose and the questions put to him. Never tool uses, never injected metadata, never the `[observed]` digest lines we fed him — those are the developer''s own conversation and rendering them here would show it back to them in Clide''s window. Same boundary as the digest (D-107 commitment 3), applied in the opposite direction.
+
+Note the transcript also contains harness noise at the head of the session (local-command echoes). Whatever renders this needs the same allow-list discipline the digest has, not a raw dump.
+
+## Watch for
+
+- Latest-first is unusual and deliberate — the useful thing is the last thing he said, not the first.
+- It overlays the detail area, so dismissal must be obvious and must not lose a half-typed question.
+- Screen-reader route: this is the only place his history is readable as text, which makes it the accessible answer to a face and a bubble a reader cannot see (D-20).', 'backlog', 'medium', NULL, NULL, 'D-107', '2026-08-10 21:52:16.421', '2026-08-10 21:52:16.421', NULL, '8fd19a4e1937afb8791e3e0bd9a86e0e', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC073C7GRWC1BX3V682TC', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'E4: Parity and a11y for talking to him', 'D-6 says every UI action has a CLI verb and every CLI verb has a UI affordance. Direct addressing adds a UI action, so it owes a verb — and D-107 already accepts that the strip''s parity is **hand-rolled**, because it is not a slot.
+
+## Scope
+
+- `clide companion ask "…"` — send a direct question and return his answer. Sits alongside the companion verbs in T-529 (Epic C); coordinate rather than duplicate.
+- Keyboard route to the input, and out of it again without submitting.
+- Screen reader: the input needs a label, and his answer needs to reach a reader. The face and the bubble are both invisible to one, so this and E3 are between them the only way a blind developer experiences Clide at all — which makes this a tier-0 contract (D-20), not a nicety.
+
+## Worth deciding here
+
+A remark arriving unprompted is a live-region problem: announcing it interrupts the reader mid-way through Claude''s actual output, which is the content that matters. Prefer a pull affordance — a command that reads his latest — over a push announcement, and say so explicitly rather than letting a default `liveRegion: true` decide it.', 'backlog', 'medium', NULL, NULL, 'D-107', '2026-08-10 21:52:16.440', '2026-08-10 21:52:16.440', NULL, 'e3d50fc7292149f8cd30dcd9bb2270ef', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCPG0HVFYJDH8XYTF09BC4M', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'Clide conversation log — durable visual replay of his side', 'Clide''s own conversation — his remarks, and the questions put directly to him —
+must be **durably recorded by clide**, so the visual history can always be rebuilt
+from the log.
+
+**Visual replay only.** This is not session resume: nothing here restarts a
+`claude` process, re-attaches a transcript, or restores model context. The log
+exists so the conversation *surface* can be rendered without a live session
+behind it. What Clide remembers is a separate question owned by the session
+(T-519) and the prompt (T-532).
+
+## Why the log has to be ours
+
+D-107 spawns the companion with `--no-session-persistence` precisely so it never
+writes into `~/.claude/projects`. That is the right call for the *transcript* and
+it has a consequence nobody costed: **there is no record of anything Clide said.**
+Close the app and his side of the conversation is gone; restart the session at
+the ~50-comment cost boundary and it is gone mid-use. Epic E''s popout — "all
+previous messages this session, latest first, with a fetch limit and lazy loading
+on scroll" — has nothing to page through.
+
+So clide records it, in its own append-only log, with its own shape. Append-only
+because replay is the only read pattern, and because a log that can only grow at
+the end is the one that survives a crash mid-write.
+
+## The D-107 conflict, to be resolved not worked around
+
+D-107 currently states the companion "**writes nothing to the workspace**", citing
+D-93. A conversation log is a write. Options, in preference order:
+
+1. **App scope** (`~/.clide/…`, keyed by repo) — keeps the workspace clean,
+   honours D-93 and D-107 as written, and means the log is not something a user
+   accidentally commits. A repo cloned elsewhere loses the history, which for
+   ambient commentary is acceptable.
+2. **Project scope** (`.clide/…`) — survives with the repo, and `.clide/` already
+   holds `settings.yaml` so it is not a *new* directory. But it makes a second
+   model''s output a thing that can land in a commit, and D-107''s sentence has to
+   be amended and re-argued rather than quietly reinterpreted.
+
+Whichever wins, amend D-107 in the same commit. A record that says "writes
+nothing to the workspace" while the code writes to the workspace is worse than no
+record.
+
+## Shape
+
+- Append-only, one entry per turn: timestamp, direction (Clide spoke / the user
+  asked), text, and the mood he declared (T-532) so a replayed conversation shows
+  the same face it did live.
+- **Prose only, no tool activity** — the digest boundary is a D-107 commitment and
+  the log must not become a way around it. Whatever cannot be sent to Clide must
+  not be written down on his behalf either.
+- Bounded. It grows forever otherwise; decide a cap or a rotation and say what is
+  lost when it trips.
+- Read path is "latest first, page backwards" — that is what the popout wants, so
+  the format should make the tail cheap to read without loading the whole file.
+
+## Consumers
+
+- **T-520 (Epic E)** — the popout renders from this. It is the reason the log
+  exists, and E is blocked on it.
+- **T-519 (Epic D)** — writes to it as remarks are produced.
+- Detach and clear (T-528, T-532) are gaps in *ingest*, not in the log: what he
+  said before being minimised stays readable afterwards, even though he did not
+  see what happened while away.
+
+**Settled 2026-08-09 — this ticket changes shape. Read this over the description
+above, which assumed persistence.**
+
+## Decision: in memory, not on disk
+
+No file, no storage location, and therefore **no D-107 conflict to resolve** —
+"the companion writes nothing to the workspace" stands as written, and D-93 is
+untouched. That was the cleanest of the three options and it removes the
+governance question entirely rather than answering it.
+
+The buffer dies with the app. Accepted: the popout shows this run.
+
+## But it does not die with the widget
+
+Explicitly: **closing or minimising the strip pauses, it does not clear.** So the
+buffer cannot live in `_Strip`, `ClideStripHost`, or anything else that unmounts
+— minimising removes those from the tree (T-528), and the whole point is that
+what he said is still there when you bring him back.
+
+It belongs beside the session lifecycle, in the extension, which is where the
+adapters already live and which survives everything except the kill switch.
+
+## Three "restarts", and they are not the same
+
+Worth stating because the words collide:
+
+| Event | Model context | Visual buffer |
+|---|---|---|
+| strip minimised / closed | kept (T-545: pause, don''t drop) | **kept** |
+| ~50-comment session restart (cost control) | reset | **kept** — it is history, not context |
+| kill switch off | process torn down | cleared |
+| app restart | gone | gone |
+
+The middle row is the one to get right. The session restart exists to stop the
+prompt growing quadratically; it says nothing about what the user should still be
+able to scroll back through. Wiping the popout because we recycled a process
+would look like a bug.
+
+## Still needed
+
+- **A bound.** An in-memory buffer that only grows is a leak on a long day. A
+  ring of the last N exchanges, with N stated and the drop logged rather than
+  silent.
+- Prose only, still — the digest boundary applies to what is recorded as much as
+  to what is sent (D-107 commitment 3).
+- Latest-first read with a fetch limit, which is what Epic E''s popout wants.
+
+## Epic E
+
+Still blocked on this, but on a much smaller thing than before: a bounded
+in-memory ring with a read API, rather than a file format and a storage argument.
+
+**Largely dissolved 2026-08-09 (D-107 amended) — read this over everything above.**
+
+The companion is now an ordinary persisted session, so its conversation **is a transcript** like any other. There is no bespoke buffer to build: no ring, no bound, no read API, no storage question, and the memory-only decision taken an hour earlier is moot.
+
+That also retires the reasoning I recorded for it. I argued persistence was a privacy concern; it is not — Clide''s transcript is a strict subset of what the primary session already writes to the same directory.
+
+**What remains of this ticket is Epic E''s, not a data layer:** the answer surface reads a `ConversationController` over the companion''s transcript exactly as the main pane does. Same items, same renderer, minus tool cards. Whether this ticket closes as duplicate-of-T-520 or survives as ''wire the companion''s conversation into a controller'' is T-520''s call when it is picked up.
+
+One consequence worth carrying forward: history is **per clide run** (the settled session model), so the answer surface never spans days. Nobody should build paging that assumes it does.
+
+Dissolved 2026-08-10 — verified live, not argued.
+
+This ticket''s entire premise was D-107 spawning the companion with --no-session-persistence, which meant ''there is no record of anything Clide said''. D-107 was amended on 2026-08-09 to make him an ordinary persisted session, and the amendment named this consequence explicitly: the answer surface reads a ConversationController exactly as the main pane does, instead of inventing a private buffer and a private renderer.
+
+Confirmed on disk during the first live smoke test: the companion writes ~/.claude/projects/<repo>/c11de000-<uuid>.jsonl like any other session, containing both what we sent him and what he said. The popout (T-566) pages through that with the reader clide already has.
+
+The D-93 conflict this ticket raised — ''a conversation log is a write'' — evaporates with it. Nothing new is written anywhere.
+
+One thing worth carrying to T-566: the transcript head contains harness noise (local-command echoes from the setModel control request), so whatever renders it needs the same allow-list discipline the digest has rather than a raw dump.', 'backlog', 'high', NULL, NULL, 'D-107', '2026-08-09 11:48:05.902', '2026-08-10 21:52:26.216', NULL, 'a3fef7ff5bd976a4ace0bfd0db6095bd', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCPG0HVFYJDH8XYTF09BC4M', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'Clide conversation log — durable visual replay of his side', 'Clide''s own conversation — his remarks, and the questions put directly to him —
+must be **durably recorded by clide**, so the visual history can always be rebuilt
+from the log.
+
+**Visual replay only.** This is not session resume: nothing here restarts a
+`claude` process, re-attaches a transcript, or restores model context. The log
+exists so the conversation *surface* can be rendered without a live session
+behind it. What Clide remembers is a separate question owned by the session
+(T-519) and the prompt (T-532).
+
+## Why the log has to be ours
+
+D-107 spawns the companion with `--no-session-persistence` precisely so it never
+writes into `~/.claude/projects`. That is the right call for the *transcript* and
+it has a consequence nobody costed: **there is no record of anything Clide said.**
+Close the app and his side of the conversation is gone; restart the session at
+the ~50-comment cost boundary and it is gone mid-use. Epic E''s popout — "all
+previous messages this session, latest first, with a fetch limit and lazy loading
+on scroll" — has nothing to page through.
+
+So clide records it, in its own append-only log, with its own shape. Append-only
+because replay is the only read pattern, and because a log that can only grow at
+the end is the one that survives a crash mid-write.
+
+## The D-107 conflict, to be resolved not worked around
+
+D-107 currently states the companion "**writes nothing to the workspace**", citing
+D-93. A conversation log is a write. Options, in preference order:
+
+1. **App scope** (`~/.clide/…`, keyed by repo) — keeps the workspace clean,
+   honours D-93 and D-107 as written, and means the log is not something a user
+   accidentally commits. A repo cloned elsewhere loses the history, which for
+   ambient commentary is acceptable.
+2. **Project scope** (`.clide/…`) — survives with the repo, and `.clide/` already
+   holds `settings.yaml` so it is not a *new* directory. But it makes a second
+   model''s output a thing that can land in a commit, and D-107''s sentence has to
+   be amended and re-argued rather than quietly reinterpreted.
+
+Whichever wins, amend D-107 in the same commit. A record that says "writes
+nothing to the workspace" while the code writes to the workspace is worse than no
+record.
+
+## Shape
+
+- Append-only, one entry per turn: timestamp, direction (Clide spoke / the user
+  asked), text, and the mood he declared (T-532) so a replayed conversation shows
+  the same face it did live.
+- **Prose only, no tool activity** — the digest boundary is a D-107 commitment and
+  the log must not become a way around it. Whatever cannot be sent to Clide must
+  not be written down on his behalf either.
+- Bounded. It grows forever otherwise; decide a cap or a rotation and say what is
+  lost when it trips.
+- Read path is "latest first, page backwards" — that is what the popout wants, so
+  the format should make the tail cheap to read without loading the whole file.
+
+## Consumers
+
+- **T-520 (Epic E)** — the popout renders from this. It is the reason the log
+  exists, and E is blocked on it.
+- **T-519 (Epic D)** — writes to it as remarks are produced.
+- Detach and clear (T-528, T-532) are gaps in *ingest*, not in the log: what he
+  said before being minimised stays readable afterwards, even though he did not
+  see what happened while away.
+
+**Settled 2026-08-09 — this ticket changes shape. Read this over the description
+above, which assumed persistence.**
+
+## Decision: in memory, not on disk
+
+No file, no storage location, and therefore **no D-107 conflict to resolve** —
+"the companion writes nothing to the workspace" stands as written, and D-93 is
+untouched. That was the cleanest of the three options and it removes the
+governance question entirely rather than answering it.
+
+The buffer dies with the app. Accepted: the popout shows this run.
+
+## But it does not die with the widget
+
+Explicitly: **closing or minimising the strip pauses, it does not clear.** So the
+buffer cannot live in `_Strip`, `ClideStripHost`, or anything else that unmounts
+— minimising removes those from the tree (T-528), and the whole point is that
+what he said is still there when you bring him back.
+
+It belongs beside the session lifecycle, in the extension, which is where the
+adapters already live and which survives everything except the kill switch.
+
+## Three "restarts", and they are not the same
+
+Worth stating because the words collide:
+
+| Event | Model context | Visual buffer |
+|---|---|---|
+| strip minimised / closed | kept (T-545: pause, don''t drop) | **kept** |
+| ~50-comment session restart (cost control) | reset | **kept** — it is history, not context |
+| kill switch off | process torn down | cleared |
+| app restart | gone | gone |
+
+The middle row is the one to get right. The session restart exists to stop the
+prompt growing quadratically; it says nothing about what the user should still be
+able to scroll back through. Wiping the popout because we recycled a process
+would look like a bug.
+
+## Still needed
+
+- **A bound.** An in-memory buffer that only grows is a leak on a long day. A
+  ring of the last N exchanges, with N stated and the drop logged rather than
+  silent.
+- Prose only, still — the digest boundary applies to what is recorded as much as
+  to what is sent (D-107 commitment 3).
+- Latest-first read with a fetch limit, which is what Epic E''s popout wants.
+
+## Epic E
+
+Still blocked on this, but on a much smaller thing than before: a bounded
+in-memory ring with a read API, rather than a file format and a storage argument.
+
+**Largely dissolved 2026-08-09 (D-107 amended) — read this over everything above.**
+
+The companion is now an ordinary persisted session, so its conversation **is a transcript** like any other. There is no bespoke buffer to build: no ring, no bound, no read API, no storage question, and the memory-only decision taken an hour earlier is moot.
+
+That also retires the reasoning I recorded for it. I argued persistence was a privacy concern; it is not — Clide''s transcript is a strict subset of what the primary session already writes to the same directory.
+
+**What remains of this ticket is Epic E''s, not a data layer:** the answer surface reads a `ConversationController` over the companion''s transcript exactly as the main pane does. Same items, same renderer, minus tool cards. Whether this ticket closes as duplicate-of-T-520 or survives as ''wire the companion''s conversation into a controller'' is T-520''s call when it is picked up.
+
+One consequence worth carrying forward: history is **per clide run** (the settled session model), so the answer surface never spans days. Nobody should build paging that assumes it does.
+
+Dissolved 2026-08-10 — verified live, not argued.
+
+This ticket''s entire premise was D-107 spawning the companion with --no-session-persistence, which meant ''there is no record of anything Clide said''. D-107 was amended on 2026-08-09 to make him an ordinary persisted session, and the amendment named this consequence explicitly: the answer surface reads a ConversationController exactly as the main pane does, instead of inventing a private buffer and a private renderer.
+
+Confirmed on disk during the first live smoke test: the companion writes ~/.claude/projects/<repo>/c11de000-<uuid>.jsonl like any other session, containing both what we sent him and what he said. The popout (T-566) pages through that with the reader clide already has.
+
+The D-93 conflict this ticket raised — ''a conversation log is a write'' — evaporates with it. Nothing new is written anywhere.
+
+One thing worth carrying to T-566: the transcript head contains harness noise (local-command echoes from the setModel control request), so whatever renders it needs the same allow-list discipline the digest has rather than a raw dump.', 'cancelled', 'high', NULL, NULL, 'D-107', '2026-08-09 11:48:05.902', '2026-08-10 21:52:26.245', NULL, '1657d0ebcca00b8fb379d0819985c32d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73ZFJHHB92SAKPKNJGD9XC', 'epic', '06FY73V6EVHP32P31NQRJCP104', 'Epic E: Clide direct addressing — input box and answer surface', 'Make Clide addressable: an input box on its surface, and a readable place for the answer.
+This is what turns the companion from decoration into a tool — the driving use case is
+**"what did that mean?"** about what Claude just said, answered right where the work is.
+
+Blocked by Epic C (needs the surface and its internal composition) and Epic D (needs the
+session and the `[direct]` protocol tag).
+
+## Epic''s own first job
+
+1. **Break this epic down** once C and D have landed and their contracts are real.
+2. **Own the cross-epic behaviour** — a direct question changes face state (Epic B), consumes
+   the companion session (Epic D), and occupies surface space (Epic C). Don''t reimplement any
+   of those; extend them, and fold any needed contract changes back into the sibling epic
+   rather than working around it locally.
+
+## Scope
+
+- Input affordance on the Clide surface. Distinct from the Claude composer — it must be
+  visually and behaviourally obvious which one you''re typing into, since the whole point is
+  that they go to different models.
+- Submit → `[direct]` tagged line into the companion session (Epic D''s protocol).
+- Answer rendering. **Shape depends on T-514''s answer-space decision** — fixed height with
+  scroll inside the bubble, grow-to-cap-then-scroll, or take over the panel body.
+- Focus handling: focusing the input should put the face into `listening` (Epic B).
+- Direct questions bypass the notable-events trigger — always answered.
+
+## Design notes
+
+- Interactive controls belong in an interaction zone, not inline in a display surface —
+  the same principle as D-78''s rule for the Claude pane. The bubble stays display-only; the
+  input is its own region.
+- Two-column control pattern and the no-double-edge-padding rule from
+  `.claude/skills/ui-design/references/geometry.md` apply to the input row.
+- Placeholder text is a catalog string (D-21/D-102) and must tolerate ~30% length growth in
+  Dutch. Clide''s *answers* are model output and are not catalog strings.
+- At ultrawide, right-align with `Expanded`, not a `Spacer` fighting a flex sibling — the
+  drift is proportional to width (~1500px adrift at 3440px). See the ultrawide section of the
+  geometry reference.
+
+## Known limitation to surface in the UI
+
+Clide sees prose only — no tool calls, no tool results (Epic D). "What did that tool call
+do?" cannot be answered. Consider whether the empty/placeholder state should set that
+expectation rather than letting the user discover it by getting a bad answer.
+
+## Added by T-514 spike (2026-08-09) — conversation popout
+
+Placement B was chosen, which caps the inline strip at ~2 lines of text at a 1000px context
+panel and ~4 short lines at the 220px minimum. Inline answers therefore grow the strip to a
+capped height (~40% of the column) and collapse back when idle.
+
+That is enough to read one answer. It is not enough to review a session''s worth of them, so
+Epic E also gains an **expand control that opens a conversation popout**:
+
+- A **light version of the conversation view** — not a second full implementation. Reuse
+  what the Claude pane already has where practical rather than forking it.
+- Shows the **full Clide exchange for this session**: his unprompted remarks and your direct
+  questions, interleaved.
+- **Latest first.**
+- **Fetch limit + lazy loading on scroll** — do not materialise the whole history up front.
+- **A text box underneath to talk back**, so the popout is a working surface rather than a
+  read-only log. Same `[direct]` protocol path as the inline input (Epic D).
+- Surfaces **only actually-said things — never tool uses, never injected metadata.** This
+  mirrors the digest boundary Epic D enforces on the way in: Clide never saw tool calls, so
+  the popout must not invent a view containing them.
+
+Open questions for this epic to settle at breakdown:
+
+- Overlay versus takeover of the context body. Overlay preserves the detail view underneath
+  but is new chrome for this repo (focus trap, Esc-to-dismiss, click-away).
+- Whether the popout and the inline strip share one scroll model and one controller, or the
+  popout is a separate surface fed by the same store. Prefer one store, two views.
+- What "session" means when Epic D restarts the companion session at ~50 comments — the
+  popout''s history should almost certainly outlive the underlying model session, which
+  implies the transcript is clide-side state, not a read of the companion process.
+
+That last one is load-bearing and worth resolving early: it decides whether the popout reads
+from a clide-owned store or from the companion session, and the restart behaviour makes the
+store the likelier answer.
+
+Blocked on **T-534** (Clide conversation log), filed 2026-08-09. The popout described here — previous messages this session, latest first, fetch limit, lazy loading on scroll — has nothing to page through today: D-107 spawns the companion with `--no-session-persistence`, so nothing Clide says is recorded anywhere. T-534 gives this epic its data source, and settles where that log may live given D-107''s ''writes nothing to the workspace'' clause.
+
+Note the split the user drew: T-534 is **visual replay only**. It does not resume a session or restore model context — what Clide *remembers* stays a session and prompt concern (T-519, T-532). This epic renders history; it does not reconstruct a mind.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-08 22:48:08.852', '2026-08-10 21:52:26.268', NULL, '2456497dae072ecb32d7c09b126ccc0e', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

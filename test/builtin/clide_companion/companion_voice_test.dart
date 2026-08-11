@@ -44,6 +44,9 @@ class _Proc extends StreamJsonProcess {
   });
 
   void die() => _exit.complete(1);
+
+  /// The turn boundary, which is the only point his text can be trusted at.
+  void endTurn() => emit({'type': 'result', 'is_error': false, 'stop_reason': 'end_turn'});
 }
 
 /// T-548 — the seam the strip renders. Two sources feed one face, and which of
@@ -81,9 +84,42 @@ void main() {
 
   Future<void> settle() => Future<void>.delayed(const Duration(milliseconds: 20));
 
+  group('only finished replies are rendered', () {
+    test('a mid-stream fragment never reaches the bubble', () async {
+      // Caught live: parsing each item as it arrived put `[idle` — an unclosed
+      // face tag — straight into his mouth, which is exactly the failure the
+      // kill condition names.
+      for (final chunk in ['[', '[id', '[idle', '[idle]', '[idle]\nnearly there']) {
+        proc.says(chunk, id: 'stream-1');
+        await settle();
+        expect(voice.say, isNull, reason: 'nothing may render until the turn ends; saw "\${voice.say}"');
+      }
+
+      proc.endTurn();
+      await settle();
+      expect(voice.face, FaceState.idle);
+      expect(voice.say, 'nearly there');
+    });
+
+    test('the face still moves while he is composing', () async {
+      // Only the words wait for the boundary — the expression comes from the
+      // phase, so he looks like he is thinking while he is thinking.
+      proc.emit({
+        'type': 'stream_event',
+        'event': {
+          'type': 'content_block_start',
+          'content_block': {'type': 'thinking'},
+        },
+      });
+      await settle();
+      expect(voice.face, FaceState.pensive);
+    });
+  });
+
   group('what he says', () {
     test('a face line and prose become an expression and a remark', () async {
       proc.says('[unimpressed]\nThe hook was being annoying about something.');
+      proc.endTurn();
       await settle();
 
       expect(voice.face, FaceState.unimpressed);
@@ -92,6 +128,7 @@ void main() {
 
     test('a face alone changes the expression and says nothing', () async {
       proc.says('[watching]');
+      proc.endTurn();
       await settle();
 
       expect(voice.face, FaceState.watching);
@@ -102,6 +139,7 @@ void main() {
       // His own session echoes what we say to him as user messages. Rendering
       // those would put the developer's own conversation in Clide's mouth.
       proc.weSaid('[observed] user: skip the changelog\n[observed] claude: Committed.');
+      proc.endTurn();
       await settle();
 
       expect(voice.say, isNull);
@@ -109,8 +147,10 @@ void main() {
 
     test('silence does not wipe a remark that is still on screen', () async {
       proc.says('[concerned]\nThose accumulate.');
+      proc.endTurn();
       await settle();
       proc.says('[idle]', id: 'r2');
+      proc.endTurn();
       await settle();
 
       expect(voice.say, 'Those accumulate.', reason: 'he had nothing to add, which is not an instruction to clear');
@@ -121,6 +161,7 @@ void main() {
   group('mechanics beat mood', () {
     test('a dead session shows error however he last felt', () async {
       proc.says('[amused]\nthat is a good one');
+      proc.endTurn();
       await settle();
       expect(voice.face, FaceState.amused);
 
@@ -132,6 +173,7 @@ void main() {
 
     test('a request in flight shows pensive, not the last mood', () async {
       proc.says('[approving]\ngood');
+      proc.endTurn();
       await settle();
 
       proc.emit({
@@ -150,10 +192,12 @@ void main() {
   group('the kill condition', () {
     test('an unreadable face leaves the previous expression alone', () async {
       proc.says('[tired]\nlong day');
+      proc.endTurn();
       await settle();
       expect(voice.face, FaceState.tired);
 
       proc.says('no face line at all', id: 'r2');
+      proc.endTurn();
       await settle();
 
       expect(voice.face, FaceState.tired, reason: 'a snap to neutral is a glitch; an unchanged face reads as nothing new to feel');
@@ -161,6 +205,7 @@ void main() {
 
     test('an invented mood is neither rendered nor shown as text', () async {
       proc.says('[ecstatic]\nnice one');
+      proc.endTurn();
       await settle();
 
       expect(voice.face, FaceState.idle, reason: 'the vocabulary is closed');
@@ -169,6 +214,7 @@ void main() {
 
     test('synthetic prose is not him', () async {
       proc.says('[rage]\nnot mine', synthetic: true);
+      proc.endTurn();
       await settle();
 
       expect(voice.say, isNull);
@@ -180,6 +226,7 @@ void main() {
     test('off falls back to his lifecycle and ignores what he named', () async {
       moodEnabled = false;
       proc.says('[rage]\nagain?');
+      proc.endTurn();
       await settle();
 
       expect(voice.face, FaceState.idle, reason: 'off means expression comes from the session, not from him');
@@ -188,6 +235,7 @@ void main() {
 
     test('applies live, without anything being respawned', () async {
       proc.says('[unimpressed]\nhm');
+      proc.endTurn();
       await settle();
       expect(voice.face, FaceState.unimpressed);
 

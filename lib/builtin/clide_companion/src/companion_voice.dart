@@ -16,6 +16,20 @@
 /// So this binds [companionSessionReader] directly, which is what T-555 built it
 /// for.
 ///
+/// ## Only finished replies are rendered
+///
+/// His text is parsed on the turn's `result`, never as items arrive. Caught
+/// live: parsing each item put **`[idle`** — an unclosed face tag, mid-stream —
+/// straight into the bubble, which is precisely the failure T-532's kill
+/// condition names. A `partial-` uuid means "came through the streaming path",
+/// not "still arriving", and the final event is rewritten under the same uuid,
+/// so the only safe read is at the turn boundary. Same rule the digest follows,
+/// arrived at the same way.
+///
+/// The *face* still moves during a turn, because that comes from
+/// [TurnPhase] rather than from his text — he looks like he is thinking while he
+/// is thinking, and only the words wait.
+///
 /// ## Two sources for one face
 ///
 /// Mechanics win over mood. His session dying, his request being in flight and
@@ -67,6 +81,10 @@ class CompanionVoice extends ChangeNotifier {
 
   /// The mood he last named, held until he names another. Null until he has.
   FaceState? _declared;
+
+  /// Text in flight, keyed by uuid so a streamed message and its final rewrite
+  /// collapse into one entry with the complete version winning.
+  final Map<String, String> _pending = {};
   TurnPhase _phase = TurnPhase.idle;
   bool _dead = false;
   String? _say;
@@ -96,6 +114,7 @@ class CompanionVoice extends ChangeNotifier {
     _reader.start();
     _subs
       ..add(_reader.items.listen(_onItem))
+      ..add(_reader.turnOutcomes.listen(_onTurnEnd))
       ..add(_reader.phase.listen(_onPhase))
       ..add(_reader.ended.listen(_onEnded));
   }
@@ -116,8 +135,17 @@ class CompanionVoice extends ChangeNotifier {
     // those are what WE said to him, and rendering them would put the developer's
     // own conversation in Clide's mouth.
     if (item is! AssistantTextMessage || item.synthetic) return;
+    // Held, not parsed. Mid-stream this is a fragment — `[idle` with no closing
+    // bracket — and parsing it renders scaffolding.
+    _pending[item.uuid] = item.text;
+  }
 
-    final reply = parseCompanionReply(item.text);
+  /// He finished. Now his text can be trusted.
+  void _onTurnEnd(TurnOutcome outcome) {
+    if (_pending.isEmpty) return;
+    final reply = parseCompanionReply(_pending.values.join('\n'));
+    _pending.clear();
+
     // A face he did not name, or named unrecognisably, leaves the previous
     // expression alone (T-532's kill condition). Never a default reset: an
     // unchanged face reads as having nothing new to feel, a snap to neutral
