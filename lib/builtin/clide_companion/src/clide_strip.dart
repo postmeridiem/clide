@@ -18,8 +18,10 @@ import 'package:clide/builtin/clide_companion/src/ask_box.dart';
 import 'package:clide/builtin/clide_companion/src/clide_face.dart';
 import 'package:clide/builtin/clide_companion/src/face_state.dart';
 import 'package:clide/builtin/clide_companion/src/session_load.dart';
+import 'package:clide/widgets/src/clide_icon.dart';
 import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_text.dart';
+import 'package:clide/widgets/src/icons/phosphor.dart';
 import 'package:clide/widgets/src/spacing.dart';
 import 'package:clide/widgets/src/typography.dart';
 import 'package:flutter/widgets.dart';
@@ -208,9 +210,13 @@ class _ExpandButton extends StatelessWidget {
               border: Border.all(color: tokens.globalBorder),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: Center(
-              child: ClideText('⌃', color: tokens.globalTextMuted, fontSize: clideFontCaption),
-            ),
+            // A Phosphor glyph, not a text character. The first cut used `⌃`
+            // (U+2303), which Inter has and **Josefin Sans does not** — and the
+            // UI face is user-selectable (D-101), so that was tofu for anyone
+            // who switched. Exactly the failure `kVerifiedFaceGlyphs` exists to
+            // stop for the face, walked into three tickets later for chrome.
+            // Phosphor ships its own font, so the question does not arise.
+            child: Center(child: ClideIcon(PhosphorIcons.byName('chat-circle'), size: 13, color: tokens.globalTextMuted)),
           ),
         ),
       ),
