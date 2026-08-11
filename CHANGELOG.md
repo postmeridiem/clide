@@ -48,6 +48,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   "what did that mean?" about what Claude just said. Always answered, and his
   face turns to you while you type. (D-107, T-564)
 
+- **Clide's conversation.** Expand the strip to read his side in full — his
+  remarks and your questions, newest first, with a box to keep talking. Esc or
+  a click outside closes it, and a half-typed question survives. (D-107, T-566)
+
 - **Clide runs a session.** A headless Haiku session starts with the workspace
   and follows it: the settings switch tears the process down, minimising only
   pauses it, and clearing the main pane clears Clide with it. His own

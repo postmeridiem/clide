@@ -14050,3 +14050,55 @@ Accepted cost, stated so it is not rediscovered: a two-line answer that would ha
 If growth is ever revisited: the width must be passed in rather than measured (root LayoutBuilder breaks intrinsics), the scroll must wrap the bubble rather than live inside it, and the cap should be a constant.', NULL, '2026-08-11 15:22:15', '2026-08-11 15:22:15.813', '2026-08-11 15:22:15.813', NULL, 'f4455436c23dac538214016f47d60abe', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC020QGT81JNJ82SE98R0', 'status', 'backlog', 'cancelled', NULL, '2026-08-11 15:22:15', '2026-08-11 15:22:15.840', '2026-08-11 15:22:15.840', NULL, 'd0a8c046738c119126840c8c34cfb4c2', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC04G6G5GCGXEBWX833S0', 'status', 'backlog', 'in_progress', NULL, '2026-08-11 15:22:15', '2026-08-11 15:22:15.862', '2026-08-11 15:22:15.862', NULL, '7548eba59962a189014d5922bf38cd94', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC04G6G5GCGXEBWX833S0', 'description', 'An expand control opens a light conversation view over the detail area: the full Clide exchange for this session, **latest first**, with a fetch limit and lazy loading on scroll, and a text box underneath to continue talking.
+
+## What it reads
+
+**His own transcript**, and nothing bespoke. Verified live on 2026-08-10: the companion writes an ordinary `<uuid>.jsonl` under `~/.claude/projects/<repo>/` like any other session, because D-107 was amended to drop `--no-session-persistence`. So this pages through a real transcript with the reader clide already has.
+
+**That dissolves T-534** — the bespoke append-only log was written when the companion was non-persisted and there was no record of anything he said. Close it rather than build it.
+
+## The filter is the same one
+
+Only actually-said things: his prose and the questions put to him. Never tool uses, never injected metadata, never the `[observed]` digest lines we fed him — those are the developer''s own conversation and rendering them here would show it back to them in Clide''s window. Same boundary as the digest (D-107 commitment 3), applied in the opposite direction.
+
+Note the transcript also contains harness noise at the head of the session (local-command echoes). Whatever renders this needs the same allow-list discipline the digest has, not a raw dump.
+
+## Watch for
+
+- Latest-first is unusual and deliberate — the useful thing is the last thing he said, not the first.
+- It overlays the detail area, so dismissal must be obvious and must not lose a half-typed question.
+- Screen-reader route: this is the only place his history is readable as text, which makes it the accessible answer to a face and a bubble a reader cannot see (D-20).', 'An expand control opens a light conversation view over the detail area: the full Clide exchange for this session, **latest first**, with a fetch limit and lazy loading on scroll, and a text box underneath to continue talking.
+
+## What it reads
+
+**His own transcript**, and nothing bespoke. Verified live on 2026-08-10: the companion writes an ordinary `<uuid>.jsonl` under `~/.claude/projects/<repo>/` like any other session, because D-107 was amended to drop `--no-session-persistence`. So this pages through a real transcript with the reader clide already has.
+
+**That dissolves T-534** — the bespoke append-only log was written when the companion was non-persisted and there was no record of anything he said. Close it rather than build it.
+
+## The filter is the same one
+
+Only actually-said things: his prose and the questions put to him. Never tool uses, never injected metadata, never the `[observed]` digest lines we fed him — those are the developer''s own conversation and rendering them here would show it back to them in Clide''s window. Same boundary as the digest (D-107 commitment 3), applied in the opposite direction.
+
+Note the transcript also contains harness noise at the head of the session (local-command echoes). Whatever renders this needs the same allow-list discipline the digest has, not a raw dump.
+
+## Watch for
+
+- Latest-first is unusual and deliberate — the useful thing is the last thing he said, not the first.
+- It overlays the detail area, so dismissal must be obvious and must not lose a half-typed question.
+- Screen-reader route: this is the only place his history is readable as text, which makes it the accessible answer to a face and a bubble a reader cannot see (D-20).
+
+Done 2026-08-11. companion_popout.dart + 9 tests.
+
+READS HIS REAL TRANSCRIPT — nothing bespoke. The ConversationController clide already holds for every session is the source, which is what D-107''s amendment bought when it dropped --no-session-persistence. T-534 stays cancelled.
+
+THE FILTER RUNS OPPOSITE TO THE DIGEST''S. That one decides what Clide may see; this decides what may be seen of him: his own words and the questions put to him. The [observed] lines are excluded because they are the developer''s own conversation and showing them back inside Clide''s window would be a strange mirror. [notice] and [event] excluded as bookkeeping. Same allow-list discipline — an unknown item type is invisible until someone decides otherwise, asserted with a ToolResultMessage carrying a secret.
+
+His silences do not render as empty rows (most replies are a face and nothing else), and the reply goes through the same parser the bubble uses so the face tag cannot appear here either.
+
+Dismissal settled with the product owner: Esc plus click-outside. The draft is owned by the strip host rather than the popout, so a half-typed question survives being dismissed and reopened — losing what someone was mid-way through writing is the kind of small betrayal that makes a surface untrustworthy. Asserted.
+
+Latest-first via ListView(reverse: true), which also makes the lazy loading free: older turns build only as they are scrolled to.
+
+Not done: the ticket asked for a fetch limit. The in-memory conversation is one session''s worth and reverse-building is already lazy, so a limit would bound something that is not currently unbounded. Add it when a session gets long enough to need it.', NULL, '2026-08-11 15:35:42', '2026-08-11 15:35:42.872', '2026-08-11 15:35:42.872', NULL, '08ecf47e6d6fa5dd2499ab13a8d2a44e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC04G6G5GCGXEBWX833S0', 'status', 'in_progress', 'review', NULL, '2026-08-11 15:36:13', '2026-08-11 15:36:13.377', '2026-08-11 15:36:13.377', NULL, 'c4d7ab153063bf912d91a6f269f8229b', 2) ON CONFLICT(hash) DO NOTHING;

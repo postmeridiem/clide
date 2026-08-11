@@ -49,6 +49,7 @@ class ClideStrip extends StatefulWidget {
     this.busyFor,
     this.message,
     this.onAsk,
+    this.onExpand,
     this.canAsk = true,
     this.askHint,
     this.debugFreezeAt,
@@ -62,6 +63,10 @@ class ClideStrip extends StatefulWidget {
   /// Whether there is a session to ask. False dims the box rather than removing
   /// it: a control that vanishes reads as a bug.
   final bool canAsk;
+
+  /// Open his conversation over the detail area (T-566). Null hides the
+  /// affordance — the strip is then bubble-and-input only.
+  final VoidCallback? onExpand;
 
   /// Placeholder for the input, resolved through the catalog by the host
   /// (D-21/D-102). Null takes [ClideAskBox]'s own English fallback.
@@ -146,7 +151,19 @@ class _ClideStripState extends State<ClideStrip> {
                         Expanded(child: _Bubble(message: widget.message)),
                         if (widget.onAsk != null) ...[
                           const SizedBox(height: 4),
-                          ClideAskBox(onAsk: widget.onAsk!, enabled: widget.canAsk, onFocusChanged: (has) => setState(() => _addressed = has)),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ClideAskBox(
+                                  onAsk: widget.onAsk!,
+                                  enabled: widget.canAsk,
+                                  hint: widget.askHint ?? 'ask Clide…',
+                                  onFocusChanged: (has) => setState(() => _addressed = has),
+                                ),
+                              ),
+                              if (widget.onExpand != null) ...[const SizedBox(width: 4), _ExpandButton(onTap: widget.onExpand!)],
+                            ],
+                          ),
                         ],
                       ],
                     ),
@@ -154,6 +171,41 @@ class _ClideStripState extends State<ClideStrip> {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// Opens his conversation. Deliberately small and beside the input rather than
+/// in the bubble — the bubble is display-only (D-78), and a control inside a
+/// display surface is the composition mistake that rule exists to prevent.
+class _ExpandButton extends StatelessWidget {
+  const _ExpandButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideSettings.theme.of(context).surface;
+    return Semantics(
+      button: true,
+      label: 'Open Clide\'s conversation',
+      child: GestureDetector(
+        onTap: onTap,
+        child: SizedBox(
+          height: kAskBoxHeight,
+          width: kAskBoxHeight,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: tokens.listItemBackground,
+              border: Border.all(color: tokens.globalBorder),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Center(
+              child: ClideText('⌃', color: tokens.globalTextMuted, fontSize: clideFontCaption),
+            ),
+          ),
         ),
       ),
     );

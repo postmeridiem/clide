@@ -16,6 +16,8 @@ import 'dart:async';
 import 'package:clide/builtin/clide_companion/src/clide_strip.dart';
 import 'package:clide/builtin/clide_companion/src/companion_state.dart';
 import 'package:clide/builtin/clide_companion/src/companion_lifecycle.dart';
+import 'package:clide/builtin/clide_companion/src/companion_popout.dart';
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/builtin/clide_companion/src/companion_voice.dart';
 import 'package:clide/builtin/clide_companion/src/extension.dart';
 import 'package:clide/kernel/src/facade.dart' show ClideKernel;
@@ -112,6 +114,7 @@ class _StripState extends State<_Strip> {
   @override
   void dispose() {
     _tick?.cancel();
+    _draft.dispose();
     _voice
       ..removeListener(_onVoice)
       ..dispose();
@@ -140,8 +143,35 @@ class _StripState extends State<_Strip> {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      ClideStrip(load: widget.state.load, busyFor: _busyFor, state: _voice.face, message: _voice.say, canAsk: _companion?.running ?? false, onAsk: _ask);
+  Widget build(BuildContext context) => ClideStrip(
+    load: widget.state.load,
+    busyFor: _busyFor,
+    state: _voice.face,
+    message: _voice.say,
+    canAsk: _companion?.running ?? false,
+    askHint: ClideSettings.i18n.string(context, 'strip.ask.hint', namespace: 'builtin.clide-companion', placeholder: 'ask Clide…'),
+    onAsk: _ask,
+    onExpand: _openPopout,
+  );
+
+  /// Draft for the popout's input, owned here rather than by the popout so a
+  /// half-typed question survives being dismissed and reopened (T-566).
+  final _draft = TextEditingController();
+
+  /// Open his conversation over the detail area.
+  void _openPopout() {
+    final kernel = ClideKernel.maybeOf(context);
+    if (kernel == null) return;
+    kernel.dialog.show<Object>(
+      (ctx, dismiss) => CompanionPopout(
+        conversation: _companion?.session?.conversation,
+        draft: _draft,
+        canAsk: _companion?.running ?? false,
+        onAsk: _ask,
+        onDismiss: dismiss,
+      ),
+    );
+  }
 
   /// Clide's session controller, via the extension that owns it.
   ///

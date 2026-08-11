@@ -38,7 +38,13 @@ import 'package:flutter/widgets.dart';
 const kAskBoxHeight = 26.0;
 
 class ClideAskBox extends StatefulWidget {
-  const ClideAskBox({super.key, required this.onAsk, this.onFocusChanged, this.hint = 'ask Clide…', this.enabled = true});
+  const ClideAskBox({super.key, required this.onAsk, this.onFocusChanged, this.hint = 'ask Clide…', this.enabled = true, this.controller});
+
+  /// Supplied when the caller needs the text to outlive this widget — the
+  /// popout's draft survives being dismissed and reopened (T-566), because
+  /// losing a half-typed question is the kind of small betrayal that makes a
+  /// surface untrustworthy. Null means the box owns its own.
+  final TextEditingController? controller;
 
   /// Called with the question when the user submits a non-empty one.
   final ValueChanged<String> onAsk;
@@ -60,12 +66,18 @@ class ClideAskBox extends StatefulWidget {
 }
 
 class _ClideAskBoxState extends State<ClideAskBox> {
-  final _controller = TextEditingController();
+  late final TextEditingController _controller;
   final _focus = FocusNode();
+
+  /// Only dispose what we made. A caller-supplied controller outlives us by
+  /// design.
+  late final bool _ownsController;
 
   @override
   void initState() {
     super.initState();
+    _ownsController = widget.controller == null;
+    _controller = widget.controller ?? TextEditingController();
     _focus.addListener(_onFocus);
   }
 
@@ -79,7 +91,7 @@ class _ClideAskBoxState extends State<ClideAskBox> {
     _focus
       ..removeListener(_onFocus)
       ..dispose();
-    _controller.dispose();
+    if (_ownsController) _controller.dispose();
     super.dispose();
   }
 
