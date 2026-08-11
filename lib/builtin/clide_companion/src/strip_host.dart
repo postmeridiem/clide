@@ -15,7 +15,9 @@ import 'dart:async';
 
 import 'package:clide/builtin/clide_companion/src/clide_strip.dart';
 import 'package:clide/builtin/clide_companion/src/companion_state.dart';
+import 'package:clide/builtin/clide_companion/src/companion_lifecycle.dart';
 import 'package:clide/builtin/clide_companion/src/companion_voice.dart';
+import 'package:clide/builtin/clide_companion/src/extension.dart';
 import 'package:clide/kernel/src/facade.dart' show ClideKernel;
 import 'package:flutter/widgets.dart';
 
@@ -138,5 +140,19 @@ class _StripState extends State<_Strip> {
   }
 
   @override
-  Widget build(BuildContext context) => ClideStrip(load: widget.state.load, busyFor: _busyFor, state: _voice.face, message: _voice.say);
+  Widget build(BuildContext context) =>
+      ClideStrip(load: widget.state.load, busyFor: _busyFor, state: _voice.face, message: _voice.say, canAsk: _companion?.running ?? false, onAsk: _ask);
+
+  /// Clide's session controller, via the extension that owns it.
+  ///
+  /// Reached through the registry rather than a new bus channel: the session is
+  /// the extension's to own (T-545), and a hop would be the mistake T-561
+  /// removed — a message that spans nothing, going out to the bus and coming
+  /// straight back to one widget.
+  CompanionSessionController? get _companion {
+    final ext = ClideKernel.maybeOf(context)?.extensions.all.whereType<ClideCompanionExtension>().firstOrNull;
+    return ext?.sessionController;
+  }
+
+  void _ask(String question) => _companion?.ask(question);
 }

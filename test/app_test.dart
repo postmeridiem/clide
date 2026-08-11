@@ -323,7 +323,11 @@ void main() {
 
     // Type a non-matching filter — exercises the .where filter branch and the
     // empty-results render path (line coverage; the dropdown rebuilds).
-    await tester.enterText(find.byType(EditableText), 'zzz-no-such-project');
+    //
+    // Scoped to the dropdown: since T-564 the Clide strip carries its own input,
+    // so a bare `byType(EditableText)` is ambiguous. Two places to type is the
+    // point of that feature, and a test that assumes one would keep breaking.
+    await tester.enterText(find.descendant(of: find.byType(ClideFilterBox), matching: find.byType(EditableText)).first, 'zzz-no-such-project');
     await tester.pump();
     await tester.pump();
 

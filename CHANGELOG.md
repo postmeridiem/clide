@@ -44,6 +44,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   Clide takes your name, a line about yourself, and whether he picks his own
   expression. (D-107, T-532)
 
+- **Ask Clide.** An input box on the strip puts a question straight to him —
+  "what did that mean?" about what Claude just said. Always answered, and his
+  face turns to you while you type. (D-107, T-564)
+
 - **Clide runs a session.** A headless Haiku session starts with the workspace
   and follows it: the settings switch tears the process down, minimising only
   pauses it, and clearing the main pane clears Clide with it. His own

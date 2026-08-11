@@ -16813,3 +16813,153 @@ THREE DEFECTS FOUND, none of which unit tests could have caught, all fixed:
 PROMPT TUNING, evidence-led: rule 1 rewritten to describe the shape (knowingly trading safety for speed) rather than list git vocabulary — he walked past ''no safety, just delete it'' three times while catching every skipped changelog. The [direct] contract restates the reply format — two consecutive runs dropped the face tag when answering rather than remarking. Both fixed by worked examples rather than more instruction, the third time that has been what worked.
 
 THE REAL FINDING, and it is not a defect: the product owner''s verdict was ''nothing broke but nothing really did anything''. Every number is green and the lived experience is inert. Once-an-hour means a session with no notable event correctly produces silence, so the ambient half cannot demonstrate itself on demand. The half that could — the input box, always answered, no trigger, no pacing — is T-564 and is not built. Epic E is not the next feature; it is the missing half of this one.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-08 22:48:05.674', '2026-08-11 12:20:04.273', NULL, '5fd70daa2d4298fa4ebdab8d85f46cec', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVABZYX13P4B3DKDCDV6A50', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'E1: The direct input — an affordance that is obviously not the Claude composer', 'The thing that turns Clide from decoration into a tool. Everything it needs already exists: the `[direct]` tag and its formatter (`directQuestion`, T-546), the brief that teaches him a direct line is the one case where silence is wrong (T-532), and a live session to send it to (T-545).
+
+## Scope
+
+- An input row on the strip. Submit sends `directQuestion(text)` into the companion session.
+- **Bypasses the trigger entirely** (T-547) — no frequency gate, no pacing, no debounce. A question asked is always answered, and the trigger exists to bound *unsolicited* spend.
+- Focus puts the face into `FaceState.listening`, which exists for this and which the voice deliberately never produces on its own (T-548).
+
+## The part that is actually hard
+
+**It must be unmistakable which box you are typing into.** Two composers on one screen, reaching two different models, one of which can act on your repo and one of which cannot. A user who types a task into Clide''s box and waits is having a bad time; a user who types a question about the conversation into Claude''s box has spent real quota on the wrong model.
+
+Distinguish it structurally, not with a label: different placement, different affordance, a visible tie to the face. Test it with someone who has not read this ticket.
+
+## Constraints
+
+- Interaction zone, not inline. The bubble stays display-only (D-78); the input is its own region.
+- Placeholder is a catalog string (D-21/D-102) and must tolerate ~30% growth in Dutch. His *answers* are model output and are not catalog strings.
+- Two-column control pattern and no-double-edge-padding from the ui-design geometry reference.
+- The strip is ~110px and the column runs 220-1000px wide. At the narrow end an input row plus a face plus a bubble does not fit; decide what yields.', 'in_progress', 'high', NULL, NULL, 'D-107', '2026-08-10 21:52:16.375', '2026-08-11 12:26:33.957', NULL, '0eb9e9ce197164745534a901d5652437', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVABZYX13P4B3DKDCDV6A50', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'The direct input — an affordance that is obviously not the Claude composer', 'The thing that turns Clide from decoration into a tool. Everything it needs already exists: the `[direct]` tag and its formatter (`directQuestion`, T-546), the brief that teaches him a direct line is the one case where silence is wrong (T-532), and a live session to send it to (T-545).
+
+## Scope
+
+- An input row on the strip. Submit sends `directQuestion(text)` into the companion session.
+- **Bypasses the trigger entirely** (T-547) — no frequency gate, no pacing, no debounce. A question asked is always answered, and the trigger exists to bound *unsolicited* spend.
+- Focus puts the face into `FaceState.listening`, which exists for this and which the voice deliberately never produces on its own (T-548).
+
+## The part that is actually hard
+
+**It must be unmistakable which box you are typing into.** Two composers on one screen, reaching two different models, one of which can act on your repo and one of which cannot. A user who types a task into Clide''s box and waits is having a bad time; a user who types a question about the conversation into Claude''s box has spent real quota on the wrong model.
+
+Distinguish it structurally, not with a label: different placement, different affordance, a visible tie to the face. Test it with someone who has not read this ticket.
+
+## Constraints
+
+- Interaction zone, not inline. The bubble stays display-only (D-78); the input is its own region.
+- Placeholder is a catalog string (D-21/D-102) and must tolerate ~30% growth in Dutch. His *answers* are model output and are not catalog strings.
+- Two-column control pattern and no-double-edge-padding from the ui-design geometry reference.
+- The strip is ~110px and the column runs 220-1000px wide. At the narrow end an input row plus a face plus a bubble does not fit; decide what yields.', 'in_progress', 'high', NULL, NULL, 'D-107', '2026-08-10 21:52:16.375', '2026-08-11 12:27:52.789', NULL, 'fa7443d34c270ee91e9ef3783ee46723', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC020QGT81JNJ82SE98R0', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'The answer grows the strip, then gives the space back', 'Settled by the T-514 spike, so this is implementation rather than design: **the strip grows to a capped height (~40% of the column) while answering, scrolls beyond that, and collapses back when idle.** Space is borrowed only while in use.
+
+## Why a cap and not just growth
+
+The strip already costs every detail view ~110px permanently (D-107 cost section, D-48 chrome budget). An answer that pushed that to half the column and stayed there would be a second, larger tax nobody agreed to. Borrowing is acceptable; keeping is not.
+
+## Watch for
+
+- **Collapse must not be a jump.** The strip is beside a detail view whose content will reflow; a snap back to 110px moves everything under the reader''s eye. Animate the give-back, and do not collapse while the pointer is inside it.
+- A direct answer is capped at three sentences by the brief and at `kMaxRemarkChars` by the parser, so growth is bounded before layout ever sees it. The scroll case is the long-tail, not the norm.
+- The ambient remark path is unchanged — a two-sentence remark must not grow the strip at all, or every notable event becomes a layout event.
+- Reduced motion: the growth is animation and D-107 makes `MediaQuery.disableAnimations` a hard gate, not a courtesy.', 'backlog', 'high', NULL, NULL, 'D-107', '2026-08-10 21:52:16.400', '2026-08-11 12:27:58.570', NULL, 'e357c418e74f6e924b18d6df21591fa9', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC04G6G5GCGXEBWX833S0', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'The popout — his conversation, latest first', 'An expand control opens a light conversation view over the detail area: the full Clide exchange for this session, **latest first**, with a fetch limit and lazy loading on scroll, and a text box underneath to continue talking.
+
+## What it reads
+
+**His own transcript**, and nothing bespoke. Verified live on 2026-08-10: the companion writes an ordinary `<uuid>.jsonl` under `~/.claude/projects/<repo>/` like any other session, because D-107 was amended to drop `--no-session-persistence`. So this pages through a real transcript with the reader clide already has.
+
+**That dissolves T-534** — the bespoke append-only log was written when the companion was non-persisted and there was no record of anything he said. Close it rather than build it.
+
+## The filter is the same one
+
+Only actually-said things: his prose and the questions put to him. Never tool uses, never injected metadata, never the `[observed]` digest lines we fed him — those are the developer''s own conversation and rendering them here would show it back to them in Clide''s window. Same boundary as the digest (D-107 commitment 3), applied in the opposite direction.
+
+Note the transcript also contains harness noise at the head of the session (local-command echoes). Whatever renders this needs the same allow-list discipline the digest has, not a raw dump.
+
+## Watch for
+
+- Latest-first is unusual and deliberate — the useful thing is the last thing he said, not the first.
+- It overlays the detail area, so dismissal must be obvious and must not lose a half-typed question.
+- Screen-reader route: this is the only place his history is readable as text, which makes it the accessible answer to a face and a bubble a reader cannot see (D-20).', 'backlog', 'medium', NULL, NULL, 'D-107', '2026-08-10 21:52:16.421', '2026-08-11 12:27:58.599', NULL, 'e624b054defc98ff5acb1d3fd89ef4ff', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC073C7GRWC1BX3V682TC', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'Parity and a11y for talking to him', 'D-6 says every UI action has a CLI verb and every CLI verb has a UI affordance. Direct addressing adds a UI action, so it owes a verb — and D-107 already accepts that the strip''s parity is **hand-rolled**, because it is not a slot.
+
+## Scope
+
+- `clide companion ask "…"` — send a direct question and return his answer. Sits alongside the companion verbs in T-529 (Epic C); coordinate rather than duplicate.
+- Keyboard route to the input, and out of it again without submitting.
+- Screen reader: the input needs a label, and his answer needs to reach a reader. The face and the bubble are both invisible to one, so this and E3 are between them the only way a blind developer experiences Clide at all — which makes this a tier-0 contract (D-20), not a nicety.
+
+## Worth deciding here
+
+A remark arriving unprompted is a live-region problem: announcing it interrupts the reader mid-way through Claude''s actual output, which is the content that matters. Prefer a pull affordance — a command that reads his latest — over a push announcement, and say so explicitly rather than letting a default `liveRegion: true` decide it.', 'backlog', 'medium', NULL, NULL, 'D-107', '2026-08-10 21:52:16.440', '2026-08-11 12:27:58.624', NULL, '3faf41d9eb78332c373e5d2749da9ab8', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVABZYX13P4B3DKDCDV6A50', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'The direct input — an affordance that is obviously not the Claude composer', 'The thing that turns Clide from decoration into a tool. Everything it needs already exists: the `[direct]` tag and its formatter (`directQuestion`, T-546), the brief that teaches him a direct line is the one case where silence is wrong (T-532), and a live session to send it to (T-545).
+
+## Scope
+
+- An input row on the strip. Submit sends `directQuestion(text)` into the companion session.
+- **Bypasses the trigger entirely** (T-547) — no frequency gate, no pacing, no debounce. A question asked is always answered, and the trigger exists to bound *unsolicited* spend.
+- Focus puts the face into `FaceState.listening`, which exists for this and which the voice deliberately never produces on its own (T-548).
+
+## The part that is actually hard
+
+**It must be unmistakable which box you are typing into.** Two composers on one screen, reaching two different models, one of which can act on your repo and one of which cannot. A user who types a task into Clide''s box and waits is having a bad time; a user who types a question about the conversation into Claude''s box has spent real quota on the wrong model.
+
+Distinguish it structurally, not with a label: different placement, different affordance, a visible tie to the face. Test it with someone who has not read this ticket.
+
+## Constraints
+
+- Interaction zone, not inline. The bubble stays display-only (D-78); the input is its own region.
+- Placeholder is a catalog string (D-21/D-102) and must tolerate ~30% growth in Dutch. His *answers* are model output and are not catalog strings.
+- Two-column control pattern and no-double-edge-padding from the ui-design geometry reference.
+- The strip is ~110px and the column runs 220-1000px wide. At the narrow end an input row plus a face plus a bubble does not fit; decide what yields.
+
+Done 2026-08-11.
+
+New: ask_box.dart (ClideAskBox) + ask_box_test.dart (7 cases). ClideStrip became stateful to hold focus; CompanionSessionController gained ask(); strip_host resolves the controller through the extension registry rather than a new bus channel — the session is the extension''s to own (T-545) and a hop would be the mistake T-561 removed.
+
+WHICH BOX AM I TYPING IN — the ticket''s hard part, and the T-514 spike had already answered it better than a label would: focusing his box releases the lean and brings the pupils forward (the ADDRESSED state, whose note reads ''the lean releasing IS the acknowledgement — no chrome needed''). Position does the rest: his box is in the context column, attached to his face, bordered in his green when focused. Asserted by a test on Gaze.forward.
+
+BYPASSES THE TRIGGER, deliberately. T-547 bounds unsolicited spend; none of it applies to something the developer asked for. A question dropped because he happened to remark forty seconds ago would be the worst possible failure for the one interaction meant to be reliable.
+
+NOT ClideFilterBox. It is the only other single-line input and it is a filter — debounce, clear button, and the filter.set/filter.state bus grammar from T-270. Reusing it would publish questions on the filter channel. Visual grammar deliberately matched so they read as siblings; if a third single-line input appears, extract the chrome rather than this.
+
+Narrow panels drop the input with the bubble (below 150px of usable width). At the column''s 220px minimum there is no room for a face and a legible field; the popout (T-566) is the escape hatch, and a cramped box would be worse than none.
+
+Fallout worth noting: app_test''s project-switcher case used a bare find.byType(EditableText) and became ambiguous the moment a second input existed. Scoped to the switcher''s own field. That is a small live preview of the concern the ticket names — two places to type on one screen.', 'in_progress', 'high', NULL, NULL, 'D-107', '2026-08-10 21:52:16.375', '2026-08-11 14:16:41.124', NULL, '3fca73f1d815852748fe2493b01bf481', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVABZYX13P4B3DKDCDV6A50', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'The direct input — an affordance that is obviously not the Claude composer', 'The thing that turns Clide from decoration into a tool. Everything it needs already exists: the `[direct]` tag and its formatter (`directQuestion`, T-546), the brief that teaches him a direct line is the one case where silence is wrong (T-532), and a live session to send it to (T-545).
+
+## Scope
+
+- An input row on the strip. Submit sends `directQuestion(text)` into the companion session.
+- **Bypasses the trigger entirely** (T-547) — no frequency gate, no pacing, no debounce. A question asked is always answered, and the trigger exists to bound *unsolicited* spend.
+- Focus puts the face into `FaceState.listening`, which exists for this and which the voice deliberately never produces on its own (T-548).
+
+## The part that is actually hard
+
+**It must be unmistakable which box you are typing into.** Two composers on one screen, reaching two different models, one of which can act on your repo and one of which cannot. A user who types a task into Clide''s box and waits is having a bad time; a user who types a question about the conversation into Claude''s box has spent real quota on the wrong model.
+
+Distinguish it structurally, not with a label: different placement, different affordance, a visible tie to the face. Test it with someone who has not read this ticket.
+
+## Constraints
+
+- Interaction zone, not inline. The bubble stays display-only (D-78); the input is its own region.
+- Placeholder is a catalog string (D-21/D-102) and must tolerate ~30% growth in Dutch. His *answers* are model output and are not catalog strings.
+- Two-column control pattern and no-double-edge-padding from the ui-design geometry reference.
+- The strip is ~110px and the column runs 220-1000px wide. At the narrow end an input row plus a face plus a bubble does not fit; decide what yields.
+
+Done 2026-08-11.
+
+New: ask_box.dart (ClideAskBox) + ask_box_test.dart (7 cases). ClideStrip became stateful to hold focus; CompanionSessionController gained ask(); strip_host resolves the controller through the extension registry rather than a new bus channel — the session is the extension''s to own (T-545) and a hop would be the mistake T-561 removed.
+
+WHICH BOX AM I TYPING IN — the ticket''s hard part, and the T-514 spike had already answered it better than a label would: focusing his box releases the lean and brings the pupils forward (the ADDRESSED state, whose note reads ''the lean releasing IS the acknowledgement — no chrome needed''). Position does the rest: his box is in the context column, attached to his face, bordered in his green when focused. Asserted by a test on Gaze.forward.
+
+BYPASSES THE TRIGGER, deliberately. T-547 bounds unsolicited spend; none of it applies to something the developer asked for. A question dropped because he happened to remark forty seconds ago would be the worst possible failure for the one interaction meant to be reliable.
+
+NOT ClideFilterBox. It is the only other single-line input and it is a filter — debounce, clear button, and the filter.set/filter.state bus grammar from T-270. Reusing it would publish questions on the filter channel. Visual grammar deliberately matched so they read as siblings; if a third single-line input appears, extract the chrome rather than this.
+
+Narrow panels drop the input with the bubble (below 150px of usable width). At the column''s 220px minimum there is no room for a face and a legible field; the popout (T-566) is the escape hatch, and a cramped box would be worse than none.
+
+Fallout worth noting: app_test''s project-switcher case used a bare find.byType(EditableText) and became ambiguous the moment a second input existed. Scoped to the switcher''s own field. That is a small live preview of the concern the ticket names — two places to type on one screen.', 'review', 'high', NULL, NULL, 'D-107', '2026-08-10 21:52:16.375', '2026-08-11 14:16:58.296', NULL, 'f661aaeb7636306eb1a4d96bc3d5465d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

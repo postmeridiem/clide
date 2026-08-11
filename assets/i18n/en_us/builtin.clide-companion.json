@@ -76,5 +76,6 @@
   "settings.section.you": "You",
   "settings.title": {
     "translation": "Clide"
-  }
+  },
+  "strip.ask.hint": "ask Clide…"
 }

@@ -49,6 +49,7 @@ import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/clide_companion/src/companion_session.dart';
 import 'package:clide/builtin/clide_companion/src/companion_settings.dart';
 import 'package:clide/builtin/clide_companion/src/prompt/companion_digest.dart';
+import 'package:clide/builtin/clide_companion/src/prompt/digest_lines.dart';
 import 'package:clide/builtin/clide_companion/src/prompt/companion_trigger.dart';
 import 'package:flutter/foundation.dart';
 
@@ -179,6 +180,25 @@ class CompanionSessionController extends ChangeNotifier {
     // just the process one.
     _setIngesting(enabled && open);
     return _serialize(_apply);
+  }
+
+  /// Put a question to Clide directly (T-564).
+  ///
+  /// **Bypasses the trigger entirely.** T-547 exists to bound *unsolicited*
+  /// spend — frequency, pacing, debounce — and none of that applies to something
+  /// the developer asked for. Routing a question through it would mean a
+  /// question silently dropped because he happened to remark forty seconds ago,
+  /// which is the worst possible failure for the one interaction that is
+  /// supposed to be reliable.
+  ///
+  /// Returns false when there is no session to ask, so a caller can say so
+  /// rather than swallowing it.
+  bool ask(String question) {
+    final session = _managed?.session;
+    final text = question.trim();
+    if (session == null || text.isEmpty) return false;
+    session.send(directQuestion(text));
+    return true;
   }
 
   /// Drop the session and start a fresh one, keeping nothing.

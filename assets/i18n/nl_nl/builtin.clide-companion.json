@@ -76,5 +76,6 @@
   "settings.section.you": "Jij",
   "settings.title": {
     "translation": "Clide"
-  }
+  },
+  "strip.ask.hint": "vraag Clide…"
 }

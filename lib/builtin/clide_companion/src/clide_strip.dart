@@ -14,6 +14,7 @@
 /// the strip.
 library;
 
+import 'package:clide/builtin/clide_companion/src/ask_box.dart';
 import 'package:clide/builtin/clide_companion/src/clide_face.dart';
 import 'package:clide/builtin/clide_companion/src/face_state.dart';
 import 'package:clide/builtin/clide_companion/src/session_load.dart';
@@ -39,7 +40,7 @@ const _faceGutter = 116.0;
 /// legible, and a cramped bubble reads worse than none.
 const _bubbleMinWidth = 150.0;
 
-class ClideStrip extends StatelessWidget {
+class ClideStrip extends StatefulWidget {
   const ClideStrip({
     super.key,
     this.state = FaceState.idle,
@@ -47,9 +48,24 @@ class ClideStrip extends StatelessWidget {
     this.gaze = Gaze.none,
     this.busyFor,
     this.message,
+    this.onAsk,
+    this.canAsk = true,
+    this.askHint,
     this.debugFreezeAt,
     this.debugClockLabel,
   });
+
+  /// Called with a question typed into his box (T-564). Null hides the input
+  /// entirely — the strip is then the display-only surface it was before.
+  final ValueChanged<String>? onAsk;
+
+  /// Whether there is a session to ask. False dims the box rather than removing
+  /// it: a control that vanishes reads as a bug.
+  final bool canAsk;
+
+  /// Placeholder for the input, resolved through the catalog by the host
+  /// (D-21/D-102). Null takes [ClideAskBox]'s own English fallback.
+  final String? askHint;
 
   /// Face state — Clide's own. Epic D drives this; until then it rests at
   /// [FaceState.idle].
@@ -71,6 +87,16 @@ class ClideStrip extends StatelessWidget {
 
   @visibleForTesting
   final String? debugClockLabel;
+
+  @override
+  State<ClideStrip> createState() => _ClideStripState();
+}
+
+class _ClideStripState extends State<ClideStrip> {
+  /// True while his box has focus. Drives [Gaze.forward] — the `ADDRESSED`
+  /// widget.state from the T-514 spike, where the lean releasing *is* the
+  /// acknowledgement that you are talking to him rather than about him.
+  bool _addressed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -96,13 +122,13 @@ class ClideStrip extends StatelessWidget {
                 // glyphs sit left.
                 Positioned.fill(
                   child: ClideFace(
-                    state: state,
-                    load: load,
-                    gaze: gaze,
-                    busyFor: busyFor,
+                    state: widget.state,
+                    load: widget.load,
+                    gaze: _addressed ? Gaze.forward : widget.gaze,
+                    busyFor: widget.busyFor,
                     faceAlignX: -1,
-                    debugFreezeAt: debugFreezeAt,
-                    debugClockLabel: debugClockLabel,
+                    debugFreezeAt: widget.debugFreezeAt,
+                    debugClockLabel: widget.debugClockLabel,
                   ),
                 ),
                 if (showBubble)
@@ -111,7 +137,19 @@ class ClideStrip extends StatelessWidget {
                     right: clideInsetText,
                     top: clideInsetStandard,
                     bottom: clideInsetStandard,
-                    child: _Bubble(message: message),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // The bubble takes what it needs and the input keeps its
+                        // row: a remark that grew without bound would push his
+                        // box off the strip, which is the one control here.
+                        Expanded(child: _Bubble(message: widget.message)),
+                        if (widget.onAsk != null) ...[
+                          const SizedBox(height: 4),
+                          ClideAskBox(onAsk: widget.onAsk!, enabled: widget.canAsk, onFocusChanged: (has) => setState(() => _addressed = has)),
+                        ],
+                      ],
+                    ),
                   ),
               ],
             );
