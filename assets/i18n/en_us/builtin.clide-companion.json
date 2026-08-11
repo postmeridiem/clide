@@ -38,6 +38,7 @@
   "face.semantics.working": {
     "translation": "Clide is working"
   },
+  "popout.empty": "Nothing said yet.",
   "rail.minimise": {
     "translation": "Minimise Clide"
   },
@@ -87,5 +88,6 @@
   "settings.title": {
     "translation": "Clide"
   },
-  "strip.ask.hint": "ask Clide…"
+  "strip.ask.hint": "ask Clide…",
+  "strip.expand.semantics": "Open Clide's conversation"
 }

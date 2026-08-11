@@ -196,7 +196,7 @@ class _ExpandButton extends StatelessWidget {
     final tokens = ClideSettings.theme.of(context).surface;
     return Semantics(
       button: true,
-      label: 'Open Clide\'s conversation',
+      label: ClideSettings.i18n.string(context, 'strip.expand.semantics', namespace: 'builtin.clide-companion', placeholder: "Open Clide's conversation"),
       child: GestureDetector(
         onTap: onTap,
         child: SizedBox(

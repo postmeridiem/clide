@@ -165,7 +165,12 @@ class _CompanionPopoutState extends State<CompanionPopout> {
                       children: [
                         Expanded(child: turns.isEmpty ? _Empty() : _Exchange(turns: turns)),
                         const SizedBox(height: clideInsetStandard),
-                        ClideAskBox(onAsk: widget.onAsk, enabled: widget.canAsk, controller: widget.draft),
+                        ClideAskBox(
+                          onAsk: widget.onAsk,
+                          enabled: widget.canAsk,
+                          controller: widget.draft,
+                          hint: ClideSettings.i18n.string(context, 'strip.ask.hint', namespace: 'builtin.clide-companion', placeholder: 'ask Clide…'),
+                        ),
                       ],
                     ),
                   ),
@@ -187,7 +192,11 @@ class _Empty extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = ClideSettings.theme.of(context).surface;
     return Center(
-      child: ClideText('Nothing said yet.', color: tokens.globalTextMuted, fontSize: clideFontCaption),
+      child: ClideText(
+        ClideSettings.i18n.string(context, 'popout.empty', namespace: 'builtin.clide-companion', placeholder: 'Nothing said yet.'),
+        color: tokens.globalTextMuted,
+        fontSize: clideFontCaption,
+      ),
     );
   }
 }

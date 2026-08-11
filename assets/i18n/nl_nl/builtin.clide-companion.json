@@ -38,6 +38,7 @@
   "face.semantics.working": {
     "translation": "Clide is bezig"
   },
+  "popout.empty": "Nog niets gezegd.",
   "rail.minimise": {
     "translation": "Clide minimaliseren"
   },
@@ -87,5 +88,6 @@
   "settings.title": {
     "translation": "Clide"
   },
-  "strip.ask.hint": "vraag Clide…"
+  "strip.ask.hint": "vraag Clide…",
+  "strip.expand.semantics": "Open Clides gesprek"
 }
