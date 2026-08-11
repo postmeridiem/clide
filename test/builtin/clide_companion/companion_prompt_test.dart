@@ -213,7 +213,8 @@ void main() {
       });
 
       test('a bracket in his actual prose is left alone', () {
-        // The guard is scoped to the first line for exactly this reason.
+        // The guard only looks at the opening character, so anything after a
+        // valid tag is his to write.
         final r = parseCompanionReply('[concerned]\nThat [sic] is going to bite.');
         expect(r.face, FaceState.concerned);
         expect(r.say, 'That [sic] is going to bite.');

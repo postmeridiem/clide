@@ -75,19 +75,6 @@ class CompanionReply {
 /// is worth discarding a good reply over.
 final _facePrefix = RegExp(r'^\s*\[([A-Za-z]+)\]\s*');
 
-/// A face tag that opened and never closed.
-///
-/// **An unterminated `[` is an unfinished reply, not prose**, and rendering it
-/// is the failure the kill condition names — seen live as a bare `[idle` sitting
-/// in the bubble. [CompanionVoice] now parses only at the turn boundary, which
-/// removes the mid-stream case, but this covers the one timing cannot: a reply
-/// cut off at `max_tokens` part-way through its own tag arrives at the boundary
-/// still broken.
-///
-/// Scoped to the first line, because that is the only place a tag may appear —
-/// a `[` anywhere later is his prose and none of our business.
-final _unterminatedTag = RegExp(r'^\s*\[[^\]\n]*$', multiLine: false);
-
 /// Leftover scaffolding to strip from the visible text.
 ///
 /// Belt and braces for shapes we have not seen but which the earlier designs
@@ -115,14 +102,6 @@ CompanionReply parseCompanionReply(String raw) {
   var text = raw;
   FaceState? face;
 
-  // Before anything else: a first line that opens a tag and never closes it is
-  // scaffolding mid-flight. Drop that line; keep whatever real prose follows.
-  final firstBreak = text.indexOf('\n');
-  final firstLine = firstBreak < 0 ? text : text.substring(0, firstBreak);
-  if (_unterminatedTag.hasMatch(firstLine)) {
-    text = firstBreak < 0 ? '' : text.substring(firstBreak + 1);
-  }
-
   final m = _facePrefix.firstMatch(text);
   if (m != null) {
     final named = _byName[m.group(1)!.toLowerCase()];
@@ -131,6 +110,22 @@ CompanionReply parseCompanionReply(String raw) {
     // null, so the previous expression holds.
     if (named != null && named.declarable) face = named;
     text = text.substring(m.end);
+  } else if (text.trimLeft().startsWith('[')) {
+    // **The tag is the first character, by design** — the brief says never to
+    // write anything before the face. So a reply that opens with `[` and did not
+    // parse as a tag is a broken one: truncated mid-write, or malformed. Either
+    // way it is scaffolding, never prose, and the line goes.
+    //
+    // Checking the first character rather than hunting for a closing bracket is
+    // both simpler and stricter: it also catches a tag that closed but is not a
+    // tag (`[id le]`), which a look-for-the-`]` guard would have waved through.
+    //
+    // This is the guard timing cannot replace. [CompanionVoice] reads only at
+    // the turn boundary, which removes the mid-stream case — but a reply cut off
+    // at `max_tokens` part-way through its own tag arrives at that boundary
+    // still broken.
+    final br = text.indexOf('\n');
+    text = br < 0 ? '' : text.substring(br + 1);
   }
 
   for (final re in _scaffolding) {
