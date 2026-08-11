@@ -1,4 +1,8 @@
 {
+  "command.ask": "Clide: stel een vraag",
+  "command.focus": "Clide: focus zijn invoerveld",
+  "command.open": "Clide: open zijn gesprek",
+  "command.say": "Clide: lees zijn laatste opmerking",
   "face.semantics.amused": "Clide is geamuseerd",
   "face.semantics.approving": "Clide keurt het goed",
   "face.semantics.concerned": "Clide is bezorgd",

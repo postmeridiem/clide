@@ -24,6 +24,8 @@ import 'package:clide/builtin/clide_companion/src/prompt/brief_loader.dart';
 import 'package:clide/builtin/clide_companion/src/prompt/companion_prompt.dart';
 import 'package:clide/builtin/clide_companion/src/companion_settings.dart';
 import 'package:clide/extension/extension.dart';
+import 'package:clide/src/ipc/envelope.dart';
+import 'package:flutter/foundation.dart';
 import 'package:clide/kernel/kernel.dart';
 
 class ClideCompanionExtension extends ClideExtension {
@@ -38,6 +40,17 @@ class ClideCompanionExtension extends ClideExtension {
   /// Exposed for the surfaces that will read the companion's conversation
   /// (T-546 onward). Null before activation.
   CompanionSessionController? get sessionController => _session;
+
+  /// Bumped to ask the strip to open his conversation (T-567).
+  ///
+  /// A counter rather than a bool: two consecutive opens are two events, and a
+  /// flag would swallow the second. A notifier rather than a `GlobalKey` into
+  /// the strip's private state — the extension asks, the surface decides, and
+  /// neither needs a handle on the other's internals.
+  final ValueNotifier<int> openRequests = ValueNotifier(0);
+
+  /// Bumped to ask the strip to focus his input.
+  final ValueNotifier<int> focusRequests = ValueNotifier(0);
 
   /// Last announced state, so a settings notification about somebody else's key
   /// — the store notifies on every write — does not republish ours.
@@ -185,8 +198,74 @@ class ClideCompanionExtension extends ClideExtension {
     publishCompanionState(ctx.messages, enabled: now.enabled, open: now.open, frequency: now.frequency);
   }
 
+  /// The last thing he said, for a reader that cannot see the bubble.
+  ///
+  /// **A pull, not a push** (T-567, D-20). A remark announcing itself through a
+  /// live region would interrupt a screen-reader user part-way through Claude's
+  /// actual output, which is the content that matters — so nothing here is
+  /// announced, and this exists to be asked.
+  /// Written by the surface as it renders, so the verb and the bubble cannot
+  /// disagree about what he last said.
+  String? lastRemark;
+
   @override
   List<ContributionPoint> get contributions => [
+    CommandContribution(
+      id: 'companion.ask',
+      command: 'companion.ask',
+      title: 'Clide: ask a question',
+      titleKey: 'command.ask',
+      i18nNamespace: id,
+      run: (args) async {
+        final question = args.join(' ').trim();
+        if (question.isEmpty) {
+          return IpcResponse.err(
+            id: '',
+            error: IpcError(code: 1, kind: 'bad-args', message: 'usage: clide companion.ask "<question>"'),
+          );
+        }
+        final sent = _session?.ask(question) ?? false;
+        // A question that went nowhere must say so rather than reporting
+        // success — the caller has no other way to find out.
+        if (!sent) {
+          return IpcResponse.err(
+            id: '',
+            error: IpcError(code: 1, kind: 'no-session', message: 'Clide is not running for this workspace'),
+          );
+        }
+        return IpcResponse.ok(id: '', data: const {'status': 'asked'});
+      },
+    ),
+    CommandContribution(
+      id: 'companion.say',
+      command: 'companion.say',
+      title: 'Clide: read his last remark',
+      titleKey: 'command.say',
+      i18nNamespace: id,
+      run: (_) async => IpcResponse.ok(id: '', data: {'remark': ?lastRemark}),
+    ),
+    CommandContribution(
+      id: 'companion.open',
+      command: 'companion.open',
+      title: 'Clide: open his conversation',
+      titleKey: 'command.open',
+      i18nNamespace: id,
+      run: (_) async {
+        openRequests.value++;
+        return IpcResponse.ok(id: '', data: const {'status': 'opened'});
+      },
+    ),
+    CommandContribution(
+      id: 'companion.focus',
+      command: 'companion.focus',
+      title: 'Clide: focus his input',
+      titleKey: 'command.focus',
+      i18nNamespace: id,
+      run: (_) async {
+        focusRequests.value++;
+        return IpcResponse.ok(id: '', data: const {'status': 'focused'});
+      },
+    ),
     SettingsCategoryContribution(
       id: 'clide-companion',
       category: SettingsCategory(

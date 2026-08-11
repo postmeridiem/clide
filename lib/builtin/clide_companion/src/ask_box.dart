@@ -38,7 +38,13 @@ import 'package:flutter/widgets.dart';
 const kAskBoxHeight = 26.0;
 
 class ClideAskBox extends StatefulWidget {
-  const ClideAskBox({super.key, required this.onAsk, this.onFocusChanged, this.hint = 'ask Clide…', this.enabled = true, this.controller});
+  const ClideAskBox({super.key, required this.onAsk, this.onFocusChanged, this.hint = 'ask Clide…', this.enabled = true, this.controller, this.focusNode});
+
+  /// Supplied when something outside needs to put the cursor here — the
+  /// `companion.focus` verb and its keybinding (T-567). A node rather than a
+  /// tick threaded down through two widgets: focusing is what a `FocusNode` is
+  /// for, and the caller already has to own one to call it.
+  final FocusNode? focusNode;
 
   /// Supplied when the caller needs the text to outlive this widget — the
   /// popout's draft survives being dismissed and reopened (T-566), because
@@ -67,17 +73,19 @@ class ClideAskBox extends StatefulWidget {
 
 class _ClideAskBoxState extends State<ClideAskBox> {
   late final TextEditingController _controller;
-  final _focus = FocusNode();
+  late final FocusNode _focus;
 
-  /// Only dispose what we made. A caller-supplied controller outlives us by
-  /// design.
+  /// Only dispose what we made. Caller-supplied ones outlive us by design.
   late final bool _ownsController;
+  late final bool _ownsFocus;
 
   @override
   void initState() {
     super.initState();
     _ownsController = widget.controller == null;
     _controller = widget.controller ?? TextEditingController();
+    _ownsFocus = widget.focusNode == null;
+    _focus = widget.focusNode ?? FocusNode();
     _focus.addListener(_onFocus);
   }
 
@@ -88,9 +96,8 @@ class _ClideAskBoxState extends State<ClideAskBox> {
 
   @override
   void dispose() {
-    _focus
-      ..removeListener(_onFocus)
-      ..dispose();
+    _focus.removeListener(_onFocus);
+    if (_ownsFocus) _focus.dispose();
     if (_ownsController) _controller.dispose();
     super.dispose();
   }

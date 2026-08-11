@@ -99,11 +99,36 @@ class _StripState extends State<_Strip> {
     _voice = CompanionVoice(moodEnabled: () => widget.state.moodChannel)..start();
     _voice.addListener(_onVoice);
     _syncTimer();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // Captured, not re-resolved. `_extension` walks the element tree, and
+      // dispose() runs after deactivation where that lookup is illegal — which
+      // is exactly how this first broke six unrelated app tests.
+      _subscribed = _extension;
+      _subscribed?.openRequests.addListener(_onOpenRequested);
+      _subscribed?.focusRequests.addListener(_onFocusRequested);
+    });
   }
 
   void _onVoice() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {});
+    // Recorded where it is rendered, so `clide companion.say` and the bubble
+    // cannot disagree about what he last said (T-567).
+    _extension?.lastRemark = _voice.say;
   }
+
+  /// Honour a request from the CLI or a keybinding (T-567).
+  void _onOpenRequested() => _openPopout();
+  void _onFocusRequested() => _askFocus.requestFocus();
+
+  /// The strip input's focus, owned here so `companion.focus` can put the cursor
+  /// in it without reaching into the widget.
+  final _askFocus = FocusNode(debugLabel: 'ClideAsk');
+
+  /// The extension we attached listeners to, held so they can be removed without
+  /// another tree lookup.
+  ClideCompanionExtension? _subscribed;
 
   @override
   void didUpdateWidget(_Strip old) {
@@ -114,7 +139,10 @@ class _StripState extends State<_Strip> {
   @override
   void dispose() {
     _tick?.cancel();
+    _subscribed?.openRequests.removeListener(_onOpenRequested);
+    _subscribed?.focusRequests.removeListener(_onFocusRequested);
     _draft.dispose();
+    _askFocus.dispose();
     _voice
       ..removeListener(_onVoice)
       ..dispose();
@@ -152,6 +180,7 @@ class _StripState extends State<_Strip> {
     askHint: ClideSettings.i18n.string(context, 'strip.ask.hint', namespace: 'builtin.clide-companion', placeholder: 'ask Clide…'),
     onAsk: _ask,
     onExpand: _openPopout,
+    askFocusNode: _askFocus,
   );
 
   /// Draft for the popout's input, owned here rather than by the popout so a
@@ -179,10 +208,9 @@ class _StripState extends State<_Strip> {
   /// the extension's to own (T-545), and a hop would be the mistake T-561
   /// removed — a message that spans nothing, going out to the bus and coming
   /// straight back to one widget.
-  CompanionSessionController? get _companion {
-    final ext = ClideKernel.maybeOf(context)?.extensions.all.whereType<ClideCompanionExtension>().firstOrNull;
-    return ext?.sessionController;
-  }
+  ClideCompanionExtension? get _extension => ClideKernel.maybeOf(context)?.extensions.all.whereType<ClideCompanionExtension>().firstOrNull;
+
+  CompanionSessionController? get _companion => _extension?.sessionController;
 
   void _ask(String question) => _companion?.ask(question);
 }

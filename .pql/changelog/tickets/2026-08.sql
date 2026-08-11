@@ -17092,3 +17092,64 @@ Dismissal settled with the product owner: Esc plus click-outside. The draft is o
 Latest-first via ListView(reverse: true), which also makes the lazy loading free: older turns build only as they are scrolled to.
 
 Not done: the ticket asked for a fetch limit. The in-memory conversation is one session''s worth and reverse-building is already lazy, so a limit would bound something that is not currently unbounded. Add it when a session gets long enough to need it.', 'review', 'medium', NULL, NULL, 'D-107', '2026-08-10 21:52:16.421', '2026-08-11 15:36:13.377', NULL, '56029f78ad09530ea58f6d4a264e2870', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC073C7GRWC1BX3V682TC', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'Parity and a11y for talking to him', 'D-6 says every UI action has a CLI verb and every CLI verb has a UI affordance. Direct addressing adds a UI action, so it owes a verb — and D-107 already accepts that the strip''s parity is **hand-rolled**, because it is not a slot.
+
+## Scope
+
+- `clide companion ask "…"` — send a direct question and return his answer. Sits alongside the companion verbs in T-529 (Epic C); coordinate rather than duplicate.
+- Keyboard route to the input, and out of it again without submitting.
+- Screen reader: the input needs a label, and his answer needs to reach a reader. The face and the bubble are both invisible to one, so this and E3 are between them the only way a blind developer experiences Clide at all — which makes this a tier-0 contract (D-20), not a nicety.
+
+## Worth deciding here
+
+A remark arriving unprompted is a live-region problem: announcing it interrupts the reader mid-way through Claude''s actual output, which is the content that matters. Prefer a pull affordance — a command that reads his latest — over a push announcement, and say so explicitly rather than letting a default `liveRegion: true` decide it.', 'in_progress', 'medium', NULL, NULL, 'D-107', '2026-08-10 21:52:16.440', '2026-08-11 18:40:09.647', NULL, 'e86a135211ca466f39bc60cad65cad0a', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC073C7GRWC1BX3V682TC', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'Parity and a11y for talking to him', 'D-6 says every UI action has a CLI verb and every CLI verb has a UI affordance. Direct addressing adds a UI action, so it owes a verb — and D-107 already accepts that the strip''s parity is **hand-rolled**, because it is not a slot.
+
+## Scope
+
+- `clide companion ask "…"` — send a direct question and return his answer. Sits alongside the companion verbs in T-529 (Epic C); coordinate rather than duplicate.
+- Keyboard route to the input, and out of it again without submitting.
+- Screen reader: the input needs a label, and his answer needs to reach a reader. The face and the bubble are both invisible to one, so this and E3 are between them the only way a blind developer experiences Clide at all — which makes this a tier-0 contract (D-20), not a nicety.
+
+## Worth deciding here
+
+A remark arriving unprompted is a live-region problem: announcing it interrupts the reader mid-way through Claude''s actual output, which is the content that matters. Prefer a pull affordance — a command that reads his latest — over a push announcement, and say so explicitly rather than letting a default `liveRegion: true` decide it.
+
+Done 2026-08-11. Four verbs + 9 tests.
+
+companion.ask / companion.say / companion.open / companion.focus. Each carries a titleKey in the extension''s namespace, so the palette is translatable (D-21/D-102), and each is a CommandContribution — which means the keyboard route comes from the same declaration as the CLI verb rather than being wired twice.
+
+THE A11Y DECISION, made explicitly as the ticket asked: reading him is a PULL, never a push. Nothing announces itself through a live region, because a remark arriving unprompted would interrupt a screen-reader user part-way through Claude''s actual output — which is the content that matters. companion.say exists to be asked, and the popout (T-566) is the readable surface. lastRemark is written where it is rendered so the verb and the bubble cannot disagree.
+
+Absent rather than empty when he has said nothing: an empty string is a value a caller would render.
+
+FAILS HONESTLY. An empty question is refused; a question with no session returns no-session rather than reporting success. The caller has no other way to discover it went nowhere, and ''asked'' when nobody heard is the worst possible answer for the one interaction meant to be reliable.
+
+The surface is ASKED, not reached into: open/focus bump ValueNotifier counters the strip listens to, rather than a GlobalKey into private state. Counters not bools — two opens are two events, and ''open it again'' is a real thing to want after dismissing by accident. Focus is a FocusNode owned by the host and passed down, after a first attempt threaded a tick through two widgets to do what a node does directly.
+
+One bug worth recording: dispose() resolved the extension via ClideKernel.maybeOf(context), which is an illegal ancestor lookup on a deactivated widget and broke six unrelated app tests. The reference is captured at subscribe time now.', 'in_progress', 'medium', NULL, NULL, 'D-107', '2026-08-10 21:52:16.440', '2026-08-11 19:34:57.729', NULL, '0db438f3560725bd4efc1c5ce80a0598', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC073C7GRWC1BX3V682TC', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'Parity and a11y for talking to him', 'D-6 says every UI action has a CLI verb and every CLI verb has a UI affordance. Direct addressing adds a UI action, so it owes a verb — and D-107 already accepts that the strip''s parity is **hand-rolled**, because it is not a slot.
+
+## Scope
+
+- `clide companion ask "…"` — send a direct question and return his answer. Sits alongside the companion verbs in T-529 (Epic C); coordinate rather than duplicate.
+- Keyboard route to the input, and out of it again without submitting.
+- Screen reader: the input needs a label, and his answer needs to reach a reader. The face and the bubble are both invisible to one, so this and E3 are between them the only way a blind developer experiences Clide at all — which makes this a tier-0 contract (D-20), not a nicety.
+
+## Worth deciding here
+
+A remark arriving unprompted is a live-region problem: announcing it interrupts the reader mid-way through Claude''s actual output, which is the content that matters. Prefer a pull affordance — a command that reads his latest — over a push announcement, and say so explicitly rather than letting a default `liveRegion: true` decide it.
+
+Done 2026-08-11. Four verbs + 9 tests.
+
+companion.ask / companion.say / companion.open / companion.focus. Each carries a titleKey in the extension''s namespace, so the palette is translatable (D-21/D-102), and each is a CommandContribution — which means the keyboard route comes from the same declaration as the CLI verb rather than being wired twice.
+
+THE A11Y DECISION, made explicitly as the ticket asked: reading him is a PULL, never a push. Nothing announces itself through a live region, because a remark arriving unprompted would interrupt a screen-reader user part-way through Claude''s actual output — which is the content that matters. companion.say exists to be asked, and the popout (T-566) is the readable surface. lastRemark is written where it is rendered so the verb and the bubble cannot disagree.
+
+Absent rather than empty when he has said nothing: an empty string is a value a caller would render.
+
+FAILS HONESTLY. An empty question is refused; a question with no session returns no-session rather than reporting success. The caller has no other way to discover it went nowhere, and ''asked'' when nobody heard is the worst possible answer for the one interaction meant to be reliable.
+
+The surface is ASKED, not reached into: open/focus bump ValueNotifier counters the strip listens to, rather than a GlobalKey into private state. Counters not bools — two opens are two events, and ''open it again'' is a real thing to want after dismissing by accident. Focus is a FocusNode owned by the host and passed down, after a first attempt threaded a tick through two widgets to do what a node does directly.
+
+One bug worth recording: dispose() resolved the extension via ClideKernel.maybeOf(context), which is an illegal ancestor lookup on a deactivated widget and broke six unrelated app tests. The reference is captured at subscribe time now.', 'review', 'medium', NULL, NULL, 'D-107', '2026-08-10 21:52:16.440', '2026-08-11 19:34:57.755', NULL, 'dc282ae5662d2d94bbd86427818fff12', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

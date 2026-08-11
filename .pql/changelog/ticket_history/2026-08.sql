@@ -14102,3 +14102,40 @@ Latest-first via ListView(reverse: true), which also makes the lazy loading free
 
 Not done: the ticket asked for a fetch limit. The in-memory conversation is one session''s worth and reverse-building is already lazy, so a limit would bound something that is not currently unbounded. Add it when a session gets long enough to need it.', NULL, '2026-08-11 15:35:42', '2026-08-11 15:35:42.872', '2026-08-11 15:35:42.872', NULL, '08ecf47e6d6fa5dd2499ab13a8d2a44e', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC04G6G5GCGXEBWX833S0', 'status', 'in_progress', 'review', NULL, '2026-08-11 15:36:13', '2026-08-11 15:36:13.377', '2026-08-11 15:36:13.377', NULL, 'c4d7ab153063bf912d91a6f269f8229b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC073C7GRWC1BX3V682TC', 'status', 'backlog', 'in_progress', NULL, '2026-08-11 18:40:09', '2026-08-11 18:40:09.647', '2026-08-11 18:40:09.647', NULL, '7e33ca4921af8f1eee561f31db2cfd66', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC073C7GRWC1BX3V682TC', 'description', 'D-6 says every UI action has a CLI verb and every CLI verb has a UI affordance. Direct addressing adds a UI action, so it owes a verb — and D-107 already accepts that the strip''s parity is **hand-rolled**, because it is not a slot.
+
+## Scope
+
+- `clide companion ask "…"` — send a direct question and return his answer. Sits alongside the companion verbs in T-529 (Epic C); coordinate rather than duplicate.
+- Keyboard route to the input, and out of it again without submitting.
+- Screen reader: the input needs a label, and his answer needs to reach a reader. The face and the bubble are both invisible to one, so this and E3 are between them the only way a blind developer experiences Clide at all — which makes this a tier-0 contract (D-20), not a nicety.
+
+## Worth deciding here
+
+A remark arriving unprompted is a live-region problem: announcing it interrupts the reader mid-way through Claude''s actual output, which is the content that matters. Prefer a pull affordance — a command that reads his latest — over a push announcement, and say so explicitly rather than letting a default `liveRegion: true` decide it.', 'D-6 says every UI action has a CLI verb and every CLI verb has a UI affordance. Direct addressing adds a UI action, so it owes a verb — and D-107 already accepts that the strip''s parity is **hand-rolled**, because it is not a slot.
+
+## Scope
+
+- `clide companion ask "…"` — send a direct question and return his answer. Sits alongside the companion verbs in T-529 (Epic C); coordinate rather than duplicate.
+- Keyboard route to the input, and out of it again without submitting.
+- Screen reader: the input needs a label, and his answer needs to reach a reader. The face and the bubble are both invisible to one, so this and E3 are between them the only way a blind developer experiences Clide at all — which makes this a tier-0 contract (D-20), not a nicety.
+
+## Worth deciding here
+
+A remark arriving unprompted is a live-region problem: announcing it interrupts the reader mid-way through Claude''s actual output, which is the content that matters. Prefer a pull affordance — a command that reads his latest — over a push announcement, and say so explicitly rather than letting a default `liveRegion: true` decide it.
+
+Done 2026-08-11. Four verbs + 9 tests.
+
+companion.ask / companion.say / companion.open / companion.focus. Each carries a titleKey in the extension''s namespace, so the palette is translatable (D-21/D-102), and each is a CommandContribution — which means the keyboard route comes from the same declaration as the CLI verb rather than being wired twice.
+
+THE A11Y DECISION, made explicitly as the ticket asked: reading him is a PULL, never a push. Nothing announces itself through a live region, because a remark arriving unprompted would interrupt a screen-reader user part-way through Claude''s actual output — which is the content that matters. companion.say exists to be asked, and the popout (T-566) is the readable surface. lastRemark is written where it is rendered so the verb and the bubble cannot disagree.
+
+Absent rather than empty when he has said nothing: an empty string is a value a caller would render.
+
+FAILS HONESTLY. An empty question is refused; a question with no session returns no-session rather than reporting success. The caller has no other way to discover it went nowhere, and ''asked'' when nobody heard is the worst possible answer for the one interaction meant to be reliable.
+
+The surface is ASKED, not reached into: open/focus bump ValueNotifier counters the strip listens to, rather than a GlobalKey into private state. Counters not bools — two opens are two events, and ''open it again'' is a real thing to want after dismissing by accident. Focus is a FocusNode owned by the host and passed down, after a first attempt threaded a tick through two widgets to do what a node does directly.
+
+One bug worth recording: dispose() resolved the extension via ClideKernel.maybeOf(context), which is an illegal ancestor lookup on a deactivated widget and broke six unrelated app tests. The reference is captured at subscribe time now.', NULL, '2026-08-11 19:34:57', '2026-08-11 19:34:57.729', '2026-08-11 19:34:57.729', NULL, 'a9104fca8996bc8f26f223085c993082', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC073C7GRWC1BX3V682TC', 'status', 'in_progress', 'review', NULL, '2026-08-11 19:34:57', '2026-08-11 19:34:57.755', '2026-08-11 19:34:57.755', NULL, '22c7a51795076244af8b8b79064262a4', 2) ON CONFLICT(hash) DO NOTHING;

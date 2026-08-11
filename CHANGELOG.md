@@ -52,6 +52,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   "what did that mean?" about what Claude just said. Always answered, and his
   face turns to you while you type. (D-107, T-564)
 
+- **Clide from the keyboard and the CLI.** `companion.ask`, `companion.say`,
+  `companion.open` and `companion.focus` — ask him, read his last remark, open
+  his conversation, or jump to his input without touching the mouse. (D-6,
+  D-20, T-567)
+
 - **Clide's conversation.** Expand the strip to read his side in full — his
   remarks and your questions, newest first, with a box to keep talking. Esc or
   a click outside closes it, and a half-typed question survives. (D-107, T-566)

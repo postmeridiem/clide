@@ -52,6 +52,7 @@ class ClideStrip extends StatefulWidget {
     this.onExpand,
     this.canAsk = true,
     this.askHint,
+    this.askFocusNode,
     this.debugFreezeAt,
     this.debugClockLabel,
   });
@@ -67,6 +68,10 @@ class ClideStrip extends StatefulWidget {
   /// Open his conversation over the detail area (T-566). Null hides the
   /// affordance — the strip is then bubble-and-input only.
   final VoidCallback? onExpand;
+
+  /// Focus for the input, when something outside needs to put the cursor there
+  /// (T-567).
+  final FocusNode? askFocusNode;
 
   /// Placeholder for the input, resolved through the catalog by the host
   /// (D-21/D-102). Null takes [ClideAskBox]'s own English fallback.
@@ -158,6 +163,7 @@ class _ClideStripState extends State<ClideStrip> {
                                   onAsk: widget.onAsk!,
                                   enabled: widget.canAsk,
                                   hint: widget.askHint ?? 'ask Clide…',
+                                  focusNode: widget.askFocusNode,
                                   onFocusChanged: (has) => setState(() => _addressed = has),
                                 ),
                               ),

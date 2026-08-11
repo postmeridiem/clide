@@ -1,4 +1,8 @@
 {
+  "command.ask": "Clide: ask a question",
+  "command.focus": "Clide: focus his input",
+  "command.open": "Clide: open his conversation",
+  "command.say": "Clide: read his last remark",
   "face.semantics.amused": "Clide is amused",
   "face.semantics.approving": "Clide approves",
   "face.semantics.concerned": "Clide is concerned",
