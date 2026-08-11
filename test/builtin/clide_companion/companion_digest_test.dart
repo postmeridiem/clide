@@ -79,17 +79,22 @@ void main() {
   late SessionReader reader;
   late CompanionDigest digest;
   late List<String> sent;
+  late List<DigestTurn> turns;
   var ingesting = true;
 
   Future<void> boot() async {
     ingesting = true;
     sent = [];
+    turns = [];
     proc = _Proc();
     orch = ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => proc);
     await orch.spawn(const SpawnSpec(id: kPrimarySessionId, role: 'primary', sessionId: 'p', cwd: '/repo'));
     reader = SessionReader.primary(orchestrator: orch)..start();
     digest = CompanionDigest(source: reader, ingesting: () => ingesting)..start();
-    digest.lines.listen((t) => sent.add(t.text));
+    digest.lines.listen((t) {
+      sent.add(t.text);
+      turns.add(t);
+    });
   }
 
   setUp(boot);
@@ -250,6 +255,37 @@ void main() {
       }
       await settle();
       expect(sent, isEmpty, reason: 'a heartbeat is exactly what this rule forbids');
+    });
+
+    test('an unseen turn does not lend its start to the next one', () async {
+      // Found in review. A turn that produced nothing admissible still stamped a
+      // start, and the early return skipped the re-arm — so the *next* turn was
+      // measured from the previous one's beginning, idle time and all. That
+      // matters because `ran` is what the trigger checks against `kTrivialTurn`:
+      // a one-second lookup inherits a minute of idling, clears the bar, and
+      // gets a prompt spent on it. The pacing stops pacing precisely after a
+      // minimised stretch, which is what produces empty turns in the first place.
+      // Settled between the send and the result, unlike the tests above. Both
+      // events would otherwise be in flight at once and the outcome wins the
+      // race, so the turn would be timed from after it ended — a fixture
+      // artefact, not the shape of a real turn, where the reply is seconds away.
+      ingesting = false;
+      session().session.send('while you were away');
+      await settle();
+      proc.endTurn();
+      await settle();
+      expect(sent, isEmpty);
+
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+
+      ingesting = true;
+      session().session.send('and now');
+      await settle();
+      proc.prose('back to it', id: 'b');
+      proc.endTurn();
+      await settle();
+
+      expect(turns.single.ran, lessThan(const Duration(milliseconds: 300)), reason: 'measured from its own start, not the unseen turn before it');
     });
   });
 }

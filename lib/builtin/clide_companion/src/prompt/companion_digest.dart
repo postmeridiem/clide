@@ -207,6 +207,13 @@ class CompanionDigest {
   /// worth spending a prompt on is the trigger's question (T-547), and this
   /// class stays responsible only for what may be seen and how it is framed.
   void _onTurnEnd(TurnOutcome outcome) {
+    // Re-armed **before** the empty check, not after. An unseen turn still
+    // stamped a start, and leaving it set would make the next turn measure from
+    // the previous one's beginning — idle minutes and all. That turn then reads
+    // as long, clears `kTrivialTurn`, and gets a prompt spent on it: the pacing
+    // quietly stops pacing exactly when the strip has been minimised, which is
+    // the case that produces empty turns in the first place.
+    final ran = _ran();
     if (_turn.isEmpty) {
       // Nothing admissible happened — a turn that was all tool work, or one
       // that ran entirely while minimised. No prompt at all.
@@ -216,6 +223,6 @@ class CompanionDigest {
     final line = observedExchange(prompt: _turn.prompts.values.join('\n'), reply: _turn.prose.values.join('\n\n'));
     _turn.clear();
     if (line == null || _lines.isClosed) return;
-    _lines.add(DigestTurn(text: line, outcome: outcome, ran: _ran()));
+    _lines.add(DigestTurn(text: line, outcome: outcome, ran: ran));
   }
 }
