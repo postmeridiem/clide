@@ -16963,3 +16963,66 @@ NOT ClideFilterBox. It is the only other single-line input and it is a filter �
 Narrow panels drop the input with the bubble (below 150px of usable width). At the column''s 220px minimum there is no room for a face and a legible field; the popout (T-566) is the escape hatch, and a cramped box would be worse than none.
 
 Fallout worth noting: app_test''s project-switcher case used a bare find.byType(EditableText) and became ambiguous the moment a second input existed. Scoped to the switcher''s own field. That is a small live preview of the concern the ticket names — two places to type on one screen.', 'review', 'high', NULL, NULL, 'D-107', '2026-08-10 21:52:16.375', '2026-08-11 14:16:58.296', NULL, 'f661aaeb7636306eb1a4d96bc3d5465d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC020QGT81JNJ82SE98R0', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'The answer grows the strip, then gives the space back', 'Settled by the T-514 spike, so this is implementation rather than design: **the strip grows to a capped height (~40% of the column) while answering, scrolls beyond that, and collapses back when idle.** Space is borrowed only while in use.
+
+## Why a cap and not just growth
+
+The strip already costs every detail view ~110px permanently (D-107 cost section, D-48 chrome budget). An answer that pushed that to half the column and stayed there would be a second, larger tax nobody agreed to. Borrowing is acceptable; keeping is not.
+
+## Watch for
+
+- **Collapse must not be a jump.** The strip is beside a detail view whose content will reflow; a snap back to 110px moves everything under the reader''s eye. Animate the give-back, and do not collapse while the pointer is inside it.
+- A direct answer is capped at three sentences by the brief and at `kMaxRemarkChars` by the parser, so growth is bounded before layout ever sees it. The scroll case is the long-tail, not the norm.
+- The ambient remark path is unchanged — a two-sentence remark must not grow the strip at all, or every notable event becomes a layout event.
+- Reduced motion: the growth is animation and D-107 makes `MediaQuery.disableAnimations` a hard gate, not a courtesy.
+
+Cancelled 2026-08-11 — superseded by T-566, agreed three ways (product owner, implementer, and Clide himself, who called it ''the right move — T-566 solves it without the weight'').
+
+Attempted and reverted. ~174 lines across three files, including a LayoutBuilder in slot_host.dart — shell code changed for a companion concern — and it broke three things on the way: the bubble stopped hugging its text (a scroll view inside a shrink-wrapping box fills it), the golden harness''s intrinsic-dimension query (a LayoutBuilder at a widget''s root cannot answer one, and Alchemist renders inside a Table), and a cap expressed as a fraction of the column that was a constant in disguise — the column''s height is the window''s minus chrome, so 40% of it barely moves, while the WIDTH is the dimension that actually varies (220-1000px).
+
+The real problem: growth is the fiddly half of T-514''s answer-space decision and the popout is the valuable half. A 300px strip was never a good place to read three sentences. With T-566 the bubble keeps its three-line ellipsis and a long answer opens where it can actually be read, so the strip stays a fixed-height ambient surface — which is the thing it is good at.
+
+Accepted cost, stated so it is not rediscovered: a two-line answer that would have fitted at 140px now needs a click to open the popout. Judged cheaper than the machinery.
+
+If growth is ever revisited: the width must be passed in rather than measured (root LayoutBuilder breaks intrinsics), the scroll must wrap the bubble rather than live inside it, and the cap should be a constant.', 'backlog', 'high', NULL, NULL, 'D-107', '2026-08-10 21:52:16.400', '2026-08-11 15:22:15.813', NULL, '9bad3e119fac728f6d4852bdc8b6faa0', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC020QGT81JNJ82SE98R0', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'The answer grows the strip, then gives the space back', 'Settled by the T-514 spike, so this is implementation rather than design: **the strip grows to a capped height (~40% of the column) while answering, scrolls beyond that, and collapses back when idle.** Space is borrowed only while in use.
+
+## Why a cap and not just growth
+
+The strip already costs every detail view ~110px permanently (D-107 cost section, D-48 chrome budget). An answer that pushed that to half the column and stayed there would be a second, larger tax nobody agreed to. Borrowing is acceptable; keeping is not.
+
+## Watch for
+
+- **Collapse must not be a jump.** The strip is beside a detail view whose content will reflow; a snap back to 110px moves everything under the reader''s eye. Animate the give-back, and do not collapse while the pointer is inside it.
+- A direct answer is capped at three sentences by the brief and at `kMaxRemarkChars` by the parser, so growth is bounded before layout ever sees it. The scroll case is the long-tail, not the norm.
+- The ambient remark path is unchanged — a two-sentence remark must not grow the strip at all, or every notable event becomes a layout event.
+- Reduced motion: the growth is animation and D-107 makes `MediaQuery.disableAnimations` a hard gate, not a courtesy.
+
+Cancelled 2026-08-11 — superseded by T-566, agreed three ways (product owner, implementer, and Clide himself, who called it ''the right move — T-566 solves it without the weight'').
+
+Attempted and reverted. ~174 lines across three files, including a LayoutBuilder in slot_host.dart — shell code changed for a companion concern — and it broke three things on the way: the bubble stopped hugging its text (a scroll view inside a shrink-wrapping box fills it), the golden harness''s intrinsic-dimension query (a LayoutBuilder at a widget''s root cannot answer one, and Alchemist renders inside a Table), and a cap expressed as a fraction of the column that was a constant in disguise — the column''s height is the window''s minus chrome, so 40% of it barely moves, while the WIDTH is the dimension that actually varies (220-1000px).
+
+The real problem: growth is the fiddly half of T-514''s answer-space decision and the popout is the valuable half. A 300px strip was never a good place to read three sentences. With T-566 the bubble keeps its three-line ellipsis and a long answer opens where it can actually be read, so the strip stays a fixed-height ambient surface — which is the thing it is good at.
+
+Accepted cost, stated so it is not rediscovered: a two-line answer that would have fitted at 140px now needs a click to open the popout. Judged cheaper than the machinery.
+
+If growth is ever revisited: the width must be passed in rather than measured (root LayoutBuilder breaks intrinsics), the scroll must wrap the bubble rather than live inside it, and the cap should be a constant.', 'cancelled', 'high', NULL, NULL, 'D-107', '2026-08-10 21:52:16.400', '2026-08-11 15:22:15.840', NULL, 'ba9c2d15b9b4aced48a39be5c4a58d5a', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC04G6G5GCGXEBWX833S0', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'The popout — his conversation, latest first', 'An expand control opens a light conversation view over the detail area: the full Clide exchange for this session, **latest first**, with a fetch limit and lazy loading on scroll, and a text box underneath to continue talking.
+
+## What it reads
+
+**His own transcript**, and nothing bespoke. Verified live on 2026-08-10: the companion writes an ordinary `<uuid>.jsonl` under `~/.claude/projects/<repo>/` like any other session, because D-107 was amended to drop `--no-session-persistence`. So this pages through a real transcript with the reader clide already has.
+
+**That dissolves T-534** — the bespoke append-only log was written when the companion was non-persisted and there was no record of anything he said. Close it rather than build it.
+
+## The filter is the same one
+
+Only actually-said things: his prose and the questions put to him. Never tool uses, never injected metadata, never the `[observed]` digest lines we fed him — those are the developer''s own conversation and rendering them here would show it back to them in Clide''s window. Same boundary as the digest (D-107 commitment 3), applied in the opposite direction.
+
+Note the transcript also contains harness noise at the head of the session (local-command echoes). Whatever renders this needs the same allow-list discipline the digest has, not a raw dump.
+
+## Watch for
+
+- Latest-first is unusual and deliberate — the useful thing is the last thing he said, not the first.
+- It overlays the detail area, so dismissal must be obvious and must not lose a half-typed question.
+- Screen-reader route: this is the only place his history is readable as text, which makes it the accessible answer to a face and a bubble a reader cannot see (D-20).', 'in_progress', 'medium', NULL, NULL, 'D-107', '2026-08-10 21:52:16.421', '2026-08-11 15:22:15.862', NULL, 'd521dbe35335a73b2c6b1bfab5e99e1a', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

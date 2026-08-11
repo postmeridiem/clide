@@ -14015,3 +14015,38 @@ Narrow panels drop the input with the bubble (below 150px of usable width). At t
 
 Fallout worth noting: app_test''s project-switcher case used a bare find.byType(EditableText) and became ambiguous the moment a second input existed. Scoped to the switcher''s own field. That is a small live preview of the concern the ticket names — two places to type on one screen.', NULL, '2026-08-11 14:16:41', '2026-08-11 14:16:41.124', '2026-08-11 14:16:41.124', NULL, 'c51120c8e8b663f780a3cd9e722211c3', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVABZYX13P4B3DKDCDV6A50', 'status', 'in_progress', 'review', NULL, '2026-08-11 14:16:58', '2026-08-11 14:16:58.296', '2026-08-11 14:16:58.296', NULL, '5313b015e15d87894cf32a7717d95356', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC020QGT81JNJ82SE98R0', 'description', 'Settled by the T-514 spike, so this is implementation rather than design: **the strip grows to a capped height (~40% of the column) while answering, scrolls beyond that, and collapses back when idle.** Space is borrowed only while in use.
+
+## Why a cap and not just growth
+
+The strip already costs every detail view ~110px permanently (D-107 cost section, D-48 chrome budget). An answer that pushed that to half the column and stayed there would be a second, larger tax nobody agreed to. Borrowing is acceptable; keeping is not.
+
+## Watch for
+
+- **Collapse must not be a jump.** The strip is beside a detail view whose content will reflow; a snap back to 110px moves everything under the reader''s eye. Animate the give-back, and do not collapse while the pointer is inside it.
+- A direct answer is capped at three sentences by the brief and at `kMaxRemarkChars` by the parser, so growth is bounded before layout ever sees it. The scroll case is the long-tail, not the norm.
+- The ambient remark path is unchanged — a two-sentence remark must not grow the strip at all, or every notable event becomes a layout event.
+- Reduced motion: the growth is animation and D-107 makes `MediaQuery.disableAnimations` a hard gate, not a courtesy.', 'Settled by the T-514 spike, so this is implementation rather than design: **the strip grows to a capped height (~40% of the column) while answering, scrolls beyond that, and collapses back when idle.** Space is borrowed only while in use.
+
+## Why a cap and not just growth
+
+The strip already costs every detail view ~110px permanently (D-107 cost section, D-48 chrome budget). An answer that pushed that to half the column and stayed there would be a second, larger tax nobody agreed to. Borrowing is acceptable; keeping is not.
+
+## Watch for
+
+- **Collapse must not be a jump.** The strip is beside a detail view whose content will reflow; a snap back to 110px moves everything under the reader''s eye. Animate the give-back, and do not collapse while the pointer is inside it.
+- A direct answer is capped at three sentences by the brief and at `kMaxRemarkChars` by the parser, so growth is bounded before layout ever sees it. The scroll case is the long-tail, not the norm.
+- The ambient remark path is unchanged — a two-sentence remark must not grow the strip at all, or every notable event becomes a layout event.
+- Reduced motion: the growth is animation and D-107 makes `MediaQuery.disableAnimations` a hard gate, not a courtesy.
+
+Cancelled 2026-08-11 — superseded by T-566, agreed three ways (product owner, implementer, and Clide himself, who called it ''the right move — T-566 solves it without the weight'').
+
+Attempted and reverted. ~174 lines across three files, including a LayoutBuilder in slot_host.dart — shell code changed for a companion concern — and it broke three things on the way: the bubble stopped hugging its text (a scroll view inside a shrink-wrapping box fills it), the golden harness''s intrinsic-dimension query (a LayoutBuilder at a widget''s root cannot answer one, and Alchemist renders inside a Table), and a cap expressed as a fraction of the column that was a constant in disguise — the column''s height is the window''s minus chrome, so 40% of it barely moves, while the WIDTH is the dimension that actually varies (220-1000px).
+
+The real problem: growth is the fiddly half of T-514''s answer-space decision and the popout is the valuable half. A 300px strip was never a good place to read three sentences. With T-566 the bubble keeps its three-line ellipsis and a long answer opens where it can actually be read, so the strip stays a fixed-height ambient surface — which is the thing it is good at.
+
+Accepted cost, stated so it is not rediscovered: a two-line answer that would have fitted at 140px now needs a click to open the popout. Judged cheaper than the machinery.
+
+If growth is ever revisited: the width must be passed in rather than measured (root LayoutBuilder breaks intrinsics), the scroll must wrap the bubble rather than live inside it, and the cap should be a constant.', NULL, '2026-08-11 15:22:15', '2026-08-11 15:22:15.813', '2026-08-11 15:22:15.813', NULL, 'f4455436c23dac538214016f47d60abe', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC020QGT81JNJ82SE98R0', 'status', 'backlog', 'cancelled', NULL, '2026-08-11 15:22:15', '2026-08-11 15:22:15.840', '2026-08-11 15:22:15.840', NULL, 'd0a8c046738c119126840c8c34cfb4c2', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC04G6G5GCGXEBWX833S0', 'status', 'backlog', 'in_progress', NULL, '2026-08-11 15:22:15', '2026-08-11 15:22:15.862', '2026-08-11 15:22:15.862', NULL, '7548eba59962a189014d5922bf38cd94', 2) ON CONFLICT(hash) DO NOTHING;
