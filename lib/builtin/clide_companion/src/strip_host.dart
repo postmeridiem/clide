@@ -188,18 +188,24 @@ class _StripState extends State<_Strip> {
   final _draft = TextEditingController();
 
   /// Open his conversation over the detail area.
+  ///
+  /// The session is read **inside** the builder, under a listener on the
+  /// controller, rather than captured when the window opens. A restart swaps the
+  /// `ManagedSession` — and with it the conversation — and a popout holding the
+  /// old one goes quietly stale: still showing the previous transcript, never
+  /// showing the answer to whatever was typed into it next. The controller
+  /// itself is stable for the extension's lifetime, so it is safe to listen to
+  /// for as long as the window is up.
   void _openPopout() {
     final kernel = ClideKernel.maybeOf(context);
     if (kernel == null) return;
-    kernel.dialog.show<Object>(
-      (ctx, dismiss) => CompanionPopout(
-        conversation: _companion?.session?.conversation,
-        draft: _draft,
-        canAsk: _companion?.running ?? false,
-        onAsk: _ask,
-        onDismiss: dismiss,
-      ),
-    );
+    final companion = _companion;
+    kernel.dialog.show<Object>((ctx, dismiss) {
+      CompanionPopout build() =>
+          CompanionPopout(conversation: companion?.session?.conversation, draft: _draft, canAsk: companion?.running ?? false, onAsk: _ask, onDismiss: dismiss);
+      if (companion == null) return build();
+      return ListenableBuilder(listenable: companion, builder: (_, _) => build());
+    });
   }
 
   /// Clide's session controller, via the extension that owns it.

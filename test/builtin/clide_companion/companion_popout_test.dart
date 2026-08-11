@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/builtin/clide_companion/src/companion_popout.dart';
 import 'package:clide/kernel/kernel.dart';
@@ -86,6 +89,30 @@ void main() {
       // An empty panel reads as broken; "nothing said yet" is true and calm.
       await tester.pumpWidget(host(CompanionPopout(conversation: null, onDismiss: () {}, onAsk: (_) {})));
       expect(find.text('Nothing said yet.'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('it follows him when his session is replaced under it', (tester) async {
+      // A restart swaps the ManagedSession — after a `/clear` on the primary, a
+      // workspace switch, or any brief change. A popout still listening to the
+      // old conversation shows the previous transcript for ever and never the
+      // answer to whatever was asked next.
+      final oldStream = StreamController<ConversationItem>.broadcast();
+      final newStream = StreamController<ConversationItem>.broadcast();
+      addTearDown(oldStream.close);
+      addTearDown(newStream.close);
+      final before = ConversationController(stream: oldStream.stream);
+      final after = ConversationController(stream: newStream.stream);
+
+      await tester.pumpWidget(host(CompanionPopout(conversation: before, onDismiss: () {}, onAsk: (_) {})));
+      await tester.pumpWidget(host(CompanionPopout(conversation: after, onDismiss: () {}, onAsk: (_) {})));
+
+      newStream.add(_clide('[watching]\nStill here.'));
+      // The controller coalesces a burst behind a zero-duration Timer, which a
+      // bare `pump()` does not advance the clock far enough to fire.
+      await tester.pump(const Duration(milliseconds: 1));
+
+      expect(find.text('Still here.'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     });
 

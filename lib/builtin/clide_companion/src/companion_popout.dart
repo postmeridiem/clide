@@ -119,6 +119,19 @@ class _CompanionPopoutState extends State<CompanionPopout> {
   void _onConversation() => setState(() {});
 
   @override
+  void didUpdateWidget(CompanionPopout old) {
+    super.didUpdateWidget(old);
+    // His session can be replaced under an open popout — a restart follows a
+    // `/clear` on the primary, a workspace switch, or any brief change (a
+    // rename, a locale, an edited self-description). Without moving the
+    // listener the window keeps reading a conversation nobody writes to any
+    // more: the answer to a question typed right here would never appear.
+    if (old.conversation == widget.conversation) return;
+    old.conversation?.removeListener(_onConversation);
+    widget.conversation?.addListener(_onConversation);
+  }
+
+  @override
   void dispose() {
     widget.conversation?.removeListener(_onConversation);
     _focus.dispose();

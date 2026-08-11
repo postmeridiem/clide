@@ -17759,3 +17759,1064 @@ plumbing; they meet at B.
 
 Refs: D-6 (CLI/UI parity), D-47, D-48, D-50, D-51, D-53, D-78 (cards are display-only —
 Clide is chrome, not a card), D-87, D-101, D-21/D-102. Related: T-241 (ultrawide audit).', 'in_progress', 'medium', NULL, NULL, 'D-107', '2026-08-08 22:47:33.751', '2026-08-11 21:02:53.369', NULL, '7614abfadbd7c4af6b856d4da2ccc0d1', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC073C7GRWC1BX3V682TC', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'Parity and a11y for talking to him', 'D-6 says every UI action has a CLI verb and every CLI verb has a UI affordance. Direct addressing adds a UI action, so it owes a verb — and D-107 already accepts that the strip''s parity is **hand-rolled**, because it is not a slot.
+
+## Scope
+
+- `clide companion ask "…"` — send a direct question and return his answer. Sits alongside the companion verbs in T-529 (Epic C); coordinate rather than duplicate.
+- Keyboard route to the input, and out of it again without submitting.
+- Screen reader: the input needs a label, and his answer needs to reach a reader. The face and the bubble are both invisible to one, so this and E3 are between them the only way a blind developer experiences Clide at all — which makes this a tier-0 contract (D-20), not a nicety.
+
+## Worth deciding here
+
+A remark arriving unprompted is a live-region problem: announcing it interrupts the reader mid-way through Claude''s actual output, which is the content that matters. Prefer a pull affordance — a command that reads his latest — over a push announcement, and say so explicitly rather than letting a default `liveRegion: true` decide it.
+
+Done 2026-08-11. Four verbs + 9 tests.
+
+companion.ask / companion.say / companion.open / companion.focus. Each carries a titleKey in the extension''s namespace, so the palette is translatable (D-21/D-102), and each is a CommandContribution — which means the keyboard route comes from the same declaration as the CLI verb rather than being wired twice.
+
+THE A11Y DECISION, made explicitly as the ticket asked: reading him is a PULL, never a push. Nothing announces itself through a live region, because a remark arriving unprompted would interrupt a screen-reader user part-way through Claude''s actual output — which is the content that matters. companion.say exists to be asked, and the popout (T-566) is the readable surface. lastRemark is written where it is rendered so the verb and the bubble cannot disagree.
+
+Absent rather than empty when he has said nothing: an empty string is a value a caller would render.
+
+FAILS HONESTLY. An empty question is refused; a question with no session returns no-session rather than reporting success. The caller has no other way to discover it went nowhere, and ''asked'' when nobody heard is the worst possible answer for the one interaction meant to be reliable.
+
+The surface is ASKED, not reached into: open/focus bump ValueNotifier counters the strip listens to, rather than a GlobalKey into private state. Counters not bools — two opens are two events, and ''open it again'' is a real thing to want after dismissing by accident. Focus is a FocusNode owned by the host and passed down, after a first attempt threaded a tick through two widgets to do what a node does directly.
+
+One bug worth recording: dispose() resolved the extension via ClideKernel.maybeOf(context), which is an illegal ancestor lookup on a deactivated widget and broke six unrelated app tests. The reference is captured at subscribe time now.
+
+Review (2026-08-11): two defects found and fixed before accepting.
+
+1. **companion.open / companion.focus reported success with nothing listening.** Both bumped their counter and returned ok whether or not a strip was mounted, so with the companion minimised or disabled the verb answered about a window that never appeared — and the caller had no other way to find out. Now refused with kind `no-surface`, and the message differs for disabled vs minimised so a script is told which control to use. Two tests added (companion_verbs_test.dart, 19 passing).
+
+2. **Tofu on the expand button.** It drew `⌃` (U+2303) as text. Verified with fc-query: present in Inter, **absent from Josefin Sans** — and the UI face is user-selectable (D-101), so it was a missing glyph for anyone who switched. Swapped for a Phosphor `chat-circle` icon, which ships its own font. Same failure kVerifiedFaceGlyphs exists to stop for the face, walked into for chrome.', 'review', 'medium', NULL, NULL, 'D-107', '2026-08-10 21:52:16.440', '2026-08-11 21:26:13.300', NULL, 'e1e23cabe6845d9a23e26f7e902a0769', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC04G6G5GCGXEBWX833S0', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'The popout — his conversation, latest first', 'An expand control opens a light conversation view over the detail area: the full Clide exchange for this session, **latest first**, with a fetch limit and lazy loading on scroll, and a text box underneath to continue talking.
+
+## What it reads
+
+**His own transcript**, and nothing bespoke. Verified live on 2026-08-10: the companion writes an ordinary `<uuid>.jsonl` under `~/.claude/projects/<repo>/` like any other session, because D-107 was amended to drop `--no-session-persistence`. So this pages through a real transcript with the reader clide already has.
+
+**That dissolves T-534** — the bespoke append-only log was written when the companion was non-persisted and there was no record of anything he said. Close it rather than build it.
+
+## The filter is the same one
+
+Only actually-said things: his prose and the questions put to him. Never tool uses, never injected metadata, never the `[observed]` digest lines we fed him — those are the developer''s own conversation and rendering them here would show it back to them in Clide''s window. Same boundary as the digest (D-107 commitment 3), applied in the opposite direction.
+
+Note the transcript also contains harness noise at the head of the session (local-command echoes). Whatever renders this needs the same allow-list discipline the digest has, not a raw dump.
+
+## Watch for
+
+- Latest-first is unusual and deliberate — the useful thing is the last thing he said, not the first.
+- It overlays the detail area, so dismissal must be obvious and must not lose a half-typed question.
+- Screen-reader route: this is the only place his history is readable as text, which makes it the accessible answer to a face and a bubble a reader cannot see (D-20).
+
+Done 2026-08-11. companion_popout.dart + 9 tests.
+
+READS HIS REAL TRANSCRIPT — nothing bespoke. The ConversationController clide already holds for every session is the source, which is what D-107''s amendment bought when it dropped --no-session-persistence. T-534 stays cancelled.
+
+THE FILTER RUNS OPPOSITE TO THE DIGEST''S. That one decides what Clide may see; this decides what may be seen of him: his own words and the questions put to him. The [observed] lines are excluded because they are the developer''s own conversation and showing them back inside Clide''s window would be a strange mirror. [notice] and [event] excluded as bookkeeping. Same allow-list discipline — an unknown item type is invisible until someone decides otherwise, asserted with a ToolResultMessage carrying a secret.
+
+His silences do not render as empty rows (most replies are a face and nothing else), and the reply goes through the same parser the bubble uses so the face tag cannot appear here either.
+
+Dismissal settled with the product owner: Esc plus click-outside. The draft is owned by the strip host rather than the popout, so a half-typed question survives being dismissed and reopened — losing what someone was mid-way through writing is the kind of small betrayal that makes a surface untrustworthy. Asserted.
+
+Latest-first via ListView(reverse: true), which also makes the lazy loading free: older turns build only as they are scrolled to.
+
+Not done: the ticket asked for a fetch limit. The in-memory conversation is one session''s worth and reverse-building is already lazy, so a limit would bound something that is not currently unbounded. Add it when a session gets long enough to need it.
+
+Review (2026-08-11): one defect found and fixed before accepting.
+
+**The popout went stale when his session was replaced under it.** The conversation was captured at open time. A restart swaps the ManagedSession — after a `/clear` on the primary, a workspace switch, or any brief change (rename, locale, edited self-description) — and the open window kept listening to a controller nobody writes to any more: still showing the previous transcript, and never showing the answer to whatever was typed into it next. The window is now built under a ListenableBuilder on the controller (which is stable for the extension''s lifetime) and CompanionPopout moves its listener in didUpdateWidget. Test added and verified non-vacuous — it fails without the fix.
+
+Also fixed here: the expand button drew `⌃` as text, which Josefin Sans does not carry (see T-567).', 'review', 'medium', NULL, NULL, 'D-107', '2026-08-10 21:52:16.421', '2026-08-11 21:26:19.676', NULL, '90be9fc81b34d99d3643263f7ac37916', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVZ67S9VM9Y5JZ0HNSMAN4', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'D3: Trigger policy — notable events, frequency, debounce', 'When Clide is *asked* to say something. Blocked by **T-546** — there has to be a
+digest before there is anything to remark on.
+
+## The trigger is the cost control
+
+D-107 fixes the shape: **notable events only, never per-token.** Turn finished,
+error, a long run crossing a threshold, a commit landing. Direct questions are
+always answered and are not subject to this.
+
+Under subscription auth the real currency is **quota drawn from the same pool
+already rate-limiting the primary session**, so a chatty trigger does not cost
+money so much as it costs the user their own session. That is the argument for
+keeping it stingy, and it is why this is its own ticket rather than a couple of
+lines inside the digest.
+
+`project.companion.frequency` (T-527) tunes the threshold within that shape:
+`rare` (errors and long runs only), `notable` (the default), `chatty` (also
+ordinary turns). It is already a setting with a UI and is read by nobody yet.
+
+## Watch for
+
+- **Debounce, and say what the debounce is.** "Turn finished" and "commit landed"
+  can arrive within a second of each other; two remarks about one event reads as
+  a malfunction.
+- A long run crossing a threshold should fire **once**, not once per check.
+- An error remark must not itself be triggered by the companion''s own failure —
+  that is a loop.
+- Cap what a single event can produce. `max_tokens` bounds one reply; nothing yet
+  bounds replies per minute, and that is this ticket''s job.
+
+## Worth measuring rather than assuming
+
+Once it runs, count what a realistic hour actually generates at each frequency
+setting before deciding the defaults are right. The initiative''s estimate was
+~50 comments per session, which is where the restart boundary came from — if the
+real number is 200, that boundary and the cost model both move.
+
+**Corollary of T-546''s ''absence is silence'':** state *changes* are not notable events.
+
+A session ending, starting, being minimised or coming back are things the tooling did, not things that happened in the work. None of them should trigger a remark. The notable-events list stays what D-107 says it is — turn finished, error, long run crossing a threshold, commit landed — all of which are events in the *conversation*.
+
+Worth stating because the signals are now conveniently available (T-557 surfaces turn outcome, T-551 forwards binding changes) and ''we can see it, so let us comment on it'' is exactly how an ambient surface becomes a nuisance. Availability is not a reason to speak.
+
+Done 2026-08-10. lib/builtin/clide_companion/src/prompt/companion_trigger.dart + 11 tests, and wired: digest -> trigger -> session.send in CompanionSessionController.
+
+TWO FILTERS, DIFFERENT QUESTIONS. The trigger decides whether to spend anything at all (every prompt draws the primary session''s quota); the brief decides whether to speak once asked (measured ~1 remark per 8 exchanges). Kept separate because a model cannot bound its own spend — deciding not to answer still costs a turn.
+
+FREQUENCY LADDER, now read by something for the first time since T-527. rare = failures and long runs only, paced 10 min apart. notable = the above plus completed turns lasting >5s, paced 1 min. chatty = every completed exchange, paced 10s. The 5s floor is the honest version of ''notable'': clide cannot judge interesting, but it can tell a 2-second lookup from real work, and asking about a lookup spends a turn to be told nothing.
+
+DEBOUNCE (10s) is separate from pacing and deliberately so — one occurrence producing two signals is a different failure from going too fast, and a log that conflates them is useless.
+
+LONG RUN fires once per turn; turnStarted() re-arms it. A threshold that re-arms on each check is a metronome.
+
+STATE CHANGES ARE NOT EVENTS — encoded in the enum, which has no member for session start/end/minimise/restore, rather than in a comment. Test asserts the exact enum contents so adding one requires arguing for it.
+
+NO LOOP ON HIS OWN FAILURE: structural. The trigger only ever sees the primary reader''s events; the companion''s own errors are not an input to it.
+
+Bug caught while wiring, worth recording: _setBusy(false) runs BEFORE the result event announces the outcome, so reading session.busySince at turn end yields null every time. The digest would have reported every turn as instantaneous, and under the default frequency''s 5s floor that means Clide is never asked about anything — a total feature failure that no test would have flagged as such. The digest now stamps the turn start itself on the busy edge, seeded from busySince so a turn already running when it attached is measured from its real start.
+
+NOT DONE: D-107''s fourth notable event, a commit landing. Needs a git watcher — a second source with its own lifecycle — and the brief already catches commits from the prose (''Committed without a changelog entry'' is a line he sees). Added when something needs it.
+
+STILL TO MEASURE, per the ticket: what a realistic hour actually produces at each setting. The pacing numbers are reasoned, not observed, and the first live session is the chance to check them.
+
+Done 2026-08-10. companion_trigger.dart + 11 tests, plus the wiring: digest -> trigger -> companion session in CompanionSessionController.
+
+Frequency is finally read by something. rare = failures and long runs, paced 10 min. notable = adds completed turns over 5s, paced 1 min. chatty = everything, paced 10s. The 5-second floor is the honest version of ''notable'': clide cannot judge interesting, but it can tell a lookup from real work.
+
+Debounce (10s) is separate from pacing on purpose — one occurrence producing two signals is a different failure from going too fast. Long-run fires once per turn and re-arms on the next.
+
+State changes are encoded as ABSENT from the enum rather than noted in a comment: there is no TriggerReason for a session starting, ending, being minimised or coming back. Asserted by a test on TriggerReason.values, so adding one has to be argued for.
+
+Real bug caught while wiring: _setBusy(false) runs BEFORE the result event announces the outcome, so reading busySince at turn end yields null every time. Every turn would have been reported as instantaneous, and under notable''s 5-second floor that means Clide is never asked about anything at all — total feature failure that a green suite would have reported as fine. The digest stamps the turn start itself now.
+
+Not built: commitLanded, D-107''s fourth notable event. It needs a git watcher — a second source with its own lifecycle — and the brief already catches commits from the prose. Deferred with a reason rather than stubbed.
+
+Review (2026-08-11): one defect found and fixed before accepting — in the spend control itself.
+
+**An unseen turn lent its start time to the next one.** CompanionDigest stamps `_turnBegan` on the busy rising edge and clears it in `_ran()`. `_onTurnEnd` returned early when the turn held nothing admissible, skipping the re-arm — so the stamp survived. The next turn was then measured from the *previous* turn''s beginning, idle minutes included.
+
+That matters here rather than in the digest, because `ran` is what this ticket''s trigger checks against kTrivialTurn: at the default `notable` frequency a turnFinished only qualifies at ≥5s. A one-second lookup inheriting a minute of idling clears the bar and gets a prompt spent on it. The pacing stops pacing precisely after a minimised stretch — which is exactly what produces empty turns in the first place.
+
+`_ran()` now runs before the empty check. Test added; verified it fails without the fix. Note the fixture needed a settle between send and result: with both in flight the outcome wins the race and the turn appears to start after it ended, which is a fixture artefact — a real turn''s reply is seconds away.', 'review', 'medium', NULL, NULL, 'D-107', '2026-08-09 14:31:49.567', '2026-08-11 21:26:28.455', NULL, 'fae603fdc35023f5298b3ef0be3b0305', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Y5FBHF8QNAXQDJBJ26B0', 'epic', '06FY73V6EVHP32P31NQRJCP104', 'Epic B: Clide state machine + power ladder', 'Drive Epic A''s face from real session signals, and make it provably stop when nothing is
+happening. This is where "whimsical but a solid widget" is actually earned.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams on both sides** — consume Epic A''s state-enum contract, and consume the
+   session signals below without adding new public API to `StreamJsonSession` unless it
+   genuinely belongs there (coordinate with Epic D, which also reads that session).
+
+## State mapping
+
+| State | Trigger |
+|---|---|
+| `idle` | `!busy`, no recent activity |
+| `listening` | composer or Clide input focused |
+| `pensive` | `busy` && no `partial-` item yet — i.e. thinking |
+| `effort` | `busy` && elapsed past a threshold → orbit arc + `[ Ns ]` counter |
+| `speaking` | `busy` && `partial-` items arriving — i.e. streaming |
+| `rage` | API error / turn failure; plays the 3-frame table-flip, then returns to idle |
+| `error` | `endedStream` fired — session died |
+
+**The thinking-vs-streaming split is free and is the nicest signal here.** There is no
+public "is streaming" stream on the session; the tell is items whose
+`uuid.startsWith(''partial-'')` (`stream_json_session.dart:589-628`). So `busy` with no partial
+yet = thinking; `busy` with partials arriving = streaming.
+
+Signals to bind: `busyStream` (seeded `ValueStream`), `items`, `statusStream`,
+`pendingPromptStream`, `endedStream`. Binding pattern: the `_bindPrimary()` cancel/rebind/seed
+dance at `claude_meta_sidebar.dart:205-245` — the worked example for exactly this.
+
+DeskLock''s rule is adopted verbatim: **"wait cues are a hard requirement — never a bare
+static face during a wait, and no fake progress bars, only honest cues."** The `effort`
+orbit + elapsed counter is the answer to clide''s long tool runs.
+
+## Power ladder
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible, focused |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | unmounted / no ticker | panel collapsed or hidden; window minimised |
+
+**Collapse and hide are free.** `layout.dart:51-59` renders a spine or nothing when a slot is
+collapsed/hidden, so `SlotHost` unmounts entirely and the controller disposes. Same for
+inactive tabs — the context path has no `IndexedStack`/`keepAlive`.
+
+**Minimise is not free — this is a new capability for the codebase.** There is no
+`WidgetsBindingObserver`, `didChangeAppLifecycleState`, or `AppLifecycleState` handling
+anywhere in `lib/` (zero hits), and `TickerMode` is unused. Adding lifecycle observation is
+its own commit and should be reviewed as a kernel-level addition, not smuggled in as a
+widget detail. `lib/main.dart:553` has a comment noting lifecycle isn''t wired.
+
+## Testing
+
+Assert each rung actually stops the ticker — a power ladder that doesn''t demonstrably park
+the render loop is decoration. Bounded pumps, empty-tree teardown, and the reduced-motion
+`pumpAndSettle` contract from Epic A still apply.
+
+## Contract published (Epic A breakdown, 2026-08-09) — you are not blocked
+
+Epic A''s seam is specified in full on **T-521**. Code against it now; you do not need to wait
+for T-521 to land, and A will not change it without renegotiating here.
+
+```dart
+enum FaceState { idle, listening, pensive, effort, speaking, rage, error }
+enum Gaze { none, left, forward, right }
+
+ClideFace({
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,   // you own this; the widget does not time turns
+})
+```
+
+That is the entire surface. Three things follow for B:
+
+1. **B owns elapsed time.** `busyFor` drives the `[ Ns ]` counter in `effort`. The widget
+   deliberately does not time turns itself, because you already know when the turn started
+   and the widget would only be guessing from prop changes.
+2. **Lean is derived from `gaze`, not passed.** `left → −8px`, `forward/none → 0`,
+   `right → +8px`. Do not look for a `lean` prop.
+3. **If you need something more, that is a T-521 change, not a prop added quietly to the
+   widget.** Raise it there so the contract stays one place.
+
+### `rage` is a scowl, not a table-flip
+
+Deviation from DeskLock, decided during the A breakdown: `rage` renders as brows-down eyes
+`▼   ▼` with a flat mouth `━` and jitter, not the 3-frame kaomoji. Two of the kaomoji''s
+glyphs (`︵` U+FE35, `ノ` U+30CE — katakana) are missing from the bundled fonts, and the
+sequence needed a second render path for the state you see least. **Semantics are unchanged**
+— it is still the transient-failure reaction, so your mapping (API error / turn failure →
+`rage` for a beat → back to `idle`) is unaffected.
+
+### Signals reminder for your mapping
+
+The thinking-versus-streaming split is free: `busy && no partial- item yet` → `pensive`;
+`busy && partial- items arriving` → `speaking` (`stream_json_session.dart:589-628`). There is
+no public "is streaming" stream; items whose `uuid.startsWith(''partial-'')` are the tell.
+
+Signal audit against the live session code (2026-08-09), before breakdown. Two
+of the seven states have **no source at all** today, and one of the plan''s
+central assumptions is wrong. Read this before scoping.
+
+Everything hangs off `activeSessionOrchestrator.byId(''primary'')` — rebind on
+every orchestrator notification, per the worked example at
+`claude_meta_sidebar.dart:200-245`.
+
+## Available now, no new plumbing
+
+| Need | Signal | Where |
+|---|---|---|
+| busy on/off | `busyStream` — `ValueStream<bool>`, replay-latest, edge-deduped | `stream_json_session.dart:426` |
+| turn ended | falling edge of the same stream | `:532-537` |
+| session died (`error`) | `endedStream` + `end` field. **No replay** — check `end` first, then subscribe (`claude_pane.dart:421-426`) | `:465-472`, `:982-993` |
+| blocked on a permission ask | `pendingPromptStream` — `ValueStream`, replay | `:436-440` |
+| context tokens / cost | `statusStream` — `ValueStream`, replay | `:457` |
+
+## Wrong assumption: `partial-` does not mean "arriving now"
+
+The plan and `FaceState.speaking` both rest on "items whose uuid starts with
+`partial-` are the tell for streaming". It is **half true**. Partial items are
+created per `text_delta` (`:601-622`), but at `:561-570` the *final* assistant
+event is rewritten to carry the same `partial-$msgId` uuid — so a completed
+message keeps the prefix permanently. The predicate therefore means "this text
+came through the streaming path", not "prose is arriving right now".
+
+The honest tell is either the **arrival event** (a new/updated `partial-` item
+while `busy`) or exposing `_streamingMsgId` (`:381`, private; set on
+`message_start`, cleared on `message_stop` and `result`) — a one-line addition
+and the cleaner of the two.
+
+## Missing: thinking-in-progress
+
+`_onStreamEvent` (`:589-626`) handles exactly `message_start`,
+`content_block_delta` gated on `text_delta`, and `message_stop`. **`thinking_delta`
+is on the wire** (`docs/spikes/cc-stream-json-control-protocol-2.1.150.md:74`)
+**and dropped on the floor.** What survives is `AssistantThinkingMessage`
+(`transcript_reader.dart:133`), which arrives when a thinking block *completes* —
+an end edge, not a during state.
+
+So `pensive` as specified ("busy && no partial item yet") is an inference, not an
+observation. Handling `thinking_delta` would make it an observation, and would
+also let `effort` key off real reasoning rather than a stopwatch. Worth doing as
+part of this epic: it is a `case` in an existing switch.
+
+## Missing: `busyFor`
+
+No turn-start timestamp is recorded anywhere. `_setBusy(true)` has exactly one
+call site (`:876`). The state machine stamps the rising edge itself — trivial,
+but it is *our* job, not the session''s.
+
+## Missing: a source for `rage`
+
+`_statusFromEvent`''s `case ''result'':` (`:803-824`) reads only `total_cost_usd`
+and `contextWindow`. The result event''s `is_error` / error `subtype` are **never
+inspected**, and there is no error member in the `ConversationItem` union
+(`transcript_reader.dart:41`). The nearest thing is `ToolResultMessage.isError` —
+a *tool* failure, not an API failure.
+
+Decide early: either parse `result.is_error` (small, and useful beyond the face),
+or cut `rage` and let `error` cover both. Do not leave a state in the table with
+nothing that can trigger it.
+
+## Missing: a source for `listening`
+
+Composer drafts are pane-local and silent (`claude_pane.dart:645-653`). Focus is
+observable via the kernel''s focus tracker, which is probably the honest trigger —
+"the user is typing at me" rather than "a draft changed".
+
+## Not exposed: tool currently running
+
+Derived per-card in the view (`conversation_view.dart:1064-1070`) by scanning for
+an `AssistantToolUse` with no matching `ToolResultMessage`. Fine as a pattern to
+copy; there is no session-level signal.
+
+## Note on cadence
+
+`ConversationController` coalesces `notifyListeners` through a zero-duration
+timer (`conversation_controller.dart:111-114`) — at most once per microtask
+drain. Good as a liveness heartbeat, useless as a token counter.
+
+**Scope cut — D-107 amended 2026-08-09 (commitment 5).** Read this before the
+signal audit above; it supersedes half of it.
+
+The face no longer reads the primary session. It reports **Clide''s own state**
+only, and the rain keeps the primary session''s load as ambient weather. So this
+epic loses the mapping table it was mostly about.
+
+## What stays here
+
+- **Rain density from the primary session.** `busyStream` is the whole input:
+  busy → the `effort` density, idle → the `idle` density, with the existing ramp
+  doing the transition. This is now the *only* thing epic B reads from the
+  primary session, and `ValueStream` gives it to us with replay for free.
+- **The elapsed counter**, moved to the ambient layer with the rain — it is
+  main-session information. Still needs the state machine to stamp the rising
+  edge of `busyStream`, since no turn-start timestamp is recorded anywhere.
+- **The power ladder**, unchanged, including minimise-suspension and the new
+  `WidgetsBindingObserver` capability.
+
+## What moves out
+
+The seven-state face mapping. Under the split its sources are:
+
+| State | Source | Epic |
+|---|---|---|
+| `listening` | focus on Clide''s input | E |
+| `pensive` | his request in flight | D |
+| `speaking` | his reply streaming | D |
+| `error` | his session died (`endedStream`) | D |
+| `rage` and any other editorial mood | **his own declared mood** | D (prompt: T-532) |
+| `idle` | none of the above | — |
+
+This also retires the "`rage` has no source, cut it or wire `result.is_error`"
+finding above: under the split, a reaction to *content* is the one thing only
+Clide can produce, and the mood channel is exactly that source.
+
+## Consequence for sequencing
+
+The face stays at `idle` until epic D exists — no state machine can make it live
+sooner, because there is nothing of Clide''s to report yet. Epic B is therefore
+much smaller than planned and no longer the thing that brings the strip to life;
+D is. Worth reordering against that rather than discovering it mid-epic.
+
+`thinking_delta` (dropped by `_onStreamEvent`, see above) is still worth adding —
+but for **Clide''s** session, where it distinguishes "he is composing" from "he is
+answering", not for the primary''s.
+
+**Signal audit correction (2026-08-09).** The audit recorded above says thinking-in-progress is unavailable — only an end-of-block `AssistantThinkingMessage`. **That is wrong at claude 2.1.226**, verified against the real binary (`docs/spikes/cc-stream-json-2.1.226.md`).
+
+Thinking arrives as its own streamed content block: `content_block_start` with `content_block.type: ''thinking''`, then `thinking_delta` deltas, then `signature_delta`, then the text block. Plus `system/thinking_tokens` events carrying a running estimate. `_onStreamEvent` sees all of it and drops it because it gates on `text_delta`.
+
+Also corrected: the audit says `rage` has no source because API errors are never inspected. The *inspection* is missing, but the **fields are on the wire** — `result` carries `is_error`, `stop_reason`, `terminal_reason` and `api_error_status`.
+
+Neither changes Epic B''s shipped work — under D-107 commitment 5 the face reports Clide, not the primary session — but both matter to Epic D, which needs exactly these signals for the companion''s own session.', 'done', 'medium', NULL, NULL, NULL, '2026-08-08 22:47:58.074', '2026-08-11 21:26:46.802', NULL, '446f760296bdad5fa6c30f8b15ae51bd', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XSMQCBRVZWWMENNS3KKFM', 'task', '06FY73YPCJVWBXD9YF1JKZEK2W', 'C3: CLI verbs for the Clide strip — D-6 parity', 'The strip''s chrome, made addressable. D-6 says every UI action has a CLI verb and every verb has a UI affordance; **D-107 accepts that the strip''s half is hand-rolled**, because the strip is not a slot and inherits none of `panel`''s verbs.
+
+Distinct from T-567, which covers *talking to him* (ask / say / open / focus). This is the surface itself: whether he exists, whether he is showing, and how eagerly he speaks.
+
+## What is unaddressable today
+
+Verified against a live instance: `clide capabilities` lists 79 verbs and the only one touching the companion is `panel.resize`, which does not apply to it. So every one of these is a UI action with no CLI equivalent:
+
+- the rail button that minimises the strip (T-528)
+- the kill switch in settings (T-527)
+- the frequency selector (T-527)
+- and there is no way to *read* any of it back
+
+## The verbs
+
+- `companion.show` / `companion.hide` — the rail button''s two states.
+- `companion.enable` / `companion.disable` — the kill switch. Note this tears the process down, so it is not merely a display toggle.
+- `companion.frequency [rare|notable|chatty]` — set, or report when called with no argument.
+- `companion.status` — enabled, open, frequency, and **running**.
+
+## Constraints that shape it
+
+**Drive the same path the UI does.** Each setter publishes `companion.set` on the bus, which the extension already applies, persists and announces (T-527). One route in means the CLI cannot reach a state the UI would disagree with, and the observe half (`companion.state`) keeps working untouched. This is the drive/observe grammar T-270 established for filter boxes, reused rather than reinvented.
+
+**Pairs, not toggles.** `show`/`hide` rather than one toggle: a toggle cannot be made idempotent, so a script has no way to *ensure* a state — which is most of what an agent wants from a verb.
+
+**`running` is not `enabled`.** Enabled is what the user asked for; running is what is true. They differ while a spawn is in flight and whenever there is no workspace to run in, and a status verb that conflated them would cheerfully report a companion that is not there.
+
+**A typo must not set something.** `CompanionFrequency.parse` falls back to `notable` for junk, which is correct for reading a stored value and wrong for a command — so the verb validates and refuses instead.
+
+## Watch for
+
+- Titles need `titleKey` in the extension''s namespace (D-21/D-102), or the palette ships untranslatable.
+- These are settings-shaped, so most of them restart the companion (the brief is argv, T-545). `frequency` is the exception and applies live.
+
+Done 2026-08-11. Six verbs + 8 tests, added to companion_verbs_test.dart alongside T-567''s.
+
+Refined first — the ticket was a bare title, so the scope was reconstructed from D-107''s parity commitment and from what a live instance actually reported: 79 verbs, none touching the companion.
+
+show/hide, enable/disable, frequency, status. Each setter publishes companion.set on the bus, so the extension applies, persists and announces from one place — the CLI cannot reach a state the UI would disagree with, and the observe half keeps working untouched. Reuses T-270''s drive/observe grammar rather than inventing one.
+
+Pairs rather than toggles: a toggle cannot be made idempotent, so a script has no way to ENSURE a state, which is most of what an agent wants.
+
+status separates enabled from running. Enabled is intent, running is fact; they differ while a spawn is in flight and whenever there is no workspace, and conflating them would report a companion that is not there. Asserted.
+
+frequency validates rather than trusting CompanionFrequency.parse, whose fallback to notable is right for reading a stored value and wrong for a command — a typo would silently set something the caller did not ask for. Asserted that nothing is written on a bad value.
+
+Test note worth keeping: these verbs return before the write lands, because they publish and the extension persists on the far side of the bus. Two tests initially failed on that and now await the companion.state announcement instead of reading straight after the call.', 'done', 'medium', NULL, NULL, NULL, '2026-08-09 03:00:45.371', '2026-08-11 21:26:49.233', NULL, '8ac9035e68ae6a13b3ba67aed3992f9c', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XTDQ9HXXA1PA6KRG5FFHM', 'task', '06FY73YPCJVWBXD9YF1JKZEK2W', 'C5: Clide i18n catalog — chrome strings for en_us and nl_nl', 'Scope reduced by T-527 (2026-08-09). The companion catalog now exists in **both** locales — `assets/i18n/{en_us,nl_nl}/builtin.clide-companion.json` — because `test/a11y/i18n_coverage_test.dart` enforces en_US/nl_NL key parity for every shipped catalog, so there was no way to land the settings labels without landing the Dutch too. The seven `face.semantics.*` keys that had been warning on every boot since T-525 went in with them; the boot log is quiet.
+
+What is left here is whatever later tickets add — and per T-532, the prompt templates may want to live in this namespace as well, which is a much larger translation surface than chrome strings. Read T-532''s i18n note before sizing this.
+
+Done 2026-08-11.
+
+T-532 settled the sizing question this ticket asked about: the prompt templates went to a locale-routed DOCUMENT (assets/clide/prompts/<locale>/clide-brief.md), not catalog keys, precisely to avoid obliging a Dutch system prompt kept in lockstep forever. So the large translation surface never lands here, and what remained was the chrome added since T-527.
+
+Three unrouted strings found and fixed: the expand button''s semantics label, the popout''s empty state, and the popout''s ask-box placeholder (which was falling through to the widget''s English default rather than the catalog). Catalog is 49 keys, at parity.
+
+THE REAL DELIVERABLE is test/a11y/companion_i18n_test.dart, because the audit would otherwise rot the moment someone added a string. i18n_coverage_test asserts the two locales are at key PARITY and that catalogs ship; nothing checked that a key the code looks up actually exists. A missing one falls back to the inline English placeholder and renders perfectly — in English, to a Dutch user, silently. That is now three assertions: every literal key exists in en_US, every one exists in nl_NL, and the catalog carries nothing nobody asks for.
+
+Runtime-composed keys (face.semantics.$key) cannot have their existence verified from source, since the suffix is a value. They are counted as used via their prefix so the family does not read as dead, and the honest guarantee for that case is elsewhere: the switch over FaceState is compiler-checked.
+
+The scan is scoped to this namespace because it is the one this ticket owns; it generalises to any namespace if another wants it.', 'done', 'medium', NULL, NULL, NULL, '2026-08-09 03:00:51.770', '2026-08-11 21:26:49.240', NULL, 'a21a8a33466d32a9ab2961246e8d50ad', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVZ67S9VM9Y5JZ0HNSMAN4', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'D3: Trigger policy — notable events, frequency, debounce', 'When Clide is *asked* to say something. Blocked by **T-546** — there has to be a
+digest before there is anything to remark on.
+
+## The trigger is the cost control
+
+D-107 fixes the shape: **notable events only, never per-token.** Turn finished,
+error, a long run crossing a threshold, a commit landing. Direct questions are
+always answered and are not subject to this.
+
+Under subscription auth the real currency is **quota drawn from the same pool
+already rate-limiting the primary session**, so a chatty trigger does not cost
+money so much as it costs the user their own session. That is the argument for
+keeping it stingy, and it is why this is its own ticket rather than a couple of
+lines inside the digest.
+
+`project.companion.frequency` (T-527) tunes the threshold within that shape:
+`rare` (errors and long runs only), `notable` (the default), `chatty` (also
+ordinary turns). It is already a setting with a UI and is read by nobody yet.
+
+## Watch for
+
+- **Debounce, and say what the debounce is.** "Turn finished" and "commit landed"
+  can arrive within a second of each other; two remarks about one event reads as
+  a malfunction.
+- A long run crossing a threshold should fire **once**, not once per check.
+- An error remark must not itself be triggered by the companion''s own failure —
+  that is a loop.
+- Cap what a single event can produce. `max_tokens` bounds one reply; nothing yet
+  bounds replies per minute, and that is this ticket''s job.
+
+## Worth measuring rather than assuming
+
+Once it runs, count what a realistic hour actually generates at each frequency
+setting before deciding the defaults are right. The initiative''s estimate was
+~50 comments per session, which is where the restart boundary came from — if the
+real number is 200, that boundary and the cost model both move.
+
+**Corollary of T-546''s ''absence is silence'':** state *changes* are not notable events.
+
+A session ending, starting, being minimised or coming back are things the tooling did, not things that happened in the work. None of them should trigger a remark. The notable-events list stays what D-107 says it is — turn finished, error, long run crossing a threshold, commit landed — all of which are events in the *conversation*.
+
+Worth stating because the signals are now conveniently available (T-557 surfaces turn outcome, T-551 forwards binding changes) and ''we can see it, so let us comment on it'' is exactly how an ambient surface becomes a nuisance. Availability is not a reason to speak.
+
+Done 2026-08-10. lib/builtin/clide_companion/src/prompt/companion_trigger.dart + 11 tests, and wired: digest -> trigger -> session.send in CompanionSessionController.
+
+TWO FILTERS, DIFFERENT QUESTIONS. The trigger decides whether to spend anything at all (every prompt draws the primary session''s quota); the brief decides whether to speak once asked (measured ~1 remark per 8 exchanges). Kept separate because a model cannot bound its own spend — deciding not to answer still costs a turn.
+
+FREQUENCY LADDER, now read by something for the first time since T-527. rare = failures and long runs only, paced 10 min apart. notable = the above plus completed turns lasting >5s, paced 1 min. chatty = every completed exchange, paced 10s. The 5s floor is the honest version of ''notable'': clide cannot judge interesting, but it can tell a 2-second lookup from real work, and asking about a lookup spends a turn to be told nothing.
+
+DEBOUNCE (10s) is separate from pacing and deliberately so — one occurrence producing two signals is a different failure from going too fast, and a log that conflates them is useless.
+
+LONG RUN fires once per turn; turnStarted() re-arms it. A threshold that re-arms on each check is a metronome.
+
+STATE CHANGES ARE NOT EVENTS — encoded in the enum, which has no member for session start/end/minimise/restore, rather than in a comment. Test asserts the exact enum contents so adding one requires arguing for it.
+
+NO LOOP ON HIS OWN FAILURE: structural. The trigger only ever sees the primary reader''s events; the companion''s own errors are not an input to it.
+
+Bug caught while wiring, worth recording: _setBusy(false) runs BEFORE the result event announces the outcome, so reading session.busySince at turn end yields null every time. The digest would have reported every turn as instantaneous, and under the default frequency''s 5s floor that means Clide is never asked about anything — a total feature failure that no test would have flagged as such. The digest now stamps the turn start itself on the busy edge, seeded from busySince so a turn already running when it attached is measured from its real start.
+
+NOT DONE: D-107''s fourth notable event, a commit landing. Needs a git watcher — a second source with its own lifecycle — and the brief already catches commits from the prose (''Committed without a changelog entry'' is a line he sees). Added when something needs it.
+
+STILL TO MEASURE, per the ticket: what a realistic hour actually produces at each setting. The pacing numbers are reasoned, not observed, and the first live session is the chance to check them.
+
+Done 2026-08-10. companion_trigger.dart + 11 tests, plus the wiring: digest -> trigger -> companion session in CompanionSessionController.
+
+Frequency is finally read by something. rare = failures and long runs, paced 10 min. notable = adds completed turns over 5s, paced 1 min. chatty = everything, paced 10s. The 5-second floor is the honest version of ''notable'': clide cannot judge interesting, but it can tell a lookup from real work.
+
+Debounce (10s) is separate from pacing on purpose — one occurrence producing two signals is a different failure from going too fast. Long-run fires once per turn and re-arms on the next.
+
+State changes are encoded as ABSENT from the enum rather than noted in a comment: there is no TriggerReason for a session starting, ending, being minimised or coming back. Asserted by a test on TriggerReason.values, so adding one has to be argued for.
+
+Real bug caught while wiring: _setBusy(false) runs BEFORE the result event announces the outcome, so reading busySince at turn end yields null every time. Every turn would have been reported as instantaneous, and under notable''s 5-second floor that means Clide is never asked about anything at all — total feature failure that a green suite would have reported as fine. The digest stamps the turn start itself now.
+
+Not built: commitLanded, D-107''s fourth notable event. It needs a git watcher — a second source with its own lifecycle — and the brief already catches commits from the prose. Deferred with a reason rather than stubbed.
+
+Review (2026-08-11): one defect found and fixed before accepting — in the spend control itself.
+
+**An unseen turn lent its start time to the next one.** CompanionDigest stamps `_turnBegan` on the busy rising edge and clears it in `_ran()`. `_onTurnEnd` returned early when the turn held nothing admissible, skipping the re-arm — so the stamp survived. The next turn was then measured from the *previous* turn''s beginning, idle minutes included.
+
+That matters here rather than in the digest, because `ran` is what this ticket''s trigger checks against kTrivialTurn: at the default `notable` frequency a turnFinished only qualifies at ≥5s. A one-second lookup inheriting a minute of idling clears the bar and gets a prompt spent on it. The pacing stops pacing precisely after a minimised stretch — which is exactly what produces empty turns in the first place.
+
+`_ran()` now runs before the empty check. Test added; verified it fails without the fix. Note the fixture needed a settle between send and result: with both in flight the outcome wins the race and the turn appears to start after it ended, which is a fixture artefact — a real turn''s reply is seconds away.', 'done', 'medium', NULL, NULL, 'D-107', '2026-08-09 14:31:49.567', '2026-08-11 21:26:49.240', NULL, 'a6e5530cbafd8b51a9fd85cd4e4b90db', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDW2FAH29QX9Q2A3CE3GBRR', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'D4: Publish Clide''s replies and state — the seam for Epics B and E', 'Publish what Clide says and what he is doing, so the strip can show it. Blocked
+by **T-545**. This is the seam Epics B and E consume, and the epic''s stated
+second job.
+
+## What it publishes
+
+On the existing `clide.companion` publisher, following the drive/observe grammar
+already established by `companion.set`/`companion.state` and `companion.load`:
+
+- **What he said** — the remark, for the speech bubble (and for T-534''s log).
+- **What he is doing** — his own session state, which is what the *face* renders
+  under D-107 commitment 5: `pensive` while a request is in flight, `speaking`
+  while a reply streams, `error` when his session dies, `idle` otherwise. Plus
+  the **mood he declares himself** (T-532), which is the only possible source for
+  `rage` and any other reaction to content rather than to mechanics.
+
+The strip already carries `FaceState` and a `message`; both are hardcoded to
+their defaults today. This is what fills them.
+
+## Do not grow a second subscription layer
+
+The epic says so explicitly, and it is a real risk: Epic B built
+`CompanionLoadAdapter` for the *primary* session, and the shape here is nearly
+identical for the *companion* session. Reuse the pattern, and if the two want the
+same helper, extract it rather than writing it twice with slightly different
+rebinding rules.
+
+## Streaming: the tell needs care
+
+Epic B''s audit found there is no public "is streaming" signal, and the
+`partial-` uuid prefix does **not** mean "arriving now" — the final assistant
+event is rewritten to carry it. So `speaking` cannot be derived from the prefix
+alone; it needs the arrival event, or `_streamingMsgId` exposed (a one-line
+addition, but one Epic B and this epic should agree on rather than each patching
+`StreamJsonSession` separately).
+
+Worth adding here and not for the primary: `thinking_delta` is on the wire and
+dropped by `_onStreamEvent`. For *Clide''s* session it distinguishes "composing"
+from "answering", which is exactly the `pensive`/`speaking` split.
+
+## Watch for
+
+- A remark must reach the bubble **and** the log (T-534) from one place, or the
+  two will disagree about what he said.
+- His session dying is `error` on the face; the primary session dying is not —
+  different subjects (D-107 commitment 5).
+- Nothing published optimistically: announce after the fact, as the other
+  companion channels do.
+
+Done 2026-08-10. companion_voice.dart + 11 tests (companion_voice_test.dart).
+
+NO BUS CHANNEL, deliberately — the obvious shape was companion.say, and T-561 had just removed the last channel of that kind and recorded why: a bus is for signals that span surfaces. A remark spans nothing; it goes from his session to the widget beside it. It binds companionSessionReader directly, which is what T-555 built it for.
+
+MECHANICS BEAT MOOD. His session dying, his request in flight and his reply streaming are facts; a declared mood contradicting one would be a lie the user can see (a cheerful face on a dead session). So the declared mood fills only the gap where nothing mechanical is happening — which is most of the time, and is where a character lives anyway.
+
+Kill-condition rules from T-532 are enforced here rather than assumed: an unreadable face keeps the previous expression (never a reset), an invented mood is dropped without its tag reaching the bubble, and the digest we send him — echoed back on his own item stream as UserMessages — is never rendered as something he said.
+
+Remarks dwell for two minutes then clear. A bubble that never clears goes stale, is what a colleague sees on a shared screen long after the moment, and makes him look like he is still talking.
+
+The mood setting applies live and holds rather than discards the last mood, so toggling it off and on does not lose his expression.', 'done', 'high', NULL, NULL, 'D-107', '2026-08-09 14:32:16.469', '2026-08-11 21:26:49.241', NULL, '9d143d2bf8d7920042bdf8ad52b130ea', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVABZYX13P4B3DKDCDV6A50', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'The direct input — an affordance that is obviously not the Claude composer', 'The thing that turns Clide from decoration into a tool. Everything it needs already exists: the `[direct]` tag and its formatter (`directQuestion`, T-546), the brief that teaches him a direct line is the one case where silence is wrong (T-532), and a live session to send it to (T-545).
+
+## Scope
+
+- An input row on the strip. Submit sends `directQuestion(text)` into the companion session.
+- **Bypasses the trigger entirely** (T-547) — no frequency gate, no pacing, no debounce. A question asked is always answered, and the trigger exists to bound *unsolicited* spend.
+- Focus puts the face into `FaceState.listening`, which exists for this and which the voice deliberately never produces on its own (T-548).
+
+## The part that is actually hard
+
+**It must be unmistakable which box you are typing into.** Two composers on one screen, reaching two different models, one of which can act on your repo and one of which cannot. A user who types a task into Clide''s box and waits is having a bad time; a user who types a question about the conversation into Claude''s box has spent real quota on the wrong model.
+
+Distinguish it structurally, not with a label: different placement, different affordance, a visible tie to the face. Test it with someone who has not read this ticket.
+
+## Constraints
+
+- Interaction zone, not inline. The bubble stays display-only (D-78); the input is its own region.
+- Placeholder is a catalog string (D-21/D-102) and must tolerate ~30% growth in Dutch. His *answers* are model output and are not catalog strings.
+- Two-column control pattern and no-double-edge-padding from the ui-design geometry reference.
+- The strip is ~110px and the column runs 220-1000px wide. At the narrow end an input row plus a face plus a bubble does not fit; decide what yields.
+
+Done 2026-08-11.
+
+New: ask_box.dart (ClideAskBox) + ask_box_test.dart (7 cases). ClideStrip became stateful to hold focus; CompanionSessionController gained ask(); strip_host resolves the controller through the extension registry rather than a new bus channel — the session is the extension''s to own (T-545) and a hop would be the mistake T-561 removed.
+
+WHICH BOX AM I TYPING IN — the ticket''s hard part, and the T-514 spike had already answered it better than a label would: focusing his box releases the lean and brings the pupils forward (the ADDRESSED state, whose note reads ''the lean releasing IS the acknowledgement — no chrome needed''). Position does the rest: his box is in the context column, attached to his face, bordered in his green when focused. Asserted by a test on Gaze.forward.
+
+BYPASSES THE TRIGGER, deliberately. T-547 bounds unsolicited spend; none of it applies to something the developer asked for. A question dropped because he happened to remark forty seconds ago would be the worst possible failure for the one interaction meant to be reliable.
+
+NOT ClideFilterBox. It is the only other single-line input and it is a filter — debounce, clear button, and the filter.set/filter.state bus grammar from T-270. Reusing it would publish questions on the filter channel. Visual grammar deliberately matched so they read as siblings; if a third single-line input appears, extract the chrome rather than this.
+
+Narrow panels drop the input with the bubble (below 150px of usable width). At the column''s 220px minimum there is no room for a face and a legible field; the popout (T-566) is the escape hatch, and a cramped box would be worse than none.
+
+Fallout worth noting: app_test''s project-switcher case used a bare find.byType(EditableText) and became ambiguous the moment a second input existed. Scoped to the switcher''s own field. That is a small live preview of the concern the ticket names — two places to type on one screen.', 'done', 'high', NULL, NULL, 'D-107', '2026-08-10 21:52:16.375', '2026-08-11 21:26:49.242', NULL, '4bd97ab00c737b23dcd3b54f86ca9a5c', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC073C7GRWC1BX3V682TC', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'Parity and a11y for talking to him', 'D-6 says every UI action has a CLI verb and every CLI verb has a UI affordance. Direct addressing adds a UI action, so it owes a verb — and D-107 already accepts that the strip''s parity is **hand-rolled**, because it is not a slot.
+
+## Scope
+
+- `clide companion ask "…"` — send a direct question and return his answer. Sits alongside the companion verbs in T-529 (Epic C); coordinate rather than duplicate.
+- Keyboard route to the input, and out of it again without submitting.
+- Screen reader: the input needs a label, and his answer needs to reach a reader. The face and the bubble are both invisible to one, so this and E3 are between them the only way a blind developer experiences Clide at all — which makes this a tier-0 contract (D-20), not a nicety.
+
+## Worth deciding here
+
+A remark arriving unprompted is a live-region problem: announcing it interrupts the reader mid-way through Claude''s actual output, which is the content that matters. Prefer a pull affordance — a command that reads his latest — over a push announcement, and say so explicitly rather than letting a default `liveRegion: true` decide it.
+
+Done 2026-08-11. Four verbs + 9 tests.
+
+companion.ask / companion.say / companion.open / companion.focus. Each carries a titleKey in the extension''s namespace, so the palette is translatable (D-21/D-102), and each is a CommandContribution — which means the keyboard route comes from the same declaration as the CLI verb rather than being wired twice.
+
+THE A11Y DECISION, made explicitly as the ticket asked: reading him is a PULL, never a push. Nothing announces itself through a live region, because a remark arriving unprompted would interrupt a screen-reader user part-way through Claude''s actual output — which is the content that matters. companion.say exists to be asked, and the popout (T-566) is the readable surface. lastRemark is written where it is rendered so the verb and the bubble cannot disagree.
+
+Absent rather than empty when he has said nothing: an empty string is a value a caller would render.
+
+FAILS HONESTLY. An empty question is refused; a question with no session returns no-session rather than reporting success. The caller has no other way to discover it went nowhere, and ''asked'' when nobody heard is the worst possible answer for the one interaction meant to be reliable.
+
+The surface is ASKED, not reached into: open/focus bump ValueNotifier counters the strip listens to, rather than a GlobalKey into private state. Counters not bools — two opens are two events, and ''open it again'' is a real thing to want after dismissing by accident. Focus is a FocusNode owned by the host and passed down, after a first attempt threaded a tick through two widgets to do what a node does directly.
+
+One bug worth recording: dispose() resolved the extension via ClideKernel.maybeOf(context), which is an illegal ancestor lookup on a deactivated widget and broke six unrelated app tests. The reference is captured at subscribe time now.
+
+Review (2026-08-11): two defects found and fixed before accepting.
+
+1. **companion.open / companion.focus reported success with nothing listening.** Both bumped their counter and returned ok whether or not a strip was mounted, so with the companion minimised or disabled the verb answered about a window that never appeared — and the caller had no other way to find out. Now refused with kind `no-surface`, and the message differs for disabled vs minimised so a script is told which control to use. Two tests added (companion_verbs_test.dart, 19 passing).
+
+2. **Tofu on the expand button.** It drew `⌃` (U+2303) as text. Verified with fc-query: present in Inter, **absent from Josefin Sans** — and the UI face is user-selectable (D-101), so it was a missing glyph for anyone who switched. Swapped for a Phosphor `chat-circle` icon, which ships its own font. Same failure kVerifiedFaceGlyphs exists to stop for the face, walked into for chrome.', 'done', 'medium', NULL, NULL, 'D-107', '2026-08-10 21:52:16.440', '2026-08-11 21:26:49.242', NULL, '66141a38647680b483dd83203c19062c', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYVAC04G6G5GCGXEBWX833S0', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'The popout — his conversation, latest first', 'An expand control opens a light conversation view over the detail area: the full Clide exchange for this session, **latest first**, with a fetch limit and lazy loading on scroll, and a text box underneath to continue talking.
+
+## What it reads
+
+**His own transcript**, and nothing bespoke. Verified live on 2026-08-10: the companion writes an ordinary `<uuid>.jsonl` under `~/.claude/projects/<repo>/` like any other session, because D-107 was amended to drop `--no-session-persistence`. So this pages through a real transcript with the reader clide already has.
+
+**That dissolves T-534** — the bespoke append-only log was written when the companion was non-persisted and there was no record of anything he said. Close it rather than build it.
+
+## The filter is the same one
+
+Only actually-said things: his prose and the questions put to him. Never tool uses, never injected metadata, never the `[observed]` digest lines we fed him — those are the developer''s own conversation and rendering them here would show it back to them in Clide''s window. Same boundary as the digest (D-107 commitment 3), applied in the opposite direction.
+
+Note the transcript also contains harness noise at the head of the session (local-command echoes). Whatever renders this needs the same allow-list discipline the digest has, not a raw dump.
+
+## Watch for
+
+- Latest-first is unusual and deliberate — the useful thing is the last thing he said, not the first.
+- It overlays the detail area, so dismissal must be obvious and must not lose a half-typed question.
+- Screen-reader route: this is the only place his history is readable as text, which makes it the accessible answer to a face and a bubble a reader cannot see (D-20).
+
+Done 2026-08-11. companion_popout.dart + 9 tests.
+
+READS HIS REAL TRANSCRIPT — nothing bespoke. The ConversationController clide already holds for every session is the source, which is what D-107''s amendment bought when it dropped --no-session-persistence. T-534 stays cancelled.
+
+THE FILTER RUNS OPPOSITE TO THE DIGEST''S. That one decides what Clide may see; this decides what may be seen of him: his own words and the questions put to him. The [observed] lines are excluded because they are the developer''s own conversation and showing them back inside Clide''s window would be a strange mirror. [notice] and [event] excluded as bookkeeping. Same allow-list discipline — an unknown item type is invisible until someone decides otherwise, asserted with a ToolResultMessage carrying a secret.
+
+His silences do not render as empty rows (most replies are a face and nothing else), and the reply goes through the same parser the bubble uses so the face tag cannot appear here either.
+
+Dismissal settled with the product owner: Esc plus click-outside. The draft is owned by the strip host rather than the popout, so a half-typed question survives being dismissed and reopened — losing what someone was mid-way through writing is the kind of small betrayal that makes a surface untrustworthy. Asserted.
+
+Latest-first via ListView(reverse: true), which also makes the lazy loading free: older turns build only as they are scrolled to.
+
+Not done: the ticket asked for a fetch limit. The in-memory conversation is one session''s worth and reverse-building is already lazy, so a limit would bound something that is not currently unbounded. Add it when a session gets long enough to need it.
+
+Review (2026-08-11): one defect found and fixed before accepting.
+
+**The popout went stale when his session was replaced under it.** The conversation was captured at open time. A restart swaps the ManagedSession — after a `/clear` on the primary, a workspace switch, or any brief change (rename, locale, edited self-description) — and the open window kept listening to a controller nobody writes to any more: still showing the previous transcript, and never showing the answer to whatever was typed into it next. The window is now built under a ListenableBuilder on the controller (which is stable for the extension''s lifetime) and CompanionPopout moves its listener in didUpdateWidget. Test added and verified non-vacuous — it fails without the fix.
+
+Also fixed here: the expand button drew `⌃` as text, which Josefin Sans does not carry (see T-567).', 'done', 'medium', NULL, NULL, 'D-107', '2026-08-10 21:52:16.421', '2026-08-11 21:26:49.242', NULL, '7b5fe01d84f8e381b89e08e91a4a1a75', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Y5FBHF8QNAXQDJBJ26B0', 'epic', '06FY73V6EVHP32P31NQRJCP104', 'Epic B: Clide state machine + power ladder', 'Drive Epic A''s face from real session signals, and make it provably stop when nothing is
+happening. This is where "whimsical but a solid widget" is actually earned.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams on both sides** — consume Epic A''s state-enum contract, and consume the
+   session signals below without adding new public API to `StreamJsonSession` unless it
+   genuinely belongs there (coordinate with Epic D, which also reads that session).
+
+## State mapping
+
+| State | Trigger |
+|---|---|
+| `idle` | `!busy`, no recent activity |
+| `listening` | composer or Clide input focused |
+| `pensive` | `busy` && no `partial-` item yet — i.e. thinking |
+| `effort` | `busy` && elapsed past a threshold → orbit arc + `[ Ns ]` counter |
+| `speaking` | `busy` && `partial-` items arriving — i.e. streaming |
+| `rage` | API error / turn failure; plays the 3-frame table-flip, then returns to idle |
+| `error` | `endedStream` fired — session died |
+
+**The thinking-vs-streaming split is free and is the nicest signal here.** There is no
+public "is streaming" stream on the session; the tell is items whose
+`uuid.startsWith(''partial-'')` (`stream_json_session.dart:589-628`). So `busy` with no partial
+yet = thinking; `busy` with partials arriving = streaming.
+
+Signals to bind: `busyStream` (seeded `ValueStream`), `items`, `statusStream`,
+`pendingPromptStream`, `endedStream`. Binding pattern: the `_bindPrimary()` cancel/rebind/seed
+dance at `claude_meta_sidebar.dart:205-245` — the worked example for exactly this.
+
+DeskLock''s rule is adopted verbatim: **"wait cues are a hard requirement — never a bare
+static face during a wait, and no fake progress bars, only honest cues."** The `effort`
+orbit + elapsed counter is the answer to clide''s long tool runs.
+
+## Power ladder
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible, focused |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | unmounted / no ticker | panel collapsed or hidden; window minimised |
+
+**Collapse and hide are free.** `layout.dart:51-59` renders a spine or nothing when a slot is
+collapsed/hidden, so `SlotHost` unmounts entirely and the controller disposes. Same for
+inactive tabs — the context path has no `IndexedStack`/`keepAlive`.
+
+**Minimise is not free — this is a new capability for the codebase.** There is no
+`WidgetsBindingObserver`, `didChangeAppLifecycleState`, or `AppLifecycleState` handling
+anywhere in `lib/` (zero hits), and `TickerMode` is unused. Adding lifecycle observation is
+its own commit and should be reviewed as a kernel-level addition, not smuggled in as a
+widget detail. `lib/main.dart:553` has a comment noting lifecycle isn''t wired.
+
+## Testing
+
+Assert each rung actually stops the ticker — a power ladder that doesn''t demonstrably park
+the render loop is decoration. Bounded pumps, empty-tree teardown, and the reduced-motion
+`pumpAndSettle` contract from Epic A still apply.
+
+## Contract published (Epic A breakdown, 2026-08-09) — you are not blocked
+
+Epic A''s seam is specified in full on **T-521**. Code against it now; you do not need to wait
+for T-521 to land, and A will not change it without renegotiating here.
+
+```dart
+enum FaceState { idle, listening, pensive, effort, speaking, rage, error }
+enum Gaze { none, left, forward, right }
+
+ClideFace({
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,   // you own this; the widget does not time turns
+})
+```
+
+That is the entire surface. Three things follow for B:
+
+1. **B owns elapsed time.** `busyFor` drives the `[ Ns ]` counter in `effort`. The widget
+   deliberately does not time turns itself, because you already know when the turn started
+   and the widget would only be guessing from prop changes.
+2. **Lean is derived from `gaze`, not passed.** `left → −8px`, `forward/none → 0`,
+   `right → +8px`. Do not look for a `lean` prop.
+3. **If you need something more, that is a T-521 change, not a prop added quietly to the
+   widget.** Raise it there so the contract stays one place.
+
+### `rage` is a scowl, not a table-flip
+
+Deviation from DeskLock, decided during the A breakdown: `rage` renders as brows-down eyes
+`▼   ▼` with a flat mouth `━` and jitter, not the 3-frame kaomoji. Two of the kaomoji''s
+glyphs (`︵` U+FE35, `ノ` U+30CE — katakana) are missing from the bundled fonts, and the
+sequence needed a second render path for the state you see least. **Semantics are unchanged**
+— it is still the transient-failure reaction, so your mapping (API error / turn failure →
+`rage` for a beat → back to `idle`) is unaffected.
+
+### Signals reminder for your mapping
+
+The thinking-versus-streaming split is free: `busy && no partial- item yet` → `pensive`;
+`busy && partial- items arriving` → `speaking` (`stream_json_session.dart:589-628`). There is
+no public "is streaming" stream; items whose `uuid.startsWith(''partial-'')` are the tell.
+
+Signal audit against the live session code (2026-08-09), before breakdown. Two
+of the seven states have **no source at all** today, and one of the plan''s
+central assumptions is wrong. Read this before scoping.
+
+Everything hangs off `activeSessionOrchestrator.byId(''primary'')` — rebind on
+every orchestrator notification, per the worked example at
+`claude_meta_sidebar.dart:200-245`.
+
+## Available now, no new plumbing
+
+| Need | Signal | Where |
+|---|---|---|
+| busy on/off | `busyStream` — `ValueStream<bool>`, replay-latest, edge-deduped | `stream_json_session.dart:426` |
+| turn ended | falling edge of the same stream | `:532-537` |
+| session died (`error`) | `endedStream` + `end` field. **No replay** — check `end` first, then subscribe (`claude_pane.dart:421-426`) | `:465-472`, `:982-993` |
+| blocked on a permission ask | `pendingPromptStream` — `ValueStream`, replay | `:436-440` |
+| context tokens / cost | `statusStream` — `ValueStream`, replay | `:457` |
+
+## Wrong assumption: `partial-` does not mean "arriving now"
+
+The plan and `FaceState.speaking` both rest on "items whose uuid starts with
+`partial-` are the tell for streaming". It is **half true**. Partial items are
+created per `text_delta` (`:601-622`), but at `:561-570` the *final* assistant
+event is rewritten to carry the same `partial-$msgId` uuid — so a completed
+message keeps the prefix permanently. The predicate therefore means "this text
+came through the streaming path", not "prose is arriving right now".
+
+The honest tell is either the **arrival event** (a new/updated `partial-` item
+while `busy`) or exposing `_streamingMsgId` (`:381`, private; set on
+`message_start`, cleared on `message_stop` and `result`) — a one-line addition
+and the cleaner of the two.
+
+## Missing: thinking-in-progress
+
+`_onStreamEvent` (`:589-626`) handles exactly `message_start`,
+`content_block_delta` gated on `text_delta`, and `message_stop`. **`thinking_delta`
+is on the wire** (`docs/spikes/cc-stream-json-control-protocol-2.1.150.md:74`)
+**and dropped on the floor.** What survives is `AssistantThinkingMessage`
+(`transcript_reader.dart:133`), which arrives when a thinking block *completes* —
+an end edge, not a during state.
+
+So `pensive` as specified ("busy && no partial item yet") is an inference, not an
+observation. Handling `thinking_delta` would make it an observation, and would
+also let `effort` key off real reasoning rather than a stopwatch. Worth doing as
+part of this epic: it is a `case` in an existing switch.
+
+## Missing: `busyFor`
+
+No turn-start timestamp is recorded anywhere. `_setBusy(true)` has exactly one
+call site (`:876`). The state machine stamps the rising edge itself — trivial,
+but it is *our* job, not the session''s.
+
+## Missing: a source for `rage`
+
+`_statusFromEvent`''s `case ''result'':` (`:803-824`) reads only `total_cost_usd`
+and `contextWindow`. The result event''s `is_error` / error `subtype` are **never
+inspected**, and there is no error member in the `ConversationItem` union
+(`transcript_reader.dart:41`). The nearest thing is `ToolResultMessage.isError` —
+a *tool* failure, not an API failure.
+
+Decide early: either parse `result.is_error` (small, and useful beyond the face),
+or cut `rage` and let `error` cover both. Do not leave a state in the table with
+nothing that can trigger it.
+
+## Missing: a source for `listening`
+
+Composer drafts are pane-local and silent (`claude_pane.dart:645-653`). Focus is
+observable via the kernel''s focus tracker, which is probably the honest trigger —
+"the user is typing at me" rather than "a draft changed".
+
+## Not exposed: tool currently running
+
+Derived per-card in the view (`conversation_view.dart:1064-1070`) by scanning for
+an `AssistantToolUse` with no matching `ToolResultMessage`. Fine as a pattern to
+copy; there is no session-level signal.
+
+## Note on cadence
+
+`ConversationController` coalesces `notifyListeners` through a zero-duration
+timer (`conversation_controller.dart:111-114`) — at most once per microtask
+drain. Good as a liveness heartbeat, useless as a token counter.
+
+**Scope cut — D-107 amended 2026-08-09 (commitment 5).** Read this before the
+signal audit above; it supersedes half of it.
+
+The face no longer reads the primary session. It reports **Clide''s own state**
+only, and the rain keeps the primary session''s load as ambient weather. So this
+epic loses the mapping table it was mostly about.
+
+## What stays here
+
+- **Rain density from the primary session.** `busyStream` is the whole input:
+  busy → the `effort` density, idle → the `idle` density, with the existing ramp
+  doing the transition. This is now the *only* thing epic B reads from the
+  primary session, and `ValueStream` gives it to us with replay for free.
+- **The elapsed counter**, moved to the ambient layer with the rain — it is
+  main-session information. Still needs the state machine to stamp the rising
+  edge of `busyStream`, since no turn-start timestamp is recorded anywhere.
+- **The power ladder**, unchanged, including minimise-suspension and the new
+  `WidgetsBindingObserver` capability.
+
+## What moves out
+
+The seven-state face mapping. Under the split its sources are:
+
+| State | Source | Epic |
+|---|---|---|
+| `listening` | focus on Clide''s input | E |
+| `pensive` | his request in flight | D |
+| `speaking` | his reply streaming | D |
+| `error` | his session died (`endedStream`) | D |
+| `rage` and any other editorial mood | **his own declared mood** | D (prompt: T-532) |
+| `idle` | none of the above | — |
+
+This also retires the "`rage` has no source, cut it or wire `result.is_error`"
+finding above: under the split, a reaction to *content* is the one thing only
+Clide can produce, and the mood channel is exactly that source.
+
+## Consequence for sequencing
+
+The face stays at `idle` until epic D exists — no state machine can make it live
+sooner, because there is nothing of Clide''s to report yet. Epic B is therefore
+much smaller than planned and no longer the thing that brings the strip to life;
+D is. Worth reordering against that rather than discovering it mid-epic.
+
+`thinking_delta` (dropped by `_onStreamEvent`, see above) is still worth adding —
+but for **Clide''s** session, where it distinguishes "he is composing" from "he is
+answering", not for the primary''s.
+
+**Signal audit correction (2026-08-09).** The audit recorded above says thinking-in-progress is unavailable — only an end-of-block `AssistantThinkingMessage`. **That is wrong at claude 2.1.226**, verified against the real binary (`docs/spikes/cc-stream-json-2.1.226.md`).
+
+Thinking arrives as its own streamed content block: `content_block_start` with `content_block.type: ''thinking''`, then `thinking_delta` deltas, then `signature_delta`, then the text block. Plus `system/thinking_tokens` events carrying a running estimate. `_onStreamEvent` sees all of it and drops it because it gates on `text_delta`.
+
+Also corrected: the audit says `rage` has no source because API errors are never inspected. The *inspection* is missing, but the **fields are on the wire** — `result` carries `is_error`, `stop_reason`, `terminal_reason` and `api_error_status`.
+
+Neither changes Epic B''s shipped work — under D-107 commitment 5 the face reports Clide, not the primary session — but both matter to Epic D, which needs exactly these signals for the companion''s own session.', 'done', 'medium', NULL, NULL, NULL, '2026-08-08 22:47:58.074', '2026-08-11 21:26:51.971', NULL, 'c0b12c0730011c72cfcac604b46be2b4', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73YPCJVWBXD9YF1JKZEK2W', 'epic', '06FY73V6EVHP32P31NQRJCP104', 'Epic C: Clide surface & chrome — slot, settings, i18n, CLI parity', 'Give Clide a real home in the shell, with the settings, i18n and CLI parity that make it a
+first-class surface rather than a bolted-on widget.
+
+**Blocked by T-514** — the spike decides whether this is a new slot or a region inside the
+context panel, and that changes most of the file list below.
+
+## Epic''s own first job
+
+1. **Break this epic down** once T-514 lands and the shape is known.
+2. **Own the seam with Epic E** — E mounts its input box inside this surface. Settle the
+   surface''s internal composition (face region / bubble region / input region) here so E
+   only fills a slot rather than renegotiating layout.
+
+## If the spike picks A (own right-edge rail)
+
+| File | Change |
+|---|---|
+| `lib/kernel/src/panels/slot_id.dart:20-33` | add the slot id (`SlotId` is a wrapped String — new ids are cheap) |
+| `lib/kernel/src/panels/layout_preset.dart:13-23` | `LayoutSlot(position: right, defaultSize/minSize/maxSize)` |
+| `lib/src/shell/layout.dart:51-59` | render column + `ClideSpine` when collapsed + `DragResizeHandle` |
+| `lib/kernel/src/panels/drag_resize.dart:178` **and** `:199` | **The sign flip is hard-coded to `Slots.contextPanel` at both sites.** A new right-side slot must be added to both or the drag runs backwards. This is the single easiest thing to get wrong in this epic. |
+| `lib/builtin/default_layout/src/extension.dart:170-234` | persistence keys (`_restoreLayout` / `_persistLayout`) |
+| `lib/main.dart:599-632` + `lib/test_app.dart:288-294` | register the extension |
+
+A real slot buys `isVisible` / `isCollapsed` / `sizeOf`, restart persistence,
+`clide panel resize <slot>` (`lib/src/daemon/panel_commands.dart:66`) and `clide pane list`
+reporting — i.e. **D-6 parity for free**. That is the main argument for a slot over a bare
+widget.
+
+## If the spike picks B (strip in the context panel)
+
+Single insertion point: `_ContextSlot` at `lib/src/shell/slot_host.dart:349-362`, currently
+`Container(... child: active.build(context))`, becomes a `Column`. The slot/persistence/
+drag-resize rows above all drop away. Structural template for a split inside a column:
+`_WorkspaceSlot` at `slot_host.dart:147-207`.
+
+## Also in scope regardless of shape
+
+- **Settings**: `SettingsCategoryContribution` + controls — enable/disable Clide entirely,
+  comment frequency, suspend-when-minimised. Registration template:
+  `lib/builtin/output/src/extension.dart` (tab + status toggle + command, with
+  `dependsOn: [''builtin.default-layout'']` so the slot exists first).
+- **i18n**: chrome strings via `ClideSettings.i18n.string(...)` into
+  `assets/i18n/{en_us,nl_nl}/clide.json` (D-21/D-102). Note Clide''s *replies* are model
+  output, not catalog strings — the locale is carried into the prompt by Epic D, not
+  translated here. Design for ~30% length growth on any fixed-width chrome.
+- **Contribution + registration** per `lib/extension/src/contribution.dart`; host dispatch
+  is `extensions_manager.dart:237-260`.
+
+## Testing
+
+Layout must be asserted **at ultrawide**, driving `tester.view.physicalSize` — a wide
+`SizedBox` under the default 800px test surface is clamped to 800 and does not actually test
+wide. Pattern: `test/app_statusbar_test.dart` (`pumpAt`). Related audit: T-241.
+
+Likely to need updating: `test/app_test.dart`, `test/app_collapse_toggle_test.dart`,
+`test/builtin/default_layout/widget_test.dart`, and the panels tests under
+`test/kernel/src/panels/`.
+
+## Spike resolved (T-514, 2026-08-09) — take the B route
+
+Placement **B** was chosen: a horizontal strip sharing the bottom of the context column.
+
+**The "If the spike picks A" section above is dead — ignore it.** No `slot_id.dart`, no
+`layout_preset.dart`, no `layout.dart` column, and in particular **no `drag_resize.dart`
+sign-flip work**; that trap does not apply on this route.
+
+Live scope is the B section: `_ContextSlot` at `lib/src/shell/slot_host.dart:349-362`
+becomes a `Column`. Structural template for a split inside a column is `_WorkspaceSlot`
+(`slot_host.dart:147-207`).
+
+**What B costs this epic, and it is the main work here:** the strip is not a slot, so none of
+`isVisible` / `isCollapsed` / `sizeOf` / restart persistence / `clide panel resize` /
+`clide pane list` come for free. To keep **D-6 parity** this epic must hand-roll:
+
+- a collapse/expand affordance for the strip,
+- a persisted height and collapsed-state (alongside the dock''s keys in
+  `default_layout/src/extension.dart:170-234`),
+- and CLI verbs so every UI action has a command equivalent.
+
+Budget for that explicitly — it was the strongest argument for A and is now this epic''s
+problem. Decide early whether the strip''s height is a first-class arrangement value or
+extension-local settings state; the former is more work but keeps it consistent with every
+other resizable region.
+
+Also in scope from the spike: the strip **grows to a capped height (~40% of the column)
+while Clide is answering and collapses back when idle**. That interacts with the persisted
+height — the user''s chosen height is the resting height, not a ceiling.
+
+## Breakdown (2026-08-09)
+
+| | Ticket | Blocked by |
+|---|---|---|
+| C1 | T-526 — strip surface: `_ContextSlot` becomes a `Column`, responsive 220–1000px | T-525 (A5) |
+| C2 | T-528 — collapse affordance, persisted height, grow-to-cap while answering | C1 |
+| C3 | T-529 — CLI verbs, D-6 parity | C1 |
+| C4 | **T-527 — settings category + kill switch** | **nothing, deliberately** |
+| C5 | T-530 — i18n catalog (en_us, nl_nl) | C1 |
+
+## Two sequencing decisions
+
+**C1 waits for A5 (T-525).** The strip needs a real face to mount. Building it against a
+placeholder would mean redoing the integration, and — more importantly — A5 is where the face
+is first validated at real dimensions. The chosen placement is a ~110px-tall strip; so far the
+face has only been seen in wireframes with hand-placed glyphs and in painter tests at 240×160.
+If it does not read at strip height, that is a design problem worth finding **before** a slot,
+settings, CLI verbs and an i18n catalog are built around it.
+
+**C4 has no blockers, and must keep none.** It blocks Epic D (T-519), so sequencing it behind
+C1 would queue the entire companion session behind the entire surface for no reason. A
+settings key plus a contribution is self-contained.
+
+## Why C4 blocks Epic D
+
+D-107 commits the companion to being "user-disableable to zero", and states that this is part
+of the decision rather than tuning, because it spends subscription quota from the same pool
+that already rate-limits the primary session. Making it a graph edge rather than a note in a
+description means it cannot be forgotten at the moment it matters. Requirement is a real
+process teardown, not hiding the UI.
+
+## The epic''s other job: the seam with Epic E
+
+E (T-520) mounts its input box and answer surface inside C1''s strip. C1 therefore owns the
+**internal composition** — face region, bubble region, input region — and settles it once, so
+E fills a slot rather than renegotiating layout. C2 owns height behaviour including the
+grow-to-cap-while-answering that E''s answers trigger; E should not implement its own resizing.', 'done', 'medium', NULL, NULL, NULL, '2026-08-08 22:48:02.404', '2026-08-11 21:26:51.979', NULL, '99f71ffad0eaeed6586d0690ce17552d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
