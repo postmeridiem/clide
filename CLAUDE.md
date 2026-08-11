@@ -89,6 +89,7 @@ Shell hygiene (keeps commands inside the permission allowlist, so they don't get
 - **Working directory is the repo root already** — don't prepend `cd /…/clide` or pass `git -C`. Just run the command.
 - **One command per invocation** — no `&&`/`;` chaining and no multiple greps/echos in one call. The only exception is the `git commit -F` HEREDOC.
 - Prefer the Read/Edit/Grep tools over `cat`/`sed`/`grep` for inspecting files.
+- **Edit files with Edit/Write — never a `python3 -c`, heredoc, or `sed` script.** A scripted string-replace that doesn't match fails *silently* and reports success, so the next several minutes are spent debugging a change that was never applied. Edit errors instead. This holds for throwaway files too.
 
 ## Git workflow
 
