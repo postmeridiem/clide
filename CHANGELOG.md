@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **`clide version` and `clide instance` report the build**, not just the
+  release — commit and build time alongside the version, so a running app can
+  be told apart from the one you just built. (T-247)
+
 - **Clide companion strip.** A glyph face sits at the bottom of the context
   panel, with a falling-glyph field behind it whose density shows how hard the
   session is working. Silent, motion-gated, and dropped to face-only on a narrow

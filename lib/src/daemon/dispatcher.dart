@@ -1,4 +1,4 @@
-import 'package:clide/clide.dart' show clideVersion;
+import 'package:clide/clide.dart' show clideCommit, clideDate, clideVersion;
 import 'package:clide/src/ipc/command_schema.dart';
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/schema_v1.dart';
@@ -80,7 +80,11 @@ class DaemonDispatcher {
   Future<IpcResponse> _ping(IpcRequest req) async =>
       IpcResponse.ok(id: req.id, data: {'pong': true, 'ts': DateTime.now().toUtc().toIso8601String(), 'version': clideVersion});
 
-  Future<IpcResponse> _version(IpcRequest req) async => IpcResponse.ok(id: req.id, data: {'version': clideVersion});
+  /// Version **and** build stamp. The version alone answers "which release",
+  /// which is not the question anyone asks of a running process — every build
+  /// between two releases carries the same number.
+  Future<IpcResponse> _version(IpcRequest req) async =>
+      IpcResponse.ok(id: req.id, data: {'version': clideVersion, 'commit': clideCommit, 'builtAt': clideDate});
 
   /// Reflects the live command registry so the surface is discoverable, not
   /// just present (T-248). Every registered verb is listed — split into

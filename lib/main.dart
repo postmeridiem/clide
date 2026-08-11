@@ -38,7 +38,7 @@ import 'dart:io' show Directory, File, Platform, pid;
 
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/builtin/claude/src/account_registry.dart';
-import 'package:clide/clide.dart' show clideVersion;
+import 'package:clide/clide.dart' show clideCommit, clideDate, clideVersion;
 import 'package:clide/src/daemon/claude_account_commands.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
 import 'package:clide/src/daemon/env_path_commands.dart';
@@ -333,7 +333,15 @@ Future<void> main() async {
     // `clide instance` — this instance's identity (version/pid/workspace/socket)
     // so `clide instances` can list every live instance and a human/agent can
     // tell which one a socket belongs to (T-247).
-    registerInstanceCommand(dispatcher, version: clideVersion, pid: pid, workspace: workRoot.path, socketPath: workspaceSocketPath(workRoot.path));
+    registerInstanceCommand(
+      dispatcher,
+      version: clideVersion,
+      commit: clideCommit,
+      builtAt: clideDate,
+      pid: pid,
+      workspace: workRoot.path,
+      socketPath: workspaceSocketPath(workRoot.path),
+    );
     // `clide log level [<level>]` — the live verbosity toggle's CLI half (T-433,
     // D-6 parity with the output-dock Level chip). Persists via the kernel
     // settings, captured post-boot.
