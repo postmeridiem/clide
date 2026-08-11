@@ -222,6 +222,49 @@ void main() {
     });
   });
 
+  group('an expression does not outlive its cause', () {
+    test('the mood expires with the remark, not never', () async {
+      // He could otherwise sit there unimpressed an hour after the thing that
+      // annoyed him was fixed — an expression outliving its cause is a lie the
+      // user can read, and worse than a neutral one because it looks deliberate.
+      final voice = CompanionVoice(
+        reader: SessionReader(sessionId: kCompanionSessionId, orchestrator: orch),
+        moodEnabled: () => true,
+        dwell: const Duration(milliseconds: 40),
+      )..start();
+      addTearDown(voice.dispose);
+
+      proc.says('[unimpressed]\nThose accumulate.');
+      proc.endTurn();
+      await settle();
+      expect(voice.face, FaceState.unimpressed);
+      expect(voice.say, 'Those accumulate.');
+
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(voice.say, isNull);
+      expect(voice.face, FaceState.idle, reason: 'the mood should settle with the words it came with');
+    });
+
+    test('a silent mood expires too', () async {
+      // A face he named without speaking is still a mood with a cause, and the
+      // cause still passes.
+      final voice = CompanionVoice(
+        reader: SessionReader(sessionId: kCompanionSessionId, orchestrator: orch),
+        moodEnabled: () => true,
+        dwell: const Duration(milliseconds: 40),
+      )..start();
+      addTearDown(voice.dispose);
+
+      proc.says('[tired]');
+      proc.endTurn();
+      await settle();
+      expect(voice.face, FaceState.tired);
+
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(voice.face, FaceState.idle);
+    });
+  });
+
   group('the mood setting', () {
     test('off falls back to his lifecycle and ignores what he named', () async {
       moodEnabled = false;

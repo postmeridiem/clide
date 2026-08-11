@@ -51,20 +51,28 @@ import 'package:clide/builtin/clide_companion/src/face_state.dart';
 import 'package:clide/builtin/clide_companion/src/prompt/companion_reply.dart';
 import 'package:flutter/foundation.dart';
 
-/// How long a remark stays on screen.
+/// How long a remark, and the mood that came with it, stay on screen.
 ///
 /// A bubble that never clears is three problems at once: it goes stale (the
 /// thing it was about was fixed an hour ago), it is what a colleague sees on a
 /// shared screen long after the moment, and it makes him look like he is still
 /// talking. Long enough to read twice, short enough that an idle strip is a
 /// quiet one.
+///
+/// **The declared mood expires with it.** An earlier cut cleared the bubble and
+/// held the expression indefinitely, so he could sit there `unimpressed` an hour
+/// after the thing that annoyed him was fixed. An expression that outlives its
+/// cause is a lie the user can read, and it is worse than a neutral one because
+/// it looks deliberate. One timer for both, because "he said his piece and
+/// settled" is one idea, not two.
 const kRemarkDwell = Duration(minutes: 2);
 
 /// Binds Clide's own session and exposes what to draw.
 class CompanionVoice extends ChangeNotifier {
-  CompanionVoice({ClaudeSessionOrchestrator? orchestrator, SessionReader? reader, bool Function()? moodEnabled})
+  CompanionVoice({ClaudeSessionOrchestrator? orchestrator, SessionReader? reader, bool Function()? moodEnabled, Duration dwell = kRemarkDwell})
     : _reader = reader ?? companionSessionReader(orchestrator: orchestrator),
-      _moodEnabled = moodEnabled ?? _yes;
+      _moodEnabled = moodEnabled ?? _yes,
+      _dwellFor = dwell;
 
   static bool _yes() => true;
 
@@ -74,6 +82,10 @@ class CompanionVoice extends ChangeNotifier {
   /// lifecycle alone — D-107's own stated fallback. Read live, so the setting
   /// applies without a restart.
   final bool Function() _moodEnabled;
+
+  /// How long a remark and its mood hold. Injectable so a test does not have to
+  /// wait two real minutes to prove they expire.
+  final Duration _dwellFor;
 
   final _subs = <StreamSubscription<Object?>>[];
   Timer? _dwell;
@@ -152,20 +164,28 @@ class CompanionVoice extends ChangeNotifier {
     // reads as a glitch.
     if (reply.face != null) _declared = reply.face;
 
-    if (reply.speaks) {
-      _say = reply.say;
+    // Any reply he actually made — mood, words, or both — restarts the clock.
+    // Silence with no mood is not an instruction to clear what is on screen; he
+    // simply had nothing to add to it, and the running timer still owns it.
+    if (reply.speaks || reply.face != null) {
+      if (reply.speaks) _say = reply.say;
       _dwell?.cancel();
-      _dwell = Timer(kRemarkDwell, _clearRemark);
+      _dwell = Timer(_dwellFor, _settle);
     }
-    // Silence is not an instruction to clear what is on screen — he simply had
-    // nothing to add to it. The dwell timer is what clears.
     _dead = false;
     notifyListeners();
   }
 
-  void _clearRemark() {
-    if (_say == null) return;
+  /// The remark has had its time, and so has the mood behind it.
+  ///
+  /// Returning [_declared] to null falls the face back to [FaceState.idle] —
+  /// which is not the "default reset" the kill condition forbids. That rule is
+  /// about an *unreadable* reply, where resetting would show a failure; this is
+  /// a readable mood that has simply expired.
+  void _settle() {
+    if (_say == null && _declared == null) return;
     _say = null;
+    _declared = null;
     notifyListeners();
   }
 
