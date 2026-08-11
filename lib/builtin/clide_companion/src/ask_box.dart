@@ -109,6 +109,12 @@ class _ClideAskBoxState extends State<ClideAskBox> {
         height: kAskBoxHeight,
         child: DecoratedBox(
           decoration: BoxDecoration(
+            // Opaque, not just bordered. The face paints full-bleed behind the
+            // whole strip, so an unfilled box has rain running through the text
+            // — the glyphs move, and moving glyphs behind a caret is unreadable.
+            // The same fill the bubble uses, so the pair reads as one surface
+            // that is his rather than two frames laid on the weather.
+            color: tokens.listItemBackground,
             border: Border.all(color: border),
             borderRadius: BorderRadius.circular(4),
           ),
