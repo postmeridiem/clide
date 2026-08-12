@@ -18950,3 +18950,102 @@ Done 2026-08-11. Wired to I18n''s notification, plus 4 tests.
 **Consequence found while checking, and it is the right behaviour:** only assets/clide/prompts/en_us/clide-brief.md is bundled, so switching to Dutch today resolves to the same document through the fallback chain and produces a byte-identical prompt — and therefore no restart. That is correct: a locale with no brief of its own is not a language change as far as Clide is concerned, and throwing away his conversation for a prompt that did not move is exactly what the compare exists to prevent. The wiring goes live the moment a locale gets its own brief, which is a file rather than a code change. Asserted as a test.
 
 The deactivate path is covered too — a listener that outlives its extension is a leak that spawns processes.', 'done', 'medium', NULL, NULL, 'D-107', '2026-08-09 15:26:35.993', '2026-08-12 06:20:34.634', NULL, 'a8ba6bb42b21b94fcc33047e333cd810', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE67WBTPXWZRD0XXQH6TMDC', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'Lifetime token stat on Clide''s overlay, with the split and an honest cost line', 'A lifetime token stat on Clide''s overlay, with enough context to mean something.
+
+## Why it belongs here specifically
+
+The companion spends **the same subscription quota that rate-limits the primary
+session** (D-107). That is the sharpest risk in the whole initiative, and right
+now it is invisible: the kill switch and the stingy trigger are both defences
+against a cost nobody can see. Putting the number where Clide''s conversation is
+makes the trade-off legible at the moment you are reading what you paid for.
+
+## The data exists
+
+Verified at claude 2.1.226 (`docs/spikes/cc-stream-json-2.1.226.md`). Every turn
+ends with a `result` event carrying `usage`, `modelUsage` and `total_cost_usd`,
+and each `message_delta` carries per-turn `usage` with the breakdown:
+
+```
+input_tokens, output_tokens, cache_creation_input_tokens,
+cache_read_input_tokens, output_tokens_details.thinking_tokens
+```
+
+Accumulating those across the session is arithmetic, not new plumbing.
+
+## What "with some info to it" should mean
+
+A bare number is a curiosity. The parts that make it informative:
+
+- **The split**, not just the total — cache reads are roughly a tenth the price
+  of fresh input, so a large total that is mostly cache reads is cheap and a
+  small one that is all cache *creation* is not.
+- **Thinking tokens called out separately.** Haiku 4.5 thinks by default, no flag
+  stops it, and a one-line quip cost 36 thinking tokens in the probe. If the
+  companion turns out to spend more on thinking than on speaking, this is the
+  surface that would show it — and that is an argument someone will want to make
+  about the design.
+- **Cost stated honestly.** `total_cost_usd` is reported per turn and is real,
+  but under subscription auth **nothing is billed** — the true currency is quota,
+  which upstream does not expose (see the note on T-141: `/usage` is TUI-only,
+  no file or API under subscription auth). Show the dollar figure as an
+  equivalent, not an invoice, or it will be misread.
+
+## Scope question to settle when picked up
+
+"Lifetime" of what? The session model is **one per clide run**, so the natural
+boundary is this run — and it is also the only one available, since nothing is
+persisted across runs by design (D-107, as amended). Spanning runs would need
+storage the initiative has deliberately chosen not to have, so either accept
+per-run or reopen that decision explicitly rather than by accident.
+
+## Depends on
+
+Epic E''s overlay existing, and Epic D''s session producing turns to count.', 'in_progress', 'medium', NULL, NULL, 'D-107', '2026-08-09 15:16:42.206', '2026-08-12 08:42:25.731', NULL, '99cb7579d280e06f6c7b86a5981ee1af', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZAD8NV1WW85JV93HQC6NW1C', 'bug', NULL, 'Claude pane goes blind after /clear or /resume — four session streams unsubscribed and never rebound', 'The Claude pane stops seeing its own session after the first `/clear` or
+`/resume`. Reported live: the composer''s permission-mode control vanished and
+the pane''s whole status area (model · mode · context · cost) went blank.
+
+## Cause
+
+[T-554](#) moved the pane''s four session subscriptions — status, ended,
+model-errors, workflows — from a per-spawn bind to a **once-per-pane** bind in
+`didChangeDependencies`, against a `SessionReader` that follows `_orchId`
+across every spawn and close. That commit removed the matching re-subscribe
+blocks from `_spawn` and `_rebindToActiveProject`, and its message names the
+three cancel blocks it deleted.
+
+There were four. `_respawnWithSession` (`lib/builtin/claude/src/claude_pane.dart`)
+kept cancelling all four subscriptions and setting them to null — and nothing
+re-establishes them, because the bind is guarded by `_spawned` and runs once.
+So the first respawn through that path unbinds the pane permanently.
+
+`_respawnWithSession` is the `/clear` and `/resume` path, which is why a cold
+boot looks completely healthy and the fault only appears after the first clear.
+
+## Blast radius
+
+Four signals, not one:
+
+- **status** — model, permission mode, context tokens, cost, rate-limit info.
+  This is the reported symptom: `_status.isEmpty` makes `_statusWidget` return
+  null, and a null `permissionMode` removes the composer''s mode control.
+- **ended** — a dead `claude` process no longer surfaces; the pane keeps looking
+  thoughtful (the exact failure T-361 fixed).
+- **modelErrors** — a rejected `/model` rolls back silently again (T-408).
+- **workflows** — the Workflow card stops updating live (T-416).
+
+## Fix
+
+Delete the cancel block from `_respawnWithSession`. The reader already follows
+the close and the respawn, exactly as it does for the workspace switch in
+`_rebindToActiveProject`. Clearing `_status` there stays — a respawn into a
+different session should not show the previous one''s numbers.
+
+## Test
+
+`claude_pane_test.dart` — feed an init, `/clear`, feed the respawned session''s
+init, assert the pane picked up the new mode. Verified failing before the fix
+and passing after. The pre-existing "an init event populates the status line"
+test missed this because it asserts on `session.status`, the session''s own
+field, rather than on anything the pane read.', 'backlog', 'high', NULL, NULL, NULL, '2026-08-12 09:02:04.760', '2026-08-12 09:02:04.760', NULL, '9e4e6a5afd52607f13d140ebb18997f3', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

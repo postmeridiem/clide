@@ -710,14 +710,12 @@ class _ClaudePaneState extends State<ClaudePane> {
   /// unless [clearTranscript] is set, in which case [sessionId]'s transcript is
   /// erased after the kill so `--session-id` re-creates it empty (T-268).
   Future<void> _respawnWithSession(String sessionId, {bool clearTranscript = false}) async {
-    _statusSub?.cancel();
-    _statusSub = null;
-    _endSub?.cancel();
-    _endSub = null;
-    _modelErrorSub?.cancel();
-    _modelErrorSub = null;
-    _workflowsSub?.cancel();
-    _workflowsSub = null;
+    // No subscription juggling here either (T-554, T-568). The reader follows
+    // `_orchId` through the close and the respawn below, exactly as it does for
+    // a workspace switch. Cancelling here — which this method did until T-568 —
+    // unbound the pane permanently: the four streams are established once, for
+    // the pane's whole life, so nothing re-subscribed them and the first
+    // `/clear` or `/resume` left the status area blank for good.
     _modelPickerOpen = false;
     _effortPickerOpen = false;
     _permissionPickerOpen = false;

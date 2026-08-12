@@ -22,6 +22,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **The Claude pane no longer goes blind after `/clear` or `/resume`** (T-568).
+  The first respawn unsubscribed the pane from its session for good, blanking
+  the status area and the composer's permission-mode control, and silencing
+  session-exit, `/model` rejection and live Workflow updates.
+
 ## [2.11.0] — 2026-08-12
 
 ### Added

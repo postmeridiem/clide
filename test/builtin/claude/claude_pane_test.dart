@@ -15,6 +15,7 @@ import 'package:clide/builtin/claude/src/claude_composer.dart';
 import 'package:clide/builtin/claude/src/claude_pane.dart';
 import 'package:clide/builtin/claude/src/conversation_view.dart';
 import 'package:clide/builtin/claude/src/model_picker_card.dart';
+import 'package:clide/builtin/claude/src/permission_mode_control.dart';
 import 'package:clide/builtin/claude/src/session_naming.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/session_picker.dart';
@@ -315,6 +316,43 @@ void main() {
     // (the rendered slot lives in the status bar, absent from this harness).
     expect(orch.byId('primary')!.session.status.permissionMode, 'plan');
     expect(orch.byId('primary')!.session.status.model, 'claude-opus-4-8');
+  });
+
+  testWidgets('the status survives a /clear — the pane stays bound across a respawn (T-568)', (tester) async {
+    await mount(tester, const ClaudePane(showChrome: false));
+    await act(
+      tester,
+      () => created.single.feed({
+        'type': 'system',
+        'subtype': 'init',
+        'model': 'claude-opus-4-8',
+        'permissionMode': 'plan',
+        'session_id': primarySessionId('/repo-a'),
+      }),
+    );
+    expect(composer(tester).permissionMode, 'plan');
+    expect(find.byType(PermissionModeControl), findsOneWidget);
+
+    await act(tester, () => composer(tester).onSubmit('/clear'));
+    expect(created, hasLength(2));
+
+    // The respawned session's own init. Until T-568 the pane never saw this:
+    // `_respawnWithSession` cancelled the four subscriptions T-554 had moved to
+    // a once-per-pane bind, and nothing re-established them — so the status area
+    // and the composer's mode control went blank for the rest of the pane's life.
+    await act(
+      tester,
+      () => created.last.feed({
+        'type': 'system',
+        'subtype': 'init',
+        'model': 'claude-opus-4-8',
+        'permissionMode': 'acceptEdits',
+        'session_id': primarySessionId('/repo-a'),
+      }),
+    );
+
+    expect(composer(tester).permissionMode, 'acceptEdits');
+    expect(find.byType(PermissionModeControl), findsOneWidget);
   });
 
   testWidgets('a can_use_tool request renders a prompt card in place of the composer', (tester) async {
