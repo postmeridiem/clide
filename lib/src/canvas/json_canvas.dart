@@ -121,16 +121,8 @@ class FileNode extends CanvasNode {
   String get type => 'file';
 
   @override
-  FileNode withRect({double? x, double? y, double? width, double? height}) => FileNode(
-    id: id,
-    x: x ?? this.x,
-    y: y ?? this.y,
-    width: width ?? this.width,
-    height: height ?? this.height,
-    color: color,
-    file: file,
-    subpath: subpath,
-  );
+  FileNode withRect({double? x, double? y, double? width, double? height}) =>
+      FileNode(id: id, x: x ?? this.x, y: y ?? this.y, width: width ?? this.width, height: height ?? this.height, color: color, file: file, subpath: subpath);
 
   @override
   Map<String, Object?> toJson() => {..._base(), 'file': file, if (subpath != null) 'subpath': subpath};

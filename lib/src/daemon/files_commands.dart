@@ -142,10 +142,7 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
     },
     // `clide files write <path> [text]` — content also accepts
     // `--content_b64` for anything a shell argument can't carry.
-    schema: const CommandSchema(
-      positional: ['path', 'text'],
-      args: {'path': ArgSpec(), 'text': ArgSpec(), 'content_b64': ArgSpec()},
-    ),
+    schema: const CommandSchema(positional: ['path', 'text'], args: {'path': ArgSpec(), 'text': ArgSpec(), 'content_b64': ArgSpec()}),
   );
 
   d.register('files.ls', (req) async {

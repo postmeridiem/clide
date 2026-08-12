@@ -36,8 +36,7 @@ class CanvasBounds {
 
   // Value equality so a repaint check compares the fit, not the instance.
   @override
-  bool operator ==(Object other) =>
-      other is CanvasBounds && other.left == left && other.top == top && other.right == right && other.bottom == bottom;
+  bool operator ==(Object other) => other is CanvasBounds && other.left == left && other.top == top && other.right == right && other.bottom == bottom;
 
   @override
   int get hashCode => Object.hash(left, top, right, bottom);

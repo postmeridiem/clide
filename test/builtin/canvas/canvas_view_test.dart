@@ -143,8 +143,7 @@ void main() {
       return CanvasViewport.fit(size, CanvasBounds.of(doc)).rectOf(doc.nodes[index]).shift(origin);
     }
 
-    double scaleOf(WidgetTester tester, CanvasDoc doc) =>
-        CanvasViewport.fit(tester.getSize(find.byType(CanvasView)), CanvasBounds.of(doc)).scale;
+    double scaleOf(WidgetTester tester, CanvasDoc doc) => CanvasViewport.fit(tester.getSize(find.byType(CanvasView)), CanvasBounds.of(doc)).scale;
 
     testWidgets('dragging a node moves it, pinning the other nodes', (tester) async {
       CanvasDoc? saved;

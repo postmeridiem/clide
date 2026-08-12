@@ -218,15 +218,7 @@ class _CanvasViewState extends State<CanvasView> {
             onPanEnd: _onPanEnd,
             child: CustomPaint(
               size: size,
-              painter: CanvasPainter(
-                doc: _doc,
-                tokens: tokens,
-                bounds: _bounds,
-                zoom: _zoom,
-                pan: _pan,
-                selected: _selected,
-                showHandles: _editable,
-              ),
+              painter: CanvasPainter(doc: _doc, tokens: tokens, bounds: _bounds, zoom: _zoom, pan: _pan, selected: _selected, showHandles: _editable),
             ),
           ),
         );
