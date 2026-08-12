@@ -2,5 +2,7 @@
   "tab.title": { "translation": "Canvas" },
   "empty": { "translation": "Open een .canvas-bestand om het hier te bekijken." },
   "status.loading": { "translation": "Laden…" },
-  "save.failed": { "translation": "Kon {path} niet opslaan: {reason}" }
+  "save.failed": { "translation": "Kon {path} niet opslaan: {reason}" },
+  "action.addText": { "translation": "Tekstknooppunt toevoegen" },
+  "action.delete": { "translation": "Geselecteerd knooppunt verwijderen" }
 }

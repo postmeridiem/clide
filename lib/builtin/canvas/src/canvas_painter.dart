@@ -135,8 +135,52 @@ CanvasCorner? canvasHandleAt(Rect rect, Offset local) {
   return null;
 }
 
+/// The four edge-midpoint handle centres of [rect], in [CanvasSide] order.
+/// Dragging one of these draws a connection; the corners resize.
+List<Offset> canvasEdgeHandleCentres(Rect rect) => [rect.topCenter, rect.centerRight, rect.bottomCenter, rect.centerLeft];
+
+/// The edge-midpoint handle of [rect] under [local], or null. Corners are
+/// checked first by the caller — on a small node the two handle sets can
+/// overlap, and resize is the more common intent.
+CanvasSide? canvasEdgeHandleAt(Rect rect, Offset local) {
+  final centres = canvasEdgeHandleCentres(rect);
+  const reach = canvasHandleRadius + canvasHandleGrabSlop;
+  for (var i = 0; i < centres.length; i++) {
+    if ((local - centres[i]).dx.abs() <= reach && (local - centres[i]).dy.abs() <= reach) {
+      return CanvasSide.values[i];
+    }
+  }
+  return null;
+}
+
+/// A connection being dragged out of [fromNode]'s [fromSide] handle toward
+/// [to] (pane-local pixels). Painted as a live preview until released.
+@immutable
+class CanvasConnection {
+  const CanvasConnection({required this.fromNode, required this.fromSide, required this.to});
+
+  final String fromNode;
+  final CanvasSide fromSide;
+  final Offset to;
+
+  @override
+  bool operator ==(Object other) => other is CanvasConnection && other.fromNode == fromNode && other.fromSide == fromSide && other.to == to;
+
+  @override
+  int get hashCode => Object.hash(fromNode, fromSide, to);
+}
+
 class CanvasPainter extends CustomPainter {
-  CanvasPainter({required this.doc, required this.tokens, this.bounds, this.zoom = 1, this.pan = Offset.zero, this.selected, this.showHandles = false});
+  CanvasPainter({
+    required this.doc,
+    required this.tokens,
+    this.bounds,
+    this.zoom = 1,
+    this.pan = Offset.zero,
+    this.selected,
+    this.showHandles = false,
+    this.connection,
+  });
 
   final CanvasDoc doc;
   final SurfaceTokens tokens;
@@ -155,6 +199,10 @@ class CanvasPainter extends CustomPainter {
   /// Draw corner resize handles on the selected node (editing panes only —
   /// a display-only viewer offers no resize).
   final bool showHandles;
+
+  /// A connection being dragged out of an edge handle, drawn as a live
+  /// preview so the user can see what they're about to join.
+  final CanvasConnection? connection;
 
   @override
   void paint(ui.Canvas canvas, Size size) {
@@ -175,19 +223,42 @@ class CanvasPainter extends CustomPainter {
     // Handles last, so they sit above any node that overlaps the selection.
     final sel = selected == null ? null : byId[selected];
     if (showHandles && sel != null) _handles(canvas, vp.rectOf(sel));
+
+    final live = connection;
+    if (live != null) {
+      final from = byId[live.fromNode];
+      if (from != null) _preview(canvas, _anchor(vp.rectOf(from), live.fromSide), live.to);
+    }
   }
 
   void _handles(ui.Canvas canvas, Rect rect) {
-    final fill = Paint()..color = tokens.globalFocus;
     final ring = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1
       ..color = tokens.panelBackground;
+
+    // Squares resize; circles connect. Two shapes rather than two colours,
+    // so the distinction survives a theme with a muted accent.
+    final resize = Paint()..color = tokens.globalFocus;
     for (final c in canvasHandleCentres(rect)) {
       final box = Rect.fromCenter(center: c, width: canvasHandleRadius * 2, height: canvasHandleRadius * 2);
-      canvas.drawRect(box, fill);
+      canvas.drawRect(box, resize);
       canvas.drawRect(box, ring);
     }
+    final connect = Paint()..color = tokens.statusSuccess;
+    for (final c in canvasEdgeHandleCentres(rect)) {
+      canvas.drawCircle(c, canvasHandleRadius, connect);
+      canvas.drawCircle(c, canvasHandleRadius, ring);
+    }
+  }
+
+  void _preview(ui.Canvas canvas, Offset from, Offset to) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..color = tokens.statusSuccess;
+    canvas.drawLine(from, to, paint);
+    _arrowhead(canvas, to, from, paint.color);
   }
 
   void _group(ui.Canvas canvas, CanvasViewport vp, GroupNode n) {
@@ -295,5 +366,6 @@ class CanvasPainter extends CustomPainter {
       old.zoom != zoom ||
       old.pan != pan ||
       old.selected != selected ||
-      old.showHandles != showHandles;
+      old.showHandles != showHandles ||
+      old.connection != connection;
 }

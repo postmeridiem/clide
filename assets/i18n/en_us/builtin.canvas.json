@@ -2,5 +2,7 @@
   "tab.title": { "translation": "Canvas" },
   "empty": { "translation": "Open a .canvas file to view it here." },
   "status.loading": { "translation": "Loading…" },
-  "save.failed": { "translation": "Could not save {path}: {reason}" }
+  "save.failed": { "translation": "Could not save {path}: {reason}" },
+  "action.addText": { "translation": "Add text node" },
+  "action.delete": { "translation": "Delete selected node" }
 }

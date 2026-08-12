@@ -11,6 +11,7 @@
 library;
 
 import 'dart:convert';
+import 'dart:math' as math;
 
 /// Which edge of a node an edge attaches to.
 enum CanvasSide {
@@ -267,6 +268,48 @@ class CanvasDoc {
     final next = [...nodes];
     next[i] = node;
     return CanvasDoc(nodes: next, edges: edges);
+  }
+
+  /// This doc with [node] appended — last in list order, so a newly added
+  /// node paints on top of what's already there.
+  CanvasDoc addNode(CanvasNode node) => CanvasDoc(nodes: [...nodes, node], edges: edges);
+
+  /// This doc without the node [id], **and without any edge that referenced
+  /// it**. A dangling edge parses fine and simply doesn't paint, so leaving
+  /// them behind would quietly grow the file with invisible junk.
+  CanvasDoc removeNode(String id) {
+    if (node(id) == null) return this;
+    return CanvasDoc(
+      nodes: [
+        for (final n in nodes)
+          if (n.id != id) n,
+      ],
+      edges: [
+        for (final e in edges)
+          if (e.fromNode != id && e.toNode != id) e,
+      ],
+    );
+  }
+
+  /// This doc with [edge] appended. Returns `this` unchanged when either
+  /// endpoint is missing, or when an edge already joins the same two nodes
+  /// in the same direction — connecting twice is a slip, not an intent.
+  CanvasDoc addEdge(CanvasEdge edge) {
+    if (node(edge.fromNode) == null || node(edge.toNode) == null) return this;
+    if (edges.any((e) => e.fromNode == edge.fromNode && e.toNode == edge.toNode)) return this;
+    return CanvasDoc(nodes: nodes, edges: [...edges, edge]);
+  }
+
+  /// An id not already used by a node or an edge in this document.
+  /// Obsidian writes 16 hex characters; [random] is injectable so a test can
+  /// pin the value.
+  String freshId([math.Random? random]) {
+    final rng = random ?? math.Random();
+    final taken = {for (final n in nodes) n.id, for (final e in edges) e.id};
+    while (true) {
+      final id = [for (var i = 0; i < 16; i++) rng.nextInt(16).toRadixString(16)].join();
+      if (taken.add(id)) return id;
+    }
   }
 
   /// Parse `.canvas` JSON text. Malformed JSON, or a top level that isn't an

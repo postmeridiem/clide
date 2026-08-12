@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:clide/src/canvas/json_canvas.dart';
 import 'package:test/test.dart';
 
@@ -130,6 +132,49 @@ void main() {
       expect(doc.node('l1'), isA<LinkNode>());
       expect(doc.node('missing'), isNull);
       expect(const CanvasDoc().node('any'), isNull);
+    });
+
+    test('addNode appends, so a new node paints on top', () {
+      final doc = CanvasDoc.parse(sample);
+      const fresh = TextNode(id: 'new', x: 5, y: 5, width: 10, height: 10, text: 'n');
+      final grown = doc.addNode(fresh);
+      expect(grown.nodes.map((n) => n.id), ['t1', 'f1', 'l1', 'g1', 'new']);
+      expect(doc.nodes, hasLength(4), reason: 'the original is untouched');
+    });
+
+    test('removeNode drops the node and every edge that touched it', () {
+      final doc = CanvasDoc.parse(sample).addEdge(const CanvasEdge(id: 'e2', fromNode: 'l1', toNode: 't1'));
+      expect(doc.edges.map((e) => e.id), ['e1', 'e2']);
+
+      final pruned = doc.removeNode('t1'); // e1 (t1→f1) and e2 (l1→t1) both go
+      expect(pruned.node('t1'), isNull);
+      expect(pruned.edges, isEmpty, reason: 'a dangling edge parses but never paints');
+      expect(pruned.nodes.map((n) => n.id), ['f1', 'l1', 'g1']);
+    });
+
+    test('removeNode on an unknown id returns the doc unchanged', () {
+      final doc = CanvasDoc.parse(sample);
+      expect(identical(doc.removeNode('nope'), doc), isTrue);
+    });
+
+    test('addEdge rejects a missing endpoint and a duplicate connection', () {
+      final doc = CanvasDoc.parse(sample);
+      expect(identical(doc.addEdge(const CanvasEdge(id: 'x', fromNode: 't1', toNode: 'ghost')), doc), isTrue);
+      expect(identical(doc.addEdge(const CanvasEdge(id: 'x', fromNode: 'ghost', toNode: 't1')), doc), isTrue);
+      // e1 already runs t1 → f1.
+      expect(identical(doc.addEdge(const CanvasEdge(id: 'x', fromNode: 't1', toNode: 'f1')), doc), isTrue);
+      // The reverse direction is a different edge and is allowed.
+      expect(doc.addEdge(const CanvasEdge(id: 'x', fromNode: 'f1', toNode: 't1')).edges, hasLength(2));
+    });
+
+    test('freshId avoids ids already used by a node or an edge', () {
+      final doc = CanvasDoc.parse(sample);
+      final id = doc.freshId(math.Random(7));
+      expect(id, hasLength(16));
+      expect(RegExp(r'^[0-9a-f]{16}$').hasMatch(id), isTrue);
+      expect({for (final n in doc.nodes) n.id, for (final e in doc.edges) e.id}, isNot(contains(id)));
+      // Same seed, same doc → same id; the generator is injectable for tests.
+      expect(doc.freshId(math.Random(7)), id);
     });
 
     test('a moved node survives the encode round-trip', () {

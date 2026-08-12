@@ -1,6 +1,8 @@
 import 'package:clide/builtin/canvas/src/canvas_painter.dart';
+import 'package:clide/builtin/canvas/src/canvas_toolbar.dart';
 import 'package:clide/builtin/canvas/src/canvas_view.dart';
 import 'package:clide/src/canvas/json_canvas.dart';
+import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -145,6 +147,21 @@ void main() {
 
     double scaleOf(WidgetTester tester, CanvasDoc doc) => CanvasViewport.fit(tester.getSize(find.byType(CanvasView)), CanvasBounds.of(doc)).scale;
 
+    /// ClideTappable renders its tooltip as a ClideTooltip, not a Material
+    /// Tooltip, so `find.byTooltip` doesn't see it.
+    Finder button(String label) => find.byWidgetPredicate((w) => w is ClideTooltip && w.message == label);
+
+    Finder grip() => find.descendant(of: find.byType(CanvasToolbar), matching: find.byType(MouseRegion)).first;
+
+    /// Move the toolbar clear of the content. At its default top-left park
+    /// it covers the top-left of the fitted content — the known cost of a
+    /// floating toolbar, and in a 400×400 view that is exactly where node
+    /// 'a' and its handles sit.
+    Future<void> parkToolbar(WidgetTester tester) async {
+      await tester.drag(grip(), const Offset(9999, 9999), touchSlopX: 0, touchSlopY: 0);
+      await tester.pump();
+    }
+
     testWidgets('dragging a node moves it, pinning the other nodes', (tester) async {
       CanvasDoc? saved;
       await tester.pumpWidget(view(twoNodes, onChanged: (d) => saved = d));
@@ -200,6 +217,7 @@ void main() {
       CanvasDoc? saved;
       await tester.pumpWidget(view(twoNodes, onChanged: (d) => saved = d));
       await tester.pump();
+      await parkToolbar(tester); // it otherwise covers this node's NW handle
       final scale = scaleOf(tester, twoNodes);
       final rect = screenRect(tester, twoNodes, 0);
 
@@ -284,6 +302,225 @@ void main() {
 
       expect(painterOf(tester).bounds, before);
       expect(painterOf(tester).doc.node('a')!.x, lessThan(0), reason: 'the node really did leave the original bounds');
+    });
+
+    testWidgets('dragging an edge handle onto another node connects them', (tester) async {
+      CanvasDoc? saved;
+      await tester.pumpWidget(view(twoNodes, onChanged: (d) => saved = d));
+      await tester.pump();
+      final a = screenRect(tester, twoNodes, 0);
+      final b = screenRect(tester, twoNodes, 1);
+
+      await tester.tapAt(a.center); // handles only appear on the selection
+      await tester.pump();
+      // Right-edge midpoint of 'a' → the centre of 'b'.
+      final gesture = await tester.startGesture(a.centerRight);
+      await gesture.moveTo(b.center);
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      final edge = saved!.edges.single;
+      expect((edge.fromNode, edge.toNode), ('a', 'b'));
+      expect(edge.fromSide, CanvasSide.right, reason: 'the handle you grabbed sets the anchor');
+      expect(edge.id, hasLength(16));
+    });
+
+    testWidgets('a connection released over empty space is cancelled', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(view(twoNodes, onChanged: (_) => calls++));
+      await tester.pump();
+      final a = screenRect(tester, twoNodes, 0);
+
+      await tester.tapAt(a.center);
+      await tester.pump();
+      final gesture = await tester.startGesture(a.centerRight);
+      await gesture.moveTo(tester.getTopLeft(find.byType(CanvasView)) + const Offset(4, 4));
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      expect(calls, 0);
+      expect(painterOf(tester).doc.edges, isEmpty);
+      expect(painterOf(tester).connection, isNull, reason: 'the preview is cleared either way');
+    });
+
+    testWidgets('a connection released back on its own node is cancelled', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(view(twoNodes, onChanged: (_) => calls++));
+      await tester.pump();
+      final a = screenRect(tester, twoNodes, 0);
+
+      await tester.tapAt(a.center);
+      await tester.pump();
+      final gesture = await tester.startGesture(a.centerRight);
+      await gesture.moveTo(a.center);
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      expect(calls, 0);
+      expect(painterOf(tester).doc.edges, isEmpty);
+    });
+
+    testWidgets('the in-flight connection is previewed while dragging', (tester) async {
+      await tester.pumpWidget(view(twoNodes, onChanged: (_) {}));
+      await tester.pump();
+      final a = screenRect(tester, twoNodes, 0);
+      final b = screenRect(tester, twoNodes, 1);
+
+      await tester.tapAt(a.center);
+      await tester.pump();
+      final gesture = await tester.startGesture(a.centerRight);
+      await gesture.moveTo(b.center);
+      await tester.pump();
+
+      final live = painterOf(tester).connection;
+      expect(live, isNotNull);
+      expect(live!.fromNode, 'a');
+      expect(live.fromSide, CanvasSide.right);
+      expect(live.to, b.center - tester.getTopLeft(find.byType(CanvasView)));
+
+      await gesture.up();
+      await tester.pump();
+      expect(painterOf(tester).connection, isNull);
+    });
+
+    testWidgets('connecting the same pair twice does not duplicate the edge', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(view(twoNodes, onChanged: (_) => calls++));
+      await tester.pump();
+      final a = screenRect(tester, twoNodes, 0);
+      final b = screenRect(tester, twoNodes, 1);
+
+      Future<void> connect() async {
+        await tester.tapAt(a.center);
+        await tester.pump();
+        final g = await tester.startGesture(a.centerRight);
+        await g.moveTo(b.center);
+        await tester.pump();
+        await g.up();
+        await tester.pump();
+      }
+
+      await connect();
+      expect(calls, 1);
+      await connect();
+      expect(painterOf(tester).doc.edges, hasLength(1));
+      expect(calls, 1, reason: 'a no-op edit must not trigger a save');
+    });
+
+    testWidgets('a corner handle still resizes where the two handle sets are close', (tester) async {
+      CanvasDoc? saved;
+      await tester.pumpWidget(view(twoNodes, onChanged: (d) => saved = d));
+      await tester.pump();
+      final a = screenRect(tester, twoNodes, 0);
+
+      await tester.tapAt(a.center);
+      await tester.pump();
+      await tester.dragFrom(a.bottomRight, const Offset(30, 30), touchSlopX: 0, touchSlopY: 0);
+      await tester.pump();
+
+      expect(saved!.edges, isEmpty, reason: 'the corner resizes, it does not connect');
+      expect(saved!.node('a')!.width, greaterThan(100));
+    });
+
+    testWidgets('the toolbar adds a text node at the middle of the view', (tester) async {
+      CanvasDoc? saved;
+      await tester.pumpWidget(view(twoNodes, onChanged: (d) => saved = d));
+      await tester.pump();
+
+      await tester.tap(button('Add text node'));
+      await tester.pump();
+
+      final added = saved!.nodes.last;
+      expect(saved!.nodes, hasLength(3));
+      expect(added, isA<TextNode>());
+      expect(added.id, hasLength(16));
+      expect((added.width, added.height), (250.0, 60.0));
+      // The original content is centred in the padded view, so a node placed
+      // at the view centre lands at the middle of the content bounds.
+      final b = CanvasBounds.of(twoNodes);
+      expect(added.x + added.width / 2, closeTo((b.left + b.right) / 2, 0.5));
+      expect(added.y + added.height / 2, closeTo((b.top + b.bottom) / 2, 0.5));
+      expect(painterOf(tester).selected, added.id, reason: 'the new node is selected so it can be moved at once');
+    });
+
+    testWidgets('delete is disabled until a node is selected', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(view(twoNodes, onChanged: (_) => calls++));
+      await tester.pump();
+
+      await tester.tap(button('Delete selected node'));
+      await tester.pump();
+      expect(calls, 0);
+      expect(painterOf(tester).doc.nodes, hasLength(2));
+
+      await tester.tapAt(screenRect(tester, twoNodes, 0).center);
+      await tester.pump();
+      await tester.tap(button('Delete selected node'));
+      await tester.pump();
+
+      expect(calls, 1);
+      expect(painterOf(tester).doc.node('a'), isNull);
+      expect(painterOf(tester).selected, isNull);
+    });
+
+    testWidgets('deleting a node also drops the edges that touched it', (tester) async {
+      CanvasDoc? saved;
+      const linked = CanvasDoc(
+        nodes: [
+          TextNode(id: 'a', x: 0, y: 0, width: 100, height: 100, text: 'a'),
+          TextNode(id: 'b', x: 300, y: 300, width: 100, height: 100, text: 'b'),
+        ],
+        edges: [CanvasEdge(id: 'e', fromNode: 'a', toNode: 'b')],
+      );
+      await tester.pumpWidget(view(linked, onChanged: (d) => saved = d));
+      await tester.pump();
+
+      await tester.tapAt(screenRect(tester, linked, 1).center); // select 'b'
+      await tester.pump();
+      await tester.tap(button('Delete selected node'));
+      await tester.pump();
+
+      expect(saved!.node('b'), isNull);
+      expect(saved!.edges, isEmpty);
+    });
+
+    testWidgets('the toolbar is dragged by its grip and clamped to the pane', (tester) async {
+      await tester.pumpWidget(view(twoNodes, onChanged: (_) {}));
+      await tester.pump();
+      final origin = tester.getTopLeft(find.byType(CanvasView));
+      final before = tester.getTopLeft(find.byType(CanvasToolbar));
+      expect(before - origin, const Offset(canvasToolbarInset, canvasToolbarInset));
+
+      await tester.drag(grip(), const Offset(60, 40), touchSlopX: 0, touchSlopY: 0);
+      await tester.pump();
+      expect(tester.getTopLeft(find.byType(CanvasToolbar)) - origin, const Offset(canvasToolbarInset + 60, canvasToolbarInset + 40));
+
+      // Dragged far past the bottom-right: clamped so it stays reachable.
+      await tester.drag(grip(), const Offset(9999, 9999), touchSlopX: 0, touchSlopY: 0);
+      await tester.pump();
+      final parked = tester.getTopLeft(find.byType(CanvasToolbar)) - origin;
+      expect(parked.dx, 400 - canvasToolbarWidth);
+      expect(parked.dy, 400 - canvasToolbarHeight(2));
+    });
+
+    testWidgets('dragging a toolbar button does not move the toolbar', (tester) async {
+      await tester.pumpWidget(view(twoNodes, onChanged: (_) {}));
+      await tester.pump();
+      final before = tester.getTopLeft(find.byType(CanvasToolbar));
+
+      await tester.drag(button('Add text node'), const Offset(50, 50), touchSlopX: 0, touchSlopY: 0);
+      await tester.pump();
+
+      expect(tester.getTopLeft(find.byType(CanvasToolbar)), before);
+    });
+
+    testWidgets('a read-only view shows no toolbar', (tester) async {
+      await tester.pumpWidget(view(twoNodes, editable: false, onChanged: (_) {}));
+      await tester.pump();
+      expect(find.byType(CanvasToolbar), findsNothing);
     });
 
     testWidgets('the edited document echoing back keeps selection and pan', (tester) async {

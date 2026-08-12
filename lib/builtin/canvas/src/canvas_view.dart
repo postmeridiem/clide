@@ -10,13 +10,14 @@ library;
 import 'dart:math' as math;
 
 import 'package:clide/builtin/canvas/src/canvas_painter.dart';
+import 'package:clide/builtin/canvas/src/canvas_toolbar.dart';
 import 'package:clide/src/canvas/json_canvas.dart';
 import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
 /// What the in-flight drag is doing.
-enum _Grab { pan, move, resize }
+enum _Grab { pan, move, resize, connect, toolbar }
 
 class CanvasView extends StatefulWidget {
   const CanvasView({super.key, required this.doc, this.onSelect, this.onChanged, this.editable = true});
@@ -62,6 +63,13 @@ class _CanvasViewState extends State<CanvasView> {
   _Grab _grab = _Grab.pan;
   CanvasCorner? _corner;
 
+  /// The connection being dragged out of an edge handle, or null.
+  CanvasConnection? _connection;
+
+  /// Toolbar position, pane-local. Reset with the document by design — see
+  /// [CanvasToolbar]; only clamped so a pane resize can't strand it.
+  Offset _toolbarPos = const Offset(canvasToolbarInset, canvasToolbarInset);
+
   /// The dragged node as it was at gesture start, plus the pixel delta
   /// accumulated since. Deriving each frame from the start (rather than
   /// nudging the live node) keeps the min-size clamp from sticking when a
@@ -83,6 +91,40 @@ class _CanvasViewState extends State<CanvasView> {
     _zoom = 1;
     _pan = Offset.zero;
     _selected = null;
+    _toolbarPos = const Offset(canvasToolbarInset, canvasToolbarInset);
+  }
+
+  /// Default size of a node created from the toolbar, in canvas units —
+  /// Obsidian's own default for a new text card.
+  static const double _newNodeWidth = 250, _newNodeHeight = 60;
+
+  /// Add a text node at the middle of what the user is currently looking at,
+  /// not at the document origin, which may be off-screen.
+  void _addTextNode(Size size) {
+    final vp = _viewport(size);
+    if (vp.scale <= 0) return;
+    final centreX = (size.width / 2 - vp.dx) / vp.scale;
+    final centreY = (size.height / 2 - vp.dy) / vp.scale;
+    final node = TextNode(id: _doc.freshId(), x: centreX - _newNodeWidth / 2, y: centreY - _newNodeHeight / 2, width: _newNodeWidth, height: _newNodeHeight);
+    setState(() {
+      _doc = _doc.addNode(node);
+      _selected = node.id;
+    });
+    widget.onSelect?.call(node.id);
+    _emit();
+  }
+
+  void _deleteSelected() {
+    final id = _selected;
+    if (id == null) return;
+    final next = _doc.removeNode(id);
+    if (identical(next, _doc)) return;
+    setState(() {
+      _doc = next;
+      _selected = null;
+    });
+    widget.onSelect?.call(null);
+    _emit();
   }
 
   @override
@@ -117,17 +159,33 @@ class _CanvasViewState extends State<CanvasView> {
       _grab = _Grab.pan;
       return;
     }
+    // The toolbar floats above everything, so its grip is tested first.
+    if (canvasToolbarGripRect(_clampedToolbarPos(size)).contains(d.localPosition)) {
+      _grab = _Grab.toolbar;
+      _grabStart = null;
+      return;
+    }
     final vp = _viewport(size);
 
     // A handle on the selected node wins over the node under the cursor —
-    // the corner handles overhang the node's own rect.
+    // the handles overhang the node's own rect.
     final sel = _selected == null ? null : _doc.node(_selected!);
     if (sel != null) {
-      final corner = canvasHandleAt(vp.rectOf(sel), d.localPosition);
+      final rect = vp.rectOf(sel);
+      // Corners before edges: on a small node the two sets can overlap, and
+      // resize is the more common intent.
+      final corner = canvasHandleAt(rect, d.localPosition);
       if (corner != null) {
         _grab = _Grab.resize;
         _corner = corner;
         _grabStart = sel;
+        return;
+      }
+      final side = canvasEdgeHandleAt(rect, d.localPosition);
+      if (side != null) {
+        _grab = _Grab.connect;
+        _grabStart = sel;
+        setState(() => _connection = CanvasConnection(fromNode: sel.id, fromSide: side, to: d.localPosition));
         return;
       }
     }
@@ -150,6 +208,10 @@ class _CanvasViewState extends State<CanvasView> {
   }
 
   void _onPanUpdate(DragUpdateDetails d, Size size) {
+    if (_grab == _Grab.toolbar) {
+      setState(() => _toolbarPos = clampCanvasToolbar(_clampedToolbarPos(size) + d.delta, size, _actionCount));
+      return;
+    }
     if (_grab == _Grab.pan) {
       setState(() => _pan += d.delta);
       return;
@@ -157,6 +219,13 @@ class _CanvasViewState extends State<CanvasView> {
     final start = _grabStart;
     if (start == null) return;
     _grabDelta += d.delta;
+    if (_grab == _Grab.connect) {
+      final live = _connection;
+      if (live != null) {
+        setState(() => _connection = CanvasConnection(fromNode: live.fromNode, fromSide: live.fromSide, to: d.localPosition));
+      }
+      return;
+    }
     final scale = _viewport(size).scale;
     if (scale <= 0) return;
     final dx = _grabDelta.dx / scale, dy = _grabDelta.dy / scale;
@@ -164,12 +233,56 @@ class _CanvasViewState extends State<CanvasView> {
     setState(() => _doc = _doc.replaceNode(edited));
   }
 
-  void _onPanEnd(DragEndDetails d) {
-    final moved = _grab != _Grab.pan && _grabStart != null && _grabDelta != Offset.zero;
+  void _onPanEnd(DragEndDetails d, Size size) {
+    final grab = _grab;
+    final started = _grabStart;
+    final dragged = _grabDelta != Offset.zero;
+    final live = _connection;
     _grabStart = null;
     _corner = null;
     _grabDelta = Offset.zero;
-    if (!moved) return;
+    if (live != null) setState(() => _connection = null);
+
+    if (grab == _Grab.connect) {
+      if (live == null || started == null || !dragged) return;
+      // Released over a node? Connect to it. Released over empty space, or
+      // back on the source, is a cancelled gesture — not an edge.
+      final target = hitTestCanvasNode(_doc, live.to, size, bounds: _bounds, zoom: _zoom, pan: _pan);
+      if (target == null || target == live.fromNode) return;
+      final edge = CanvasEdge(id: _doc.freshId(), fromNode: live.fromNode, toNode: target, fromSide: live.fromSide);
+      final next = _doc.addEdge(edge);
+      if (identical(next, _doc)) return; // duplicate connection — nothing to save
+      setState(() => _doc = next);
+      _emit();
+      return;
+    }
+
+    if (grab == _Grab.pan || grab == _Grab.toolbar || started == null || !dragged) return;
+    _emit();
+  }
+
+  /// Toolbar actions, built here so the count is available to the hit test
+  /// (the toolbar's height depends on it) as well as to [build].
+  List<CanvasToolbarAction> _actions(BuildContext context, Size size) => [
+    CanvasToolbarAction(
+      glyph: 'text-t',
+      label: ClideSettings.i18n.string(context, 'action.addText', namespace: 'builtin.canvas', placeholder: 'Add text node'),
+      onPressed: () => _addTextNode(size),
+    ),
+    CanvasToolbarAction(
+      glyph: 'trash',
+      label: ClideSettings.i18n.string(context, 'action.delete', namespace: 'builtin.canvas', placeholder: 'Delete selected node'),
+      onPressed: _selected == null ? null : _deleteSelected,
+    ),
+  ];
+
+  static const int _actionCount = 2;
+
+  /// [_toolbarPos] pulled back inside the pane — recomputed rather than
+  /// stored, so a pane resize can't strand the toolbar out of reach.
+  Offset _clampedToolbarPos(Size size) => clampCanvasToolbar(_toolbarPos, size, _actionCount);
+
+  void _emit() {
     _emitted = _doc;
     widget.onChanged?.call(_doc);
   }
@@ -215,14 +328,37 @@ class _CanvasViewState extends State<CanvasView> {
             onTapUp: (d) => _onTapUp(d, size),
             onPanStart: (d) => _onPanStart(d, size),
             onPanUpdate: (d) => _onPanUpdate(d, size),
-            onPanEnd: _onPanEnd,
-            child: CustomPaint(
-              size: size,
-              painter: CanvasPainter(doc: _doc, tokens: tokens, bounds: _bounds, zoom: _zoom, pan: _pan, selected: _selected, showHandles: _editable),
+            onPanEnd: (d) => _onPanEnd(d, size),
+            child: Stack(
+              children: [
+                CustomPaint(
+                  size: size,
+                  painter: CanvasPainter(
+                    doc: _doc,
+                    tokens: tokens,
+                    bounds: _bounds,
+                    zoom: _zoom,
+                    pan: _pan,
+                    selected: _selected,
+                    showHandles: _editable,
+                    connection: _connection,
+                  ),
+                ),
+                if (_editable) _toolbar(context, size),
+              ],
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _toolbar(BuildContext context, Size size) {
+    final pos = _clampedToolbarPos(size);
+    return Positioned(
+      left: pos.dx,
+      top: pos.dy,
+      child: CanvasToolbar(actions: _actions(context, size)),
     );
   }
 }
