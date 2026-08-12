@@ -14852,3 +14852,39 @@ Measured (2026-08-12, T-556): the ~$0.002/comment figure in the cost model above
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE67WBTPXWZRD0XXQH6TMDC', 'status', 'in_progress', 'done', NULL, '2026-08-12 09:19:22', '2026-08-12 09:19:22.718', '2026-08-12 09:19:22.718', NULL, '97677f129023b6d028f4b56b44c035f1', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Z35AYAJQZ4MZMT25DPWC', 'status', 'in_progress', 'done', NULL, '2026-08-12 09:19:33', '2026-08-12 09:19:33.785', '2026-08-12 09:19:33.785', NULL, '8c6329c6e383ef8e0612544e3fa2b360', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73ZFJHHB92SAKPKNJGD9XC', 'status', 'in_progress', 'done', NULL, '2026-08-12 09:19:33', '2026-08-12 09:19:33.792', '2026-08-12 09:19:33.792', NULL, 'dc244009ad322e503f636e42d327cc59', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZAMQRTA6PHW47TQQB8A7MYR', 'description', 'Observed while diagnosing T-568 (2026-08-12), on a real boot of current main.
+
+Extensions finish activating at T+0.1s. The pane logs `pane primary bound session …` at **T+11s**. The gap is `_spawnWhenReady` in `lib/builtin/claude/src/claude_pane.dart`:
+
+    if (!kernel.project.isOpen) {
+      // wait for ProjectOpened, up to 10s
+      await c.future.timeout(const Duration(seconds: 10), onTimeout: () => sub.cancel());
+    }
+    return _spawn();
+
+`project.isOpen` was false and no `ProjectOpened` arrived, so it burned the whole timeout and then spawned successfully anyway — `_spawn` resolves the root by its own route (`files.root` over IPC, the same fallback the companion uses per T-547).
+
+So the wait is not load-bearing in that path, but it costs ten seconds of dead pane on every cold start where the project event does not fire. Reproduced across two boots (49.8 -> 00.6, and 44.8 -> 55.8 after a hot restart).
+
+Worth establishing before fixing: whether `ProjectOpened` genuinely never fires at boot (in which case the wait is dead weight for everyone) or whether it fired *before* the pane subscribed (a race, in which case the fix is to check `isOpen` again after subscribing, or to seed from the current project). The second is more likely and is the same late-subscriber shape `ValueStream` was introduced for (T-386/T-274).
+
+Not to be confused with T-568, which is a different fault in the same file and is fixed.', 'Observed while diagnosing T-568 (2026-08-12), on a real boot of current main.
+
+Extensions finish activating at T+0.1s. The pane logs `pane primary bound session …` at **T+11s**. The gap is `_spawnWhenReady` in `lib/builtin/claude/src/claude_pane.dart`:
+
+    if (!kernel.project.isOpen) {
+      // wait for ProjectOpened, up to 10s
+      await c.future.timeout(const Duration(seconds: 10), onTimeout: () => sub.cancel());
+    }
+    return _spawn();
+
+`project.isOpen` was false and no `ProjectOpened` arrived, so it burned the whole timeout and then spawned successfully anyway — `_spawn` resolves the root by its own route (`files.root` over IPC, the same fallback the companion uses per T-547).
+
+So the wait is not load-bearing in that path, but it costs ten seconds of dead pane on every cold start where the project event does not fire. Reproduced across two boots (49.8 -> 00.6, and 44.8 -> 55.8 after a hot restart).
+
+Worth establishing before fixing: whether `ProjectOpened` genuinely never fires at boot (in which case the wait is dead weight for everyone) or whether it fired *before* the pane subscribed (a race, in which case the fix is to check `isOpen` again after subscribing, or to seed from the current project). The second is more likely and is the same late-subscriber shape `ValueStream` was introduced for (T-386/T-274).
+
+Not to be confused with T-568, which is a different fault in the same file and is fixed.
+
+Invalid — cancelled 2026-08-12. The 10s is the workspace picker, not a stall. main.dart:646-655 is picker-first (T-115): openStickyOrNothing auto-opens only when exactly one recent carries the sticky flag, and otherwise the welcome tab serves as the project picker. The diagnostic boot this was filed from had no workspace opened for it, so ProjectOpened correctly never fired and the pane was waiting for a human to choose. The timeout-then-spawn-anyway is the documented fallback the companion''s _workspaceRoot comment already describes. Nothing to fix; filed off a boot that was never going to open a project.', NULL, '2026-08-12 09:38:33', '2026-08-12 09:38:33.708', '2026-08-12 09:38:33.708', NULL, 'e5d2844dee9718a039a068fcc69729be', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZAMQRTA6PHW47TQQB8A7MYR', 'status', 'backlog', 'cancelled', NULL, '2026-08-12 09:38:36', '2026-08-12 09:38:36.445', '2026-08-12 09:38:36.445', NULL, '742ab80a54e75173f29315ede962b864', 2) ON CONFLICT(hash) DO NOTHING;

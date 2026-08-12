@@ -19464,3 +19464,58 @@ store the likelier answer.
 Blocked on **T-534** (Clide conversation log), filed 2026-08-09. The popout described here — previous messages this session, latest first, fetch limit, lazy loading on scroll — has nothing to page through today: D-107 spawns the companion with `--no-session-persistence`, so nothing Clide says is recorded anywhere. T-534 gives this epic its data source, and settles where that log may live given D-107''s ''writes nothing to the workspace'' clause.
 
 Note the split the user drew: T-534 is **visual replay only**. It does not resume a session or restore model context — what Clide *remembers* stays a session and prompt concern (T-519, T-532). This epic renders history; it does not reconstruct a mind.', 'done', 'medium', NULL, NULL, NULL, '2026-08-08 22:48:08.852', '2026-08-12 09:19:33.792', NULL, '61846a1be1a2503cdaa7eca488813b72', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZAMQRTA6PHW47TQQB8A7MYR', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Claude pane waits the full 10s ProjectOpened timeout before spawning', 'Observed while diagnosing T-568 (2026-08-12), on a real boot of current main.
+
+Extensions finish activating at T+0.1s. The pane logs `pane primary bound session …` at **T+11s**. The gap is `_spawnWhenReady` in `lib/builtin/claude/src/claude_pane.dart`:
+
+    if (!kernel.project.isOpen) {
+      // wait for ProjectOpened, up to 10s
+      await c.future.timeout(const Duration(seconds: 10), onTimeout: () => sub.cancel());
+    }
+    return _spawn();
+
+`project.isOpen` was false and no `ProjectOpened` arrived, so it burned the whole timeout and then spawned successfully anyway — `_spawn` resolves the root by its own route (`files.root` over IPC, the same fallback the companion uses per T-547).
+
+So the wait is not load-bearing in that path, but it costs ten seconds of dead pane on every cold start where the project event does not fire. Reproduced across two boots (49.8 -> 00.6, and 44.8 -> 55.8 after a hot restart).
+
+Worth establishing before fixing: whether `ProjectOpened` genuinely never fires at boot (in which case the wait is dead weight for everyone) or whether it fired *before* the pane subscribed (a race, in which case the fix is to check `isOpen` again after subscribing, or to seed from the current project). The second is more likely and is the same late-subscriber shape `ValueStream` was introduced for (T-386/T-274).
+
+Not to be confused with T-568, which is a different fault in the same file and is fixed.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-12 09:34:43.410', '2026-08-12 09:34:43.410', NULL, '24c28c052ce56a49cab61386dec4ed5c', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZAMQRTA6PHW47TQQB8A7MYR', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Claude pane waits the full 10s ProjectOpened timeout before spawning', 'Observed while diagnosing T-568 (2026-08-12), on a real boot of current main.
+
+Extensions finish activating at T+0.1s. The pane logs `pane primary bound session …` at **T+11s**. The gap is `_spawnWhenReady` in `lib/builtin/claude/src/claude_pane.dart`:
+
+    if (!kernel.project.isOpen) {
+      // wait for ProjectOpened, up to 10s
+      await c.future.timeout(const Duration(seconds: 10), onTimeout: () => sub.cancel());
+    }
+    return _spawn();
+
+`project.isOpen` was false and no `ProjectOpened` arrived, so it burned the whole timeout and then spawned successfully anyway — `_spawn` resolves the root by its own route (`files.root` over IPC, the same fallback the companion uses per T-547).
+
+So the wait is not load-bearing in that path, but it costs ten seconds of dead pane on every cold start where the project event does not fire. Reproduced across two boots (49.8 -> 00.6, and 44.8 -> 55.8 after a hot restart).
+
+Worth establishing before fixing: whether `ProjectOpened` genuinely never fires at boot (in which case the wait is dead weight for everyone) or whether it fired *before* the pane subscribed (a race, in which case the fix is to check `isOpen` again after subscribing, or to seed from the current project). The second is more likely and is the same late-subscriber shape `ValueStream` was introduced for (T-386/T-274).
+
+Not to be confused with T-568, which is a different fault in the same file and is fixed.
+
+Invalid — cancelled 2026-08-12. The 10s is the workspace picker, not a stall. main.dart:646-655 is picker-first (T-115): openStickyOrNothing auto-opens only when exactly one recent carries the sticky flag, and otherwise the welcome tab serves as the project picker. The diagnostic boot this was filed from had no workspace opened for it, so ProjectOpened correctly never fired and the pane was waiting for a human to choose. The timeout-then-spawn-anyway is the documented fallback the companion''s _workspaceRoot comment already describes. Nothing to fix; filed off a boot that was never going to open a project.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-12 09:34:43.410', '2026-08-12 09:38:33.707', NULL, '2296ef9e86a9318a199290447f66af06', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZAMQRTA6PHW47TQQB8A7MYR', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Claude pane waits the full 10s ProjectOpened timeout before spawning', 'Observed while diagnosing T-568 (2026-08-12), on a real boot of current main.
+
+Extensions finish activating at T+0.1s. The pane logs `pane primary bound session …` at **T+11s**. The gap is `_spawnWhenReady` in `lib/builtin/claude/src/claude_pane.dart`:
+
+    if (!kernel.project.isOpen) {
+      // wait for ProjectOpened, up to 10s
+      await c.future.timeout(const Duration(seconds: 10), onTimeout: () => sub.cancel());
+    }
+    return _spawn();
+
+`project.isOpen` was false and no `ProjectOpened` arrived, so it burned the whole timeout and then spawned successfully anyway — `_spawn` resolves the root by its own route (`files.root` over IPC, the same fallback the companion uses per T-547).
+
+So the wait is not load-bearing in that path, but it costs ten seconds of dead pane on every cold start where the project event does not fire. Reproduced across two boots (49.8 -> 00.6, and 44.8 -> 55.8 after a hot restart).
+
+Worth establishing before fixing: whether `ProjectOpened` genuinely never fires at boot (in which case the wait is dead weight for everyone) or whether it fired *before* the pane subscribed (a race, in which case the fix is to check `isOpen` again after subscribing, or to seed from the current project). The second is more likely and is the same late-subscriber shape `ValueStream` was introduced for (T-386/T-274).
+
+Not to be confused with T-568, which is a different fault in the same file and is fixed.
+
+Invalid — cancelled 2026-08-12. The 10s is the workspace picker, not a stall. main.dart:646-655 is picker-first (T-115): openStickyOrNothing auto-opens only when exactly one recent carries the sticky flag, and otherwise the welcome tab serves as the project picker. The diagnostic boot this was filed from had no workspace opened for it, so ProjectOpened correctly never fired and the pane was waiting for a human to choose. The timeout-then-spawn-anyway is the documented fallback the companion''s _workspaceRoot comment already describes. Nothing to fix; filed off a boot that was never going to open a project.', 'cancelled', 'medium', NULL, NULL, NULL, '2026-08-12 09:34:43.410', '2026-08-12 09:38:36.445', NULL, '776b4cd5a88adc11f42c730ae686f137', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
