@@ -19049,3 +19049,130 @@ init, assert the pane picked up the new mode. Verified failing before the fix
 and passing after. The pre-existing "an init event populates the status line"
 test missed this because it asserts on `session.status`, the session''s own
 field, rather than on anything the pane read.', 'backlog', 'high', NULL, NULL, NULL, '2026-08-12 09:02:04.760', '2026-08-12 09:02:04.760', NULL, '9e4e6a5afd52607f13d140ebb18997f3', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZAD8NV1WW85JV93HQC6NW1C', 'bug', NULL, 'Claude pane goes blind after /clear or /resume — four session streams unsubscribed and never rebound', 'The Claude pane stops seeing its own session after the first `/clear` or
+`/resume`. Reported live: the composer''s permission-mode control vanished and
+the pane''s whole status area (model · mode · context · cost) went blank.
+
+## Cause
+
+[T-554](#) moved the pane''s four session subscriptions — status, ended,
+model-errors, workflows — from a per-spawn bind to a **once-per-pane** bind in
+`didChangeDependencies`, against a `SessionReader` that follows `_orchId`
+across every spawn and close. That commit removed the matching re-subscribe
+blocks from `_spawn` and `_rebindToActiveProject`, and its message names the
+three cancel blocks it deleted.
+
+There were four. `_respawnWithSession` (`lib/builtin/claude/src/claude_pane.dart`)
+kept cancelling all four subscriptions and setting them to null — and nothing
+re-establishes them, because the bind is guarded by `_spawned` and runs once.
+So the first respawn through that path unbinds the pane permanently.
+
+`_respawnWithSession` is the `/clear` and `/resume` path, which is why a cold
+boot looks completely healthy and the fault only appears after the first clear.
+
+## Blast radius
+
+Four signals, not one:
+
+- **status** — model, permission mode, context tokens, cost, rate-limit info.
+  This is the reported symptom: `_status.isEmpty` makes `_statusWidget` return
+  null, and a null `permissionMode` removes the composer''s mode control.
+- **ended** — a dead `claude` process no longer surfaces; the pane keeps looking
+  thoughtful (the exact failure T-361 fixed).
+- **modelErrors** — a rejected `/model` rolls back silently again (T-408).
+- **workflows** — the Workflow card stops updating live (T-416).
+
+## Fix
+
+Delete the cancel block from `_respawnWithSession`. The reader already follows
+the close and the respawn, exactly as it does for the workspace switch in
+`_rebindToActiveProject`. Clearing `_status` there stays — a respawn into a
+different session should not show the previous one''s numbers.
+
+## Test
+
+`claude_pane_test.dart` — feed an init, `/clear`, feed the respawned session''s
+init, assert the pane picked up the new mode. Verified failing before the fix
+and passing after. The pre-existing "an init event populates the status line"
+test missed this because it asserts on `session.status`, the session''s own
+field, rather than on anything the pane read.', 'done', 'high', NULL, NULL, NULL, '2026-08-12 09:02:04.760', '2026-08-12 09:03:17.369', NULL, '9eba91b71d63e04b30ac75a2784f372b', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73V6EVHP32P31NQRJCP104', 'initiative', NULL, 'Clide — ambient AI companion for the clide UI', '**Clide** is an ambient AI companion embedded in the clide UI: a glyph face with
+expression states, a matrix-rain field whose density encodes how hard the session is
+working, and an occasional one-line remark from a separate Haiku instance. It is also
+addressable — an input box lets you ask it things directly, most usefully "what did that
+mean?" about what Claude just said. Eponymous with the IDE.
+
+**Why.** clide shows what Claude *did* (conversation, tools, status bar) but nothing shows
+how it''s *going*. A long agentic turn is a wall of scrolling text plus a spinner; the only
+load signal is a token counter. Clide makes session state legible at a glance and puts a
+cheap second opinion next to the work.
+
+**Visual source.** Ported from **DeskLock** (`git.schweitz.net/jpmschweitzer/desklock`),
+which gives Tatlock a face on an ESP32 round display. `sim/face/index.html` is an explicit
+state contract (7 states, eyes/mouth/rain per state); `docs/architecture.md` contributes
+the **power ladder**, which is the answer to "don''t be a resource hog" — already solved
+there for a wall-powered device.
+
+Full plan: `~/.claude/plans/i-have-a-new-silly-octopus.md`
+
+## Decisions taken (locked)
+
+| | |
+|---|---|
+| Name | Clide |
+| Palette | clide theme tokens + DeskLock''s motion. Not phosphor green. |
+| Sound | **None.** Silent — DeskLock''s gong is explicitly not ported. |
+| Speaks when | Notable events only (turn finished, error, long run crossing a threshold, commit landed). Never per-token. Direct questions always answered. |
+| Model | Haiku 4.5, persistent second stream-json session |
+| Sees | User prompts + Claude prose. **No tool calls, no tool results.** |
+| Language | Follows the active locale (`app.locale`) |
+| Off switch | Settings toggle; also suspends when the window is minimised |
+| Bar | "Whimsical, but a solid widget" — full test + a11y + golden coverage |
+
+## Hard constraint found during planning: no katakana
+
+Verified against the bundled font files with `fc-query`: **JetBrains Mono, Fira Mono, Inter
+and JosefinSans have zero coverage of U+30A0–30FF.** DeskLock''s `アイウエオカキ…` rain would
+fall through to a system font — unpredictable per machine, breaks goldens, and breaks the
+monospace advance-width the rain grid assumes.
+
+Rain therefore uses **ASCII + symbols + box-drawing**: DeskLock''s covered half
+(`0123456789ACEFHKZ$#%*+=<>`) plus box/geometric glyphs. Fira Mono carries the full
+`250c–256c` box set; JetBrains Mono has `2500–25a1`, `25b2–25cc`. No new font asset, no
+`licenses.yaml` entry, no supply-chain review — consistent with prefer-zero-deps.
+
+## Cost model
+
+~$0.002 per comment at a 50-comment session (Haiku 4.5, $1/$5 per MTok). Cost grows
+**quadratically** — a persistent session re-sends history each turn — so the companion
+session restarts at ~50 comments rather than using a rolling window (eviction changes the
+cache prefix and would defeat caching every turn).
+
+Haiku 4.5 has the **highest prompt-cache minimum of any current model, 4096 tokens**: below
+that `cache_control` is silently ignored (`cache_creation_input_tokens: 0`, no error), so a
+lean prompt runs uncached for roughly its first 20 comments. Being lean defeats caching here
+— that inverts the usual instinct.
+
+**The real currency is not dollars.** The CLI route bills subscription quota — the same pool
+already rate-limiting the main session. That is the argument for keeping the trigger stingy.
+
+## Structure
+
+Epics own their own breakdown **and** their integration seams with siblings; leaf tickets are
+deliberately not filed up front.
+
+- T-514 UX spike (Frame0) — settles placement + answer space. Blocks C.
+- T-515 D-record. Blocked by T-514.
+- T-516 Epic A — face renderer (pure rendering, no session wiring)
+- T-517 Epic B — state machine + power ladder. Blocked by A.
+- T-518 Epic C — surface & chrome. Blocked by T-514.
+- T-519 Epic D — companion session + protocol (pure plumbing)
+- T-520 Epic E — direct addressing. Blocked by C and D.
+
+**A and D can start immediately and in parallel** — A is pure rendering, D is pure
+plumbing; they meet at B.
+
+Refs: D-6 (CLI/UI parity), D-47, D-48, D-50, D-51, D-53, D-78 (cards are display-only —
+Clide is chrome, not a card), D-87, D-101, D-21/D-102. Related: T-241 (ultrawide audit).
+
+Measured (2026-08-12, T-556): the ~$0.002/comment figure in the cost model above is about 2x optimistic. Two Haiku turns driven through one session gave $0.0353 to start and $0.0041 for the second turn — see docs/spikes/cc-stream-json-2.1.226.md §9. Also measured there: 85-93% of Clide''s output tokens go on thinking rather than speaking, and result.total_cost_usd is cumulative for the session, not per-turn.', 'in_progress', 'medium', NULL, NULL, 'D-107', '2026-08-08 22:47:33.751', '2026-08-12 09:12:49.696', NULL, 'b64d46fe9c52a997341acf6cac26ebea', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

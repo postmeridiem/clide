@@ -151,6 +151,59 @@ plausibly key off. T-544 should probe an interactive session before concluding.
 
 ---
 
+## 9. Usage accounting, measured — two turns in one session (T-556)
+
+§7 asked for exactly this and it is now done: two Haiku turns driven through a
+**single** session, the missing half of the earlier single-shot runs.
+
+| | Turn 1 | Turn 2 |
+|---|---|---|
+| `result.usage.input_tokens` | 10 | 10 |
+| `result.usage.output_tokens` | 103 | 44 |
+| `result.usage.cache_creation_input_tokens` | 16,440 | 146 |
+| `result.usage.cache_read_input_tokens` | 19,021 | 35,461 |
+| `message_delta…thinking_tokens` | **96** | **37** |
+| `total_cost_usd` | 0.0353071 | 0.0393752 |
+| `modelUsage.<model>.costUSD` | 0.0353071 | 0.0393752 |
+
+### The three shapes mean three different things
+
+This is the finding, and getting it wrong silently double-counts:
+
+- **`result.usage` is per-turn.** Turn 2 reports its own 44 output tokens.
+- **`result.modelUsage.<model>` is cumulative.** Turn 2 reports `outputTokens:
+  147` = 103 + 44, `cacheReadInputTokens: 54,482` = 19,021 + 35,461.
+- **`total_cost_usd` is cumulative**, despite the per-turn company it keeps, and
+  it equals `modelUsage.costUSD` exactly.
+
+`stream_json_session.dart` carried a comment calling `total_cost_usd` "the turn
+cost" and `transcript_reader.dart` called it cumulative. The latter was right.
+
+### Steady-state cost: ~$0.004 per comment, not ~$0.002
+
+Differencing the two: **$0.0353 to start the session, $0.0041 for the second
+turn.** So the initiative's unverified ~$0.002/comment is about **2× optimistic**
+and §7's "$0.03 to start" holds. Note turn 2 still paid 146 tokens of cache
+*creation* — each turn re-caches the growing tail, which is the quadratic growth
+the initiative predicted.
+
+### Thinking dominates output
+
+96 of 103 output tokens on turn 1, 37 of 44 on turn 2 — **85–93% of what Clide
+generates is thinking, not speaking.** Both turns were asked to reply with a
+single word. `output_tokens_details.thinking_tokens` appears **only** on
+`message_delta`; it is absent from `result.usage` and from `modelUsage`, so a
+consumer reading only the `result` cannot see it at all.
+
+### `init.permissionMode` is still present
+
+Checked separately while chasing T-568: the `system/init` event still carries
+`permissionMode` (`"default"`), alongside `capabilities`, `messaging_socket_path`,
+`skills`, `plugins`, `agents`, `output_style`. It is emitted after the first
+input, not at process start.
+
+---
+
 ## What to re-check on the next bump
 
 The two things that changed under us here — whether thinking streams, and whether

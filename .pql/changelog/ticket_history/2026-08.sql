@@ -14691,3 +14691,161 @@ Done 2026-08-11. Wired to I18n''s notification, plus 4 tests.
 The deactivate path is covered too — a listener that outlives its extension is a leak that spawns processes.', NULL, '2026-08-12 06:20:30', '2026-08-12 06:20:30.154', '2026-08-12 06:20:30.154', NULL, '6c35377ebd13d9a7c7df799caf82681c', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE8GBV5MVX2X928BTJ2399W', 'status', 'backlog', 'done', NULL, '2026-08-12 06:20:34', '2026-08-12 06:20:34.635', '2026-08-12 06:20:34.635', NULL, '7d29e17e2a768e393b399057b81a4c2a', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE67WBTPXWZRD0XXQH6TMDC', 'status', 'backlog', 'in_progress', NULL, '2026-08-12 08:42:25', '2026-08-12 08:42:25.731', '2026-08-12 08:42:25.731', NULL, 'c6ed6b4909ba31c21495b4969a381e2b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZAD8NV1WW85JV93HQC6NW1C', 'status', 'backlog', 'done', NULL, '2026-08-12 09:03:17', '2026-08-12 09:03:17.369', '2026-08-12 09:03:17.369', NULL, 'e851bd9d444230a87a8dc4c98fa28d0a', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73V6EVHP32P31NQRJCP104', 'description', '**Clide** is an ambient AI companion embedded in the clide UI: a glyph face with
+expression states, a matrix-rain field whose density encodes how hard the session is
+working, and an occasional one-line remark from a separate Haiku instance. It is also
+addressable — an input box lets you ask it things directly, most usefully "what did that
+mean?" about what Claude just said. Eponymous with the IDE.
+
+**Why.** clide shows what Claude *did* (conversation, tools, status bar) but nothing shows
+how it''s *going*. A long agentic turn is a wall of scrolling text plus a spinner; the only
+load signal is a token counter. Clide makes session state legible at a glance and puts a
+cheap second opinion next to the work.
+
+**Visual source.** Ported from **DeskLock** (`git.schweitz.net/jpmschweitzer/desklock`),
+which gives Tatlock a face on an ESP32 round display. `sim/face/index.html` is an explicit
+state contract (7 states, eyes/mouth/rain per state); `docs/architecture.md` contributes
+the **power ladder**, which is the answer to "don''t be a resource hog" — already solved
+there for a wall-powered device.
+
+Full plan: `~/.claude/plans/i-have-a-new-silly-octopus.md`
+
+## Decisions taken (locked)
+
+| | |
+|---|---|
+| Name | Clide |
+| Palette | clide theme tokens + DeskLock''s motion. Not phosphor green. |
+| Sound | **None.** Silent — DeskLock''s gong is explicitly not ported. |
+| Speaks when | Notable events only (turn finished, error, long run crossing a threshold, commit landed). Never per-token. Direct questions always answered. |
+| Model | Haiku 4.5, persistent second stream-json session |
+| Sees | User prompts + Claude prose. **No tool calls, no tool results.** |
+| Language | Follows the active locale (`app.locale`) |
+| Off switch | Settings toggle; also suspends when the window is minimised |
+| Bar | "Whimsical, but a solid widget" — full test + a11y + golden coverage |
+
+## Hard constraint found during planning: no katakana
+
+Verified against the bundled font files with `fc-query`: **JetBrains Mono, Fira Mono, Inter
+and JosefinSans have zero coverage of U+30A0–30FF.** DeskLock''s `アイウエオカキ…` rain would
+fall through to a system font — unpredictable per machine, breaks goldens, and breaks the
+monospace advance-width the rain grid assumes.
+
+Rain therefore uses **ASCII + symbols + box-drawing**: DeskLock''s covered half
+(`0123456789ACEFHKZ$#%*+=<>`) plus box/geometric glyphs. Fira Mono carries the full
+`250c–256c` box set; JetBrains Mono has `2500–25a1`, `25b2–25cc`. No new font asset, no
+`licenses.yaml` entry, no supply-chain review — consistent with prefer-zero-deps.
+
+## Cost model
+
+~$0.002 per comment at a 50-comment session (Haiku 4.5, $1/$5 per MTok). Cost grows
+**quadratically** — a persistent session re-sends history each turn — so the companion
+session restarts at ~50 comments rather than using a rolling window (eviction changes the
+cache prefix and would defeat caching every turn).
+
+Haiku 4.5 has the **highest prompt-cache minimum of any current model, 4096 tokens**: below
+that `cache_control` is silently ignored (`cache_creation_input_tokens: 0`, no error), so a
+lean prompt runs uncached for roughly its first 20 comments. Being lean defeats caching here
+— that inverts the usual instinct.
+
+**The real currency is not dollars.** The CLI route bills subscription quota — the same pool
+already rate-limiting the main session. That is the argument for keeping the trigger stingy.
+
+## Structure
+
+Epics own their own breakdown **and** their integration seams with siblings; leaf tickets are
+deliberately not filed up front.
+
+- T-514 UX spike (Frame0) — settles placement + answer space. Blocks C.
+- T-515 D-record. Blocked by T-514.
+- T-516 Epic A — face renderer (pure rendering, no session wiring)
+- T-517 Epic B — state machine + power ladder. Blocked by A.
+- T-518 Epic C — surface & chrome. Blocked by T-514.
+- T-519 Epic D — companion session + protocol (pure plumbing)
+- T-520 Epic E — direct addressing. Blocked by C and D.
+
+**A and D can start immediately and in parallel** — A is pure rendering, D is pure
+plumbing; they meet at B.
+
+Refs: D-6 (CLI/UI parity), D-47, D-48, D-50, D-51, D-53, D-78 (cards are display-only —
+Clide is chrome, not a card), D-87, D-101, D-21/D-102. Related: T-241 (ultrawide audit).', '**Clide** is an ambient AI companion embedded in the clide UI: a glyph face with
+expression states, a matrix-rain field whose density encodes how hard the session is
+working, and an occasional one-line remark from a separate Haiku instance. It is also
+addressable — an input box lets you ask it things directly, most usefully "what did that
+mean?" about what Claude just said. Eponymous with the IDE.
+
+**Why.** clide shows what Claude *did* (conversation, tools, status bar) but nothing shows
+how it''s *going*. A long agentic turn is a wall of scrolling text plus a spinner; the only
+load signal is a token counter. Clide makes session state legible at a glance and puts a
+cheap second opinion next to the work.
+
+**Visual source.** Ported from **DeskLock** (`git.schweitz.net/jpmschweitzer/desklock`),
+which gives Tatlock a face on an ESP32 round display. `sim/face/index.html` is an explicit
+state contract (7 states, eyes/mouth/rain per state); `docs/architecture.md` contributes
+the **power ladder**, which is the answer to "don''t be a resource hog" — already solved
+there for a wall-powered device.
+
+Full plan: `~/.claude/plans/i-have-a-new-silly-octopus.md`
+
+## Decisions taken (locked)
+
+| | |
+|---|---|
+| Name | Clide |
+| Palette | clide theme tokens + DeskLock''s motion. Not phosphor green. |
+| Sound | **None.** Silent — DeskLock''s gong is explicitly not ported. |
+| Speaks when | Notable events only (turn finished, error, long run crossing a threshold, commit landed). Never per-token. Direct questions always answered. |
+| Model | Haiku 4.5, persistent second stream-json session |
+| Sees | User prompts + Claude prose. **No tool calls, no tool results.** |
+| Language | Follows the active locale (`app.locale`) |
+| Off switch | Settings toggle; also suspends when the window is minimised |
+| Bar | "Whimsical, but a solid widget" — full test + a11y + golden coverage |
+
+## Hard constraint found during planning: no katakana
+
+Verified against the bundled font files with `fc-query`: **JetBrains Mono, Fira Mono, Inter
+and JosefinSans have zero coverage of U+30A0–30FF.** DeskLock''s `アイウエオカキ…` rain would
+fall through to a system font — unpredictable per machine, breaks goldens, and breaks the
+monospace advance-width the rain grid assumes.
+
+Rain therefore uses **ASCII + symbols + box-drawing**: DeskLock''s covered half
+(`0123456789ACEFHKZ$#%*+=<>`) plus box/geometric glyphs. Fira Mono carries the full
+`250c–256c` box set; JetBrains Mono has `2500–25a1`, `25b2–25cc`. No new font asset, no
+`licenses.yaml` entry, no supply-chain review — consistent with prefer-zero-deps.
+
+## Cost model
+
+~$0.002 per comment at a 50-comment session (Haiku 4.5, $1/$5 per MTok). Cost grows
+**quadratically** — a persistent session re-sends history each turn — so the companion
+session restarts at ~50 comments rather than using a rolling window (eviction changes the
+cache prefix and would defeat caching every turn).
+
+Haiku 4.5 has the **highest prompt-cache minimum of any current model, 4096 tokens**: below
+that `cache_control` is silently ignored (`cache_creation_input_tokens: 0`, no error), so a
+lean prompt runs uncached for roughly its first 20 comments. Being lean defeats caching here
+— that inverts the usual instinct.
+
+**The real currency is not dollars.** The CLI route bills subscription quota — the same pool
+already rate-limiting the main session. That is the argument for keeping the trigger stingy.
+
+## Structure
+
+Epics own their own breakdown **and** their integration seams with siblings; leaf tickets are
+deliberately not filed up front.
+
+- T-514 UX spike (Frame0) — settles placement + answer space. Blocks C.
+- T-515 D-record. Blocked by T-514.
+- T-516 Epic A — face renderer (pure rendering, no session wiring)
+- T-517 Epic B — state machine + power ladder. Blocked by A.
+- T-518 Epic C — surface & chrome. Blocked by T-514.
+- T-519 Epic D — companion session + protocol (pure plumbing)
+- T-520 Epic E — direct addressing. Blocked by C and D.
+
+**A and D can start immediately and in parallel** — A is pure rendering, D is pure
+plumbing; they meet at B.
+
+Refs: D-6 (CLI/UI parity), D-47, D-48, D-50, D-51, D-53, D-78 (cards are display-only —
+Clide is chrome, not a card), D-87, D-101, D-21/D-102. Related: T-241 (ultrawide audit).
+
+Measured (2026-08-12, T-556): the ~$0.002/comment figure in the cost model above is about 2x optimistic. Two Haiku turns driven through one session gave $0.0353 to start and $0.0041 for the second turn — see docs/spikes/cc-stream-json-2.1.226.md §9. Also measured there: 85-93% of Clide''s output tokens go on thinking rather than speaking, and result.total_cost_usd is cumulative for the session, not per-turn.', NULL, '2026-08-12 09:12:49', '2026-08-12 09:12:49.697', '2026-08-12 09:12:49.697', NULL, 'fdbf31a23e9f0d4f7c8a14ffa6b62dcb', 2) ON CONFLICT(hash) DO NOTHING;
