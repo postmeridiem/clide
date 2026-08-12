@@ -173,6 +173,66 @@ void main() {
     expect(find.text('No matching files'), findsOneWidget);
   });
 
+  group('picker mode (T-571)', () {
+    testWidgets('tapping a result returns the path and opens nothing', (tester) async {
+      var opened = 0;
+      f.ipc.stub('editor.open', (args) async {
+        opened++;
+        return IpcResponse.ok(id: '1', data: {'path': args['path']});
+      });
+      await tester.pumpWidget(harness(f, const QuickOpenOverlay()));
+
+      final picked = f.services.quickOpen.pick(prompt: 'Choose a note');
+      await pumpAsync(tester);
+      expect(find.text('Choose a note'), findsOneWidget, reason: 'the picker says what it is collecting');
+
+      await tester.enterText(find.byType(EditableText), 'main');
+      await pumpAsync(tester);
+      await tester.tap(find.text('main.dart'));
+      await pumpAsync(tester);
+
+      expect(await picked, 'lib/main.dart');
+      expect(opened, 0, reason: 'picking must not open the file');
+      expect(f.services.quickOpen.isOpen, isFalse);
+    });
+
+    testWidgets('an md result is returned, not published to the reader', (tester) async {
+      final published = <Message>[];
+      final sub = f.services.messages.subscribe(publisher: 'builtin.markdown', channel: 'selection').listen(published.add);
+      addTearDown(sub.cancel);
+
+      await tester.pumpWidget(harness(f, const QuickOpenOverlay()));
+      final picked = f.services.quickOpen.pick();
+      await pumpAsync(tester);
+      await tester.enterText(find.byType(EditableText), 'readme');
+      await pumpAsync(tester);
+      await tester.tap(find.text('README.md'));
+      await pumpAsync(tester);
+
+      expect(await picked, 'README.md');
+      expect(published, isEmpty, reason: 'a .md pick is still just a path');
+    });
+
+    testWidgets('dismissing resolves null', (tester) async {
+      await tester.pumpWidget(harness(f, const QuickOpenOverlay()));
+      final picked = f.services.quickOpen.pick();
+      await pumpAsync(tester);
+
+      f.services.quickOpen.close();
+      await pumpAsync(tester);
+
+      expect(await picked, isNull);
+      expect(find.byType(EditableText), findsNothing);
+    });
+
+    testWidgets('ordinary quick-open shows no prompt line', (tester) async {
+      await tester.pumpWidget(harness(f, const QuickOpenOverlay()));
+      f.services.quickOpen.open();
+      await pumpAsync(tester);
+      expect(find.text('Choose a note'), findsNothing);
+    });
+  });
+
   testWidgets('the palette is width-capped (not stretched) on an ultrawide surface (T-241)', (tester) async {
     setSurfaceSize(tester, 3440);
     await tester.pumpWidget(harness(f, const QuickOpenOverlay()));

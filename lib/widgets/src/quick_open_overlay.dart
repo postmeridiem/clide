@@ -133,7 +133,17 @@ class _QuickOpenOverlayState extends State<QuickOpenOverlay> {
     final controller = _quickOpen;
     final services = _services;
     if (controller == null || services == null) return;
-    final path = controller.selectedPath;
+    _accepted(controller, services, controller.selectedPath);
+  }
+
+  /// One accept path for both the keyboard and a row click. In picker mode
+  /// the path goes back to whoever called `pick()`; otherwise it opens, as
+  /// quick-open always has.
+  void _accepted(QuickOpenController controller, KernelServices services, String? path) {
+    if (controller.resolvePick(path)) {
+      _input.clear();
+      return;
+    }
     controller.close();
     _input.clear();
     if (path != null) openWorkspaceFile(services, path);
@@ -183,6 +193,10 @@ class _QuickOpenOverlayState extends State<QuickOpenOverlay> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Picker mode says what it's collecting — otherwise it
+                    // looks exactly like an ordinary quick-open that has
+                    // stopped opening things.
+                    if (controller.prompt != null) _Hint(controller.prompt!, tokens),
                     Padding(
                       padding: const EdgeInsets.all(8),
                       child: EditableText(
@@ -209,16 +223,7 @@ class _QuickOpenOverlayState extends State<QuickOpenOverlay> {
                           itemBuilder: (ctx, i) {
                             final path = results[i];
                             final key = _itemKeys.putIfAbsent(i, () => GlobalKey());
-                            return _QuickOpenItem(
-                              key: key,
-                              path: path,
-                              highlighted: i == selected,
-                              onTap: () {
-                                controller.close();
-                                _input.clear();
-                                openWorkspaceFile(kernel, path);
-                              },
-                            );
+                            return _QuickOpenItem(key: key, path: path, highlighted: i == selected, onTap: () => _accepted(controller, kernel, path));
                           },
                         ),
                       ),

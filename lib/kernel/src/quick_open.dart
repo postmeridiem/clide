@@ -3,7 +3,16 @@
 /// widget loads the file list (via `files.walk`) and drives the actual
 /// open. Mirrors [PaletteController]'s shape so the overlay can reuse
 /// the palette's interaction model.
+///
+/// Two modes (T-571). [open] is the T-51 behaviour: accepting a row opens
+/// the file. [pick] instead *returns* the chosen path to a caller and opens
+/// nothing — what the canvas needs to add a note node. It is a mode rather
+/// than a second controller-and-overlay pair because everything else about
+/// the surface (the walk, the fuzzy filter, recents, the keymap scope, the
+/// list widget) is identical; a sibling would be a 230-line copy.
 library;
+
+import 'dart:async';
 
 import 'package:clide/kernel/src/fuzzy.dart';
 import 'package:flutter/foundation.dart';
@@ -27,9 +36,23 @@ class QuickOpenController extends ChangeNotifier {
   bool _loading = false;
   bool _truncated = false;
 
+  /// Set while a [pick] is in flight — the caller waiting for a path.
+  Completer<String?>? _pending;
+
+  /// Optional caller-supplied line shown above the results, so a picker
+  /// doesn't look like an ordinary quick-open.
+  String? _prompt;
+
   bool get isOpen => _open;
   String get filter => _filter;
   bool get isLoading => _loading;
+
+  /// True when the overlay is collecting a path for a caller rather than
+  /// opening the file itself.
+  bool get isPicking => _pending != null;
+
+  /// The picker's prompt line, or null in ordinary quick-open.
+  String? get prompt => _prompt;
 
   /// True when the underlying `files.walk` hit its cap — the file list
   /// is incomplete and the UI should say so.
@@ -46,18 +69,69 @@ class QuickOpenController extends ChangeNotifier {
   /// ex-line `:e <path>` command (T-407) to jump straight to a query.
   void open({String? seed}) {
     if (_open) return;
+    // A stale pick would otherwise leave its caller waiting forever while
+    // the surface it was watching now belongs to an ordinary open.
+    _resolve(null);
+    _prompt = null;
     _open = true;
     _filter = seed ?? '';
     _selectedIndex = 0;
     notifyListeners();
   }
 
+  /// Show the picker and resolve to the path the user chooses, or null if
+  /// they dismiss it. Nothing is opened — the caller decides what the path
+  /// means (the canvas turns it into a file node).
+  ///
+  /// Taking over an already-open picker resolves the previous request with
+  /// null rather than refusing: the newest request wins and, more
+  /// importantly, no caller is ever left awaiting a future that can't
+  /// complete.
+  Future<String?> pick({String? seed, String? prompt}) {
+    _resolve(null);
+    final completer = Completer<String?>();
+    _pending = completer;
+    _prompt = prompt;
+    _open = true;
+    _filter = seed ?? '';
+    _selectedIndex = 0;
+    notifyListeners();
+    return completer.future;
+  }
+
   void close() {
-    if (!_open) return;
+    if (!_open) {
+      // Defensive: a pick can only exist while open, but resolving here too
+      // means no code path can strand a caller.
+      _resolve(null);
+      return;
+    }
     _open = false;
     _filter = '';
     _selectedIndex = 0;
+    _prompt = null;
+    _resolve(null);
     notifyListeners();
+  }
+
+  /// Hand [path] to a waiting [pick] and close. Returns false when nothing
+  /// was waiting, which tells the overlay to perform the ordinary open
+  /// instead.
+  bool resolvePick(String? path) {
+    if (_pending == null) return false;
+    _open = false;
+    _filter = '';
+    _selectedIndex = 0;
+    _prompt = null;
+    _resolve(path);
+    notifyListeners();
+    return true;
+  }
+
+  void _resolve(String? path) {
+    final pending = _pending;
+    _pending = null;
+    if (pending != null && !pending.isCompleted) pending.complete(path);
   }
 
   void toggle() => _open ? close() : open();
@@ -123,6 +197,13 @@ class QuickOpenController extends ChangeNotifier {
       return a.path.length.compareTo(b.path.length);
     });
     return [for (final s in scored.take(resultCap)) s.path];
+  }
+
+  /// Teardown (workspace switch, app exit) must not strand a caller mid-await.
+  @override
+  void dispose() {
+    _resolve(null);
+    super.dispose();
   }
 }
 

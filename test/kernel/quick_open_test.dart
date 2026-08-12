@@ -97,4 +97,96 @@ void main() {
     c.setLoading(true); // no change → no notify
     expect(n, 1);
   });
+
+  group('picker mode (T-571)', () {
+    test('pick opens the surface and resolves with the chosen path', () async {
+      final c = make();
+      final future = c.pick(prompt: 'Choose a note');
+
+      expect(c.isOpen, isTrue);
+      expect(c.isPicking, isTrue);
+      expect(c.prompt, 'Choose a note');
+
+      expect(c.resolvePick('notes/a.md'), isTrue);
+      expect(await future, 'notes/a.md');
+      expect(c.isOpen, isFalse);
+      expect(c.isPicking, isFalse);
+      expect(c.prompt, isNull);
+    });
+
+    test('dismissing resolves null rather than hanging the caller', () async {
+      final c = make();
+      final future = c.pick();
+      c.close();
+      expect(await future, isNull);
+      expect(c.isPicking, isFalse);
+    });
+
+    test('accepting nothing resolves null', () async {
+      final c = make();
+      final future = c.pick();
+      expect(c.resolvePick(null), isTrue);
+      expect(await future, isNull);
+    });
+
+    test('pick honours a seed filter', () {
+      final c = make();
+      c.pick(seed: 'notes/');
+      expect(c.filter, 'notes/');
+      c.close();
+    });
+
+    test('resolvePick is false in ordinary quick-open, so the overlay opens', () {
+      final c = make();
+      c.open();
+      expect(c.isPicking, isFalse);
+      expect(c.resolvePick('a.dart'), isFalse, reason: 'nothing was waiting');
+      expect(c.isOpen, isTrue, reason: 'a false result must not have closed it');
+    });
+
+    test('a second pick takes over and resolves the first with null', () async {
+      final c = make();
+      final first = c.pick(prompt: 'one');
+      final second = c.pick(prompt: 'two');
+
+      expect(await first, isNull, reason: 'the superseded caller must not hang');
+      expect(c.prompt, 'two');
+      c.resolvePick('chosen.md');
+      expect(await second, 'chosen.md');
+    });
+
+    test('an ordinary open over a pending pick resolves it with null', () async {
+      final c = make();
+      final future = c.pick();
+      c.close(); // open() is a no-op while already open, so close first
+      c.open();
+      expect(await future, isNull);
+      expect(c.isPicking, isFalse);
+      expect(c.prompt, isNull);
+    });
+
+    test('dispose resolves a pending pick', () async {
+      final c = make();
+      final future = c.pick();
+      c.dispose();
+      expect(await future, isNull);
+    });
+
+    test('an ordinary open carries no prompt', () {
+      final c = make();
+      c.open();
+      expect(c.prompt, isNull);
+      expect(c.isPicking, isFalse);
+    });
+
+    test('pick notifies listeners so the overlay shows', () {
+      final c = make();
+      var n = 0;
+      c.addListener(() => n++);
+      c.pick();
+      expect(n, 1);
+      c.resolvePick('x.dart');
+      expect(n, 2);
+    });
+  });
 }
