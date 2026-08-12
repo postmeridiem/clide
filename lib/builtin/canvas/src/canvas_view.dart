@@ -20,9 +20,17 @@ import 'package:flutter/widgets.dart';
 enum _Grab { pan, move, resize, connect, toolbar }
 
 class CanvasView extends StatefulWidget {
-  const CanvasView({super.key, required this.doc, this.onSelect, this.onChanged, this.editable = true});
+  const CanvasView({super.key, required this.doc, this.documentKey, this.onSelect, this.onChanged, this.editable = true});
 
   final CanvasDoc doc;
+
+  /// Identifies WHICH document is on screen (the pane passes the path).
+  ///
+  /// A new [doc] with the same key is an external edit — a `canvas.*` verb,
+  /// say — and must not throw away the pan, zoom and selection the user is
+  /// working with. A new key is a different file, and does reset the view.
+  /// Null keeps the old behaviour: any unfamiliar doc resets.
+  final String? documentKey;
 
   /// Fired with the selected node's id (or null when the click misses).
   final void Function(String? nodeId)? onSelect;
@@ -130,10 +138,26 @@ class _CanvasViewState extends State<CanvasView> {
   @override
   void didUpdateWidget(CanvasView old) {
     super.didUpdateWidget(old);
+    if (old.documentKey != widget.documentKey) {
+      setState(() => _adopt(widget.doc));
+      return;
+    }
     if (identical(old.doc, widget.doc)) return;
     // Our own edit arriving back from the parent — keep zoom/pan/selection.
     if (identical(widget.doc, _emitted)) {
       _doc = widget.doc;
+      return;
+    }
+    // Same document, changed underneath us (a `canvas.*` verb, or a
+    // reload). Take the new content but keep the viewport — resetting it
+    // would yank the canvas out from under someone mid-thought. Selection
+    // only survives if the node still exists.
+    if (widget.documentKey != null) {
+      setState(() {
+        _doc = widget.doc;
+        _bounds = CanvasBounds.of(widget.doc);
+        if (_selected != null && widget.doc.node(_selected!) == null) _selected = null;
+      });
       return;
     }
     setState(() => _adopt(widget.doc));

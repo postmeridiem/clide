@@ -14,34 +14,6 @@ import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/src/canvas/json_canvas.dart';
 import 'package:flutter/widgets.dart';
 
-/// The axis-aligned bounds of a doc's node rects, in canvas coordinates.
-class CanvasBounds {
-  const CanvasBounds(this.left, this.top, this.right, this.bottom);
-
-  final double left, top, right, bottom;
-  double get width => right - left;
-  double get height => bottom - top;
-
-  factory CanvasBounds.of(CanvasDoc doc) {
-    if (doc.nodes.isEmpty) return const CanvasBounds(0, 0, 1, 1);
-    var l = double.infinity, t = double.infinity, r = double.negativeInfinity, b = double.negativeInfinity;
-    for (final n in doc.nodes) {
-      l = math.min(l, n.x);
-      t = math.min(t, n.y);
-      r = math.max(r, n.x + n.width);
-      b = math.max(b, n.y + n.height);
-    }
-    return CanvasBounds(l, t, r, b);
-  }
-
-  // Value equality so a repaint check compares the fit, not the instance.
-  @override
-  bool operator ==(Object other) => other is CanvasBounds && other.left == left && other.top == top && other.right == right && other.bottom == bottom;
-
-  @override
-  int get hashCode => Object.hash(left, top, right, bottom);
-}
-
 /// Fits a doc's [content] bounds into the pane (aspect-preserving, padded, and
 /// centred), then applies the user's [zoom] (about the pane centre) and [pan].
 class CanvasViewport {

@@ -242,6 +242,40 @@ class CanvasEdge {
   };
 }
 
+/// The axis-aligned bounds of a document's node rects, in canvas
+/// coordinates. Model-level geometry — the painter fits it into a pane, and
+/// the `canvas.*` verbs use it to place a new node without a viewport.
+class CanvasBounds {
+  const CanvasBounds(this.left, this.top, this.right, this.bottom);
+
+  final double left, top, right, bottom;
+  double get width => right - left;
+  double get height => bottom - top;
+
+  /// The middle of the bounds — where a new node goes when the caller has
+  /// no viewport of its own to centre on.
+  (double, double) get centre => ((left + right) / 2, (top + bottom) / 2);
+
+  factory CanvasBounds.of(CanvasDoc doc) {
+    if (doc.nodes.isEmpty) return const CanvasBounds(0, 0, 1, 1);
+    var l = double.infinity, t = double.infinity, r = double.negativeInfinity, b = double.negativeInfinity;
+    for (final n in doc.nodes) {
+      l = math.min(l, n.x);
+      t = math.min(t, n.y);
+      r = math.max(r, n.x + n.width);
+      b = math.max(b, n.y + n.height);
+    }
+    return CanvasBounds(l, t, r, b);
+  }
+
+  // Value equality so a repaint check compares the fit, not the instance.
+  @override
+  bool operator ==(Object other) => other is CanvasBounds && other.left == left && other.top == top && other.right == right && other.bottom == bottom;
+
+  @override
+  int get hashCode => Object.hash(left, top, right, bottom);
+}
+
 /// A parsed `.canvas` document: its [nodes] and [edges].
 class CanvasDoc {
   const CanvasDoc({this.nodes = const [], this.edges = const []});

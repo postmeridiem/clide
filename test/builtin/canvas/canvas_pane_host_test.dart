@@ -7,6 +7,7 @@ library;
 import 'dart:async';
 
 import 'package:clide/builtin/canvas/canvas.dart';
+import 'package:clide/builtin/canvas/src/canvas_painter.dart';
 import 'package:clide/builtin/canvas/src/canvas_view.dart';
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/kernel.dart';
@@ -25,10 +26,23 @@ void main() {
   setUp(() async => f = await KernelFixture.create());
   tearDown(() => f.dispose());
 
+  late CanvasDocumentStore store;
+  setUp(() {
+    store = CanvasDocumentStore(ipc: f.ipc, messages: f.services.messages, i18n: f.services.i18n);
+    addTearDown(store.dispose);
+  });
+
   // The shared harness's Overlay hands unbounded constraints; the pane is a
   // Column with an Expanded body, so give it a tight box.
-  Widget host(MultitabController<String>? tabs) {
-    return harness(f, SizedBox(width: 800, height: 600, child: CanvasPaneHost(tabs: tabs)));
+  Widget host(MultitabController<String>? tabs, {bool withStore = true}) {
+    return harness(
+      f,
+      SizedBox(
+        width: 800,
+        height: 600,
+        child: CanvasPaneHost(tabs: tabs, store: withStore ? store : null),
+      ),
+    );
   }
 
   testWidgets('shows the empty hint before activation (null controller)', (tester) async {
@@ -163,6 +177,29 @@ void main() {
       expect(f.services.toast.entries.single.message, contains('path outside workspace'));
       // The edit the user made is still theirs to retry — not blanked out.
       expect(find.byType(CanvasView), findsOneWidget);
+    });
+
+    testWidgets('an edit made through the store shows up in the pane', (tester) async {
+      // The path a `canvas.*` verb takes: it never touches the widget, it
+      // applies to the store, and the pane is looking at the same state.
+      f.ipc.stub('files.read', (args) async => IpcResponse.ok(id: '1', data: {'content': _validCanvas}));
+      f.ipc.stub('files.write', (args) async => IpcResponse.ok(id: '1', data: const {'bytes': 1}));
+      final tabs = oneTab();
+      addTearDown(tabs.dispose);
+
+      await tester.pumpWidget(host(tabs));
+      await pumpAsync(tester);
+      expect(store.doc('a.canvas')!.nodes, hasLength(1));
+
+      await store.apply('a.canvas', store.doc('a.canvas')!.addNode(const TextNode(id: 'cli', x: 400, y: 0, width: 60, height: 30, text: 'from the CLI')));
+      await pumpAsync(tester);
+
+      final painter = tester
+          .widgetList<CustomPaint>(find.descendant(of: find.byType(CanvasView), matching: find.byType(CustomPaint)))
+          .map((p) => p.painter)
+          .whereType<CanvasPainter>()
+          .single;
+      expect(painter.doc.node('cli'), isNotNull);
     });
 
     testWidgets('edits during an in-flight write coalesce to the latest', (tester) async {

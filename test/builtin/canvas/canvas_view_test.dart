@@ -541,6 +541,101 @@ void main() {
       expect(painterOf(tester).doc.node('a')!.x, greaterThan(0));
     });
 
+    testWidgets('an external edit to the SAME document keeps pan and selection', (tester) async {
+      // What a `canvas.*` verb looks like from here: the store hands down a
+      // new doc under an unchanged key. Resetting the viewport would yank
+      // the canvas out from under someone mid-thought.
+      final docs = ValueNotifier<CanvasDoc>(twoNodes);
+      addTearDown(docs.dispose);
+      await tester.pumpWidget(
+        anchoredHarness(
+          f,
+          SizedBox(
+            width: 400,
+            height: 400,
+            child: ValueListenableBuilder<CanvasDoc>(
+              valueListenable: docs,
+              builder: (_, doc, _) => CanvasView(documentKey: 'map.canvas', doc: doc, onChanged: (_) {}),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await parkToolbar(tester);
+
+      await tester.tapAt(screenRect(tester, twoNodes, 0).center);
+      await tester.dragFrom(tester.getTopLeft(find.byType(CanvasView)) + const Offset(3, 3), const Offset(40, 0), touchSlopX: 0, touchSlopY: 0);
+      await tester.pump();
+      expect(painterOf(tester).selected, 'a');
+      expect(painterOf(tester).pan.dx, 40);
+
+      // The CLI adds a node to the document already on screen.
+      docs.value = twoNodes.addNode(const TextNode(id: 'c', x: 500, y: 500, width: 50, height: 50, text: 'c'));
+      await tester.pump();
+
+      expect(painterOf(tester).doc.node('c'), isNotNull, reason: 'the new content is picked up');
+      expect(painterOf(tester).selected, 'a', reason: 'selection survives an external edit');
+      expect(painterOf(tester).pan.dx, 40, reason: 'so does the pan');
+    });
+
+    testWidgets('an external delete of the selected node clears the selection', (tester) async {
+      final docs = ValueNotifier<CanvasDoc>(twoNodes);
+      addTearDown(docs.dispose);
+      await tester.pumpWidget(
+        anchoredHarness(
+          f,
+          SizedBox(
+            width: 400,
+            height: 400,
+            child: ValueListenableBuilder<CanvasDoc>(
+              valueListenable: docs,
+              builder: (_, doc, _) => CanvasView(documentKey: 'map.canvas', doc: doc, onChanged: (_) {}),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await parkToolbar(tester);
+      await tester.tapAt(screenRect(tester, twoNodes, 0).center);
+      await tester.pump();
+      expect(painterOf(tester).selected, 'a');
+
+      docs.value = twoNodes.removeNode('a'); // `clide canvas delete … a`
+      await tester.pump();
+
+      expect(painterOf(tester).selected, isNull, reason: 'a selection pointing at nothing is a stale focus ring');
+    });
+
+    testWidgets('switching to a different document resets the view', (tester) async {
+      final key = ValueNotifier<String>('one.canvas');
+      addTearDown(key.dispose);
+      await tester.pumpWidget(
+        anchoredHarness(
+          f,
+          SizedBox(
+            width: 400,
+            height: 400,
+            child: ValueListenableBuilder<String>(
+              valueListenable: key,
+              builder: (_, k, _) => CanvasView(documentKey: k, doc: twoNodes, onChanged: (_) {}),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await parkToolbar(tester);
+      await tester.tapAt(screenRect(tester, twoNodes, 0).center);
+      await tester.dragFrom(tester.getTopLeft(find.byType(CanvasView)) + const Offset(3, 3), const Offset(40, 0), touchSlopX: 0, touchSlopY: 0);
+      await tester.pump();
+      expect(painterOf(tester).selected, 'a');
+
+      key.value = 'two.canvas';
+      await tester.pump();
+
+      expect(painterOf(tester).selected, isNull);
+      expect(painterOf(tester).pan, Offset.zero);
+    });
+
     testWidgets('a genuinely new document resets zoom, pan and selection', (tester) async {
       // Swapped through a notifier, not a second pumpWidget: the shared
       // harness's Overlay only honours initialEntries on its first build,
