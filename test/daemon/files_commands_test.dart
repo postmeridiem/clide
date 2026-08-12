@@ -1,6 +1,7 @@
 /// Tests for the `files.*` command handlers.
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:clide/clide.dart';
@@ -173,6 +174,116 @@ void main() {
     final r = await call('files.read', const {'path': 'huge.bin'});
     expect(r.ok, isFalse);
     expect(r.error!.message, contains('too large'));
+  });
+
+  group('files.write', () {
+    test('overwrites an existing file and reports the byte count', () async {
+      final r = await call('files.write', const {'path': 'README.md', 'text': 'rewritten'});
+      expect(r.ok, isTrue, reason: r.error?.message);
+      expect(r.data['bytes'], 'rewritten'.length);
+      expect(File('${sandbox.path}/README.md').readAsStringSync(), 'rewritten');
+    });
+
+    test('creates a file that does not exist yet', () async {
+      final r = await call('files.write', const {'path': 'lib/new.dart', 'text': 'void main(){}'});
+      expect(r.ok, isTrue, reason: r.error?.message);
+      expect(File('${sandbox.path}/lib/new.dart').readAsStringSync(), 'void main(){}');
+    });
+
+    test('accepts base64 content for text a shell argument cannot carry', () async {
+      const payload = 'line one\nline "two"\n';
+      final r = await call('files.write', {'path': 'multi.txt', 'content_b64': base64Encode(utf8.encode(payload))});
+      expect(r.ok, isTrue, reason: r.error?.message);
+      expect(File('${sandbox.path}/multi.txt').readAsStringSync(), payload);
+    });
+
+    test('CLI positional path+text bind to files.write (T-232)', () async {
+      final r = await call('files.write', const {
+        'positional': ['cli.txt', 'from argv'],
+      });
+      expect(r.ok, isTrue, reason: r.error?.message);
+      expect(File('${sandbox.path}/cli.txt').readAsStringSync(), 'from argv');
+    });
+
+    test('a missing path is a toolError', () async {
+      final r = await call('files.write', const {'text': 'x'});
+      expect(r.ok, isFalse);
+      expect(r.error!.kind, IpcErrorKind.toolError);
+      expect(r.error!.message, contains('path'));
+    });
+
+    test('rejects traversal out of the workspace', () async {
+      final r = await call('files.write', const {'path': '../escape.txt', 'text': 'x'});
+      expect(r.ok, isFalse);
+      expect(r.error!.message, contains('outside workspace'));
+    });
+
+    test('rejects an absolute path outside the workspace', () async {
+      final r = await call('files.write', const {'path': '/tmp/clide-should-not-exist.txt', 'text': 'x'});
+      expect(r.ok, isFalse);
+      expect(r.error!.message, contains('outside workspace'));
+    });
+
+    test('rejects writing through a symlink whose target is outside (T-102)', () async {
+      final outside = await Directory.systemTemp.createTemp('clide_write_link_');
+      addTearDown(() async {
+        if (await outside.exists()) await outside.delete(recursive: true);
+      });
+      final victim = File('${outside.path}/secret.txt')..writeAsStringSync('original');
+      Link('${sandbox.path}/leak').createSync(victim.path);
+
+      final r = await call('files.write', const {'path': 'leak', 'text': 'clobbered'});
+      expect(r.ok, isFalse);
+      expect(r.error!.message, contains('outside workspace'));
+      expect(victim.readAsStringSync(), 'original', reason: 'the outside file must be untouched');
+    });
+
+    test('rejects creating a NEW file under a symlinked-out parent dir', () async {
+      // The read resolver returns early for a non-existent target, which
+      // would let this through: nothing resolves the parent, so the write
+      // lands outside the workspace. This is why writes get their own
+      // resolver.
+      final outside = await Directory.systemTemp.createTemp('clide_write_parent_');
+      addTearDown(() async {
+        if (await outside.exists()) await outside.delete(recursive: true);
+      });
+      Link('${sandbox.path}/leak-dir').createSync(outside.path);
+
+      final r = await call('files.write', const {'path': 'leak-dir/planted.txt', 'text': 'x'});
+      expect(r.ok, isFalse);
+      expect(r.error!.message, contains('outside workspace'));
+      expect(File('${outside.path}/planted.txt').existsSync(), isFalse);
+    });
+
+    test('a write into a missing directory fails without creating it', () async {
+      final r = await call('files.write', const {'path': 'no/such/dir/file.txt', 'text': 'x'});
+      expect(r.ok, isFalse);
+      expect(r.error!.kind, IpcErrorKind.toolError);
+      expect(Directory('${sandbox.path}/no').existsSync(), isFalse);
+    });
+
+    test('an absolute path under the workspace root resolves', () async {
+      final abs = '${sandbox.absolute.path}/abs.txt';
+      final r = await call('files.write', {'path': abs, 'text': 'ok'});
+      expect(r.ok, isTrue, reason: r.error?.message);
+      expect(File(abs).readAsStringSync(), 'ok');
+    });
+
+    test('does NOT accept the extra read roots that files.read allows (D-80)', () async {
+      final extra = await Directory.systemTemp.createTemp('clide-extra-write-');
+      addTearDown(() async => extra.existsSync() ? extra.deleteSync(recursive: true) : null);
+      File('${extra.path}/SKILL.md').writeAsStringSync('# peon');
+      final svc = FilesService(root: sandbox, events: RecordingEventSink(), ignore: IgnoreSet.builtin(), extraReadRoots: [extra]);
+      final d = DaemonDispatcher();
+      registerFilesCommands(d, svc);
+      addTearDown(svc.shutdown);
+
+      final target = '${extra.absolute.path}/SKILL.md';
+      final r = await d.dispatch(IpcRequest(id: '1', cmd: 'files.write', args: {'path': target, 'text': 'clobbered'}));
+      expect(r.ok, isFalse);
+      expect(r.error!.message, contains('outside workspace'));
+      expect(File(target).readAsStringSync(), '# peon');
+    });
   });
 
   test('files.ls with a path outside the root is rejected', () async {

@@ -10,6 +10,7 @@ import '../files/path_safety.dart';
 import '../files/pql_config.dart';
 import '../files/watcher.dart';
 import '../ipc/command_schema.dart';
+import '../ipc/content_args.dart';
 import '../ipc/envelope.dart';
 import '../ipc/schema_v1.dart';
 import '../panes/event_sink.dart';
@@ -106,6 +107,46 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
     final content = file.readAsStringSync();
     return IpcResponse.ok(id: req.id, data: {'path': path, 'content': content});
   }, schema: _pathArg);
+
+  d.register(
+    'files.write',
+    (req) async {
+      final path = req.args['path'] as String?;
+      if (path == null || path.isEmpty) {
+        return IpcResponse.err(
+          id: req.id,
+          error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'files.write requires a path'),
+        );
+      }
+      final String absPath;
+      try {
+        // Workspace root only — deliberately NOT the extraReadRoots widening
+        // files.read gets (D-80): those are trusted for reading, not writing.
+        absPath = resolveForWriteUnderRoot(files.root, path);
+      } on PathOutsideRoot {
+        return IpcResponse.err(
+          id: req.id,
+          error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'path outside workspace: $path'),
+        );
+      }
+      final content = contentFromArgs(req.args);
+      try {
+        await File(absPath).writeAsString(content);
+      } on FileSystemException catch (e) {
+        return IpcResponse.err(
+          id: req.id,
+          error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'files.write failed: ${e.message}', hint: path),
+        );
+      }
+      return IpcResponse.ok(id: req.id, data: {'path': path, 'bytes': content.length});
+    },
+    // `clide files write <path> [text]` — content also accepts
+    // `--content_b64` for anything a shell argument can't carry.
+    schema: const CommandSchema(
+      positional: ['path', 'text'],
+      args: {'path': ArgSpec(), 'text': ArgSpec(), 'content_b64': ArgSpec()},
+    ),
+  );
 
   d.register('files.ls', (req) async {
     final dir = (req.args['path'] as String?) ?? '';

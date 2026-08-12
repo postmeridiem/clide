@@ -70,6 +70,39 @@ String resolveUnderRootFollowingSymlinks(Directory root, String relative) {
   return realPath;
 }
 
+/// Resolve [relative] for a **write** under [root].
+///
+/// Split from [resolveUnderRootFollowingSymlinks] because the read
+/// resolver's "target doesn't exist → return the path-layer result"
+/// shortcut is safe for reads and a hole for writes. A read of a missing
+/// file just fails; a *write* to a missing file under a symlinked parent
+/// (`<root>/link -> /etc`, target `link/passwd`) would create a file
+/// outside the workspace, since nothing ever resolves the parent.
+///
+/// So: when the target exists, confine the resolved real path as usual.
+/// When it doesn't, confine its **parent** — which must already exist.
+/// Directories are not created implicitly; writing into a missing
+/// directory is a [PathOutsideRoot]-free [FileSystemException] the caller
+/// surfaces normally.
+String resolveForWriteUnderRoot(Directory root, String relative) {
+  final sep = Platform.pathSeparator;
+  final pathResolved = resolveUnderRoot(root, relative);
+  final realRoot = Directory(root.absolute.path).resolveSymbolicLinksSync();
+  bool contained(String p) => p == realRoot || p.startsWith('$realRoot$sep');
+
+  if (FileSystemEntity.typeSync(pathResolved, followLinks: false) != FileSystemEntityType.notFound) {
+    final realPath = File(pathResolved).resolveSymbolicLinksSync();
+    if (!contained(realPath)) throw PathOutsideRoot(relative, realPath, realRoot);
+    return realPath;
+  }
+
+  final parent = File(pathResolved).parent;
+  if (!parent.existsSync()) return pathResolved; // let the write report the missing dir
+  final realParent = parent.resolveSymbolicLinksSync();
+  if (!contained(realParent)) throw PathOutsideRoot(relative, realParent, realRoot);
+  return '$realParent$sep${pathResolved.substring(pathResolved.lastIndexOf(sep) + 1)}';
+}
+
 /// Like [resolveUnderRoot], but an **absolute** [path] is also accepted
 /// when it falls under any of [extraReadRoots] — trusted read-only roots
 /// such as the Claude config dirs (`~/.claude`, `<repo>/.claude`) that

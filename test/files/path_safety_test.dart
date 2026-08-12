@@ -131,6 +131,59 @@ void main() {
     });
   });
 
+  group('resolveForWriteUnderRoot', () {
+    test('an existing file under the root resolves to its real path', () {
+      File('${root.path}/note.txt').writeAsStringSync('x');
+      expect(resolveForWriteUnderRoot(root, 'note.txt'), endsWith('/note.txt'));
+    });
+
+    test('a not-yet-existing file resolves when its parent is inside the root', () {
+      Directory('${root.path}/sub').createSync();
+      expect(resolveForWriteUnderRoot(root, 'sub/new.txt'), endsWith('/sub/new.txt'));
+    });
+
+    test('traversal out of the root is rejected', () {
+      expect(() => resolveForWriteUnderRoot(root, '../escape.txt'), throwsA(isA<PathOutsideRoot>()));
+    });
+
+    test('an existing symlink pointing outside is rejected', () {
+      final outside = Directory.systemTemp.createTempSync('clide_w_link_');
+      addTearDown(() => outside.existsSync() ? outside.deleteSync(recursive: true) : null);
+      File('${outside.path}/secret.txt').writeAsStringSync('payload');
+      Link('${root.path}/leak').createSync('${outside.path}/secret.txt');
+      expect(() => resolveForWriteUnderRoot(root, 'leak'), throwsA(isA<PathOutsideRoot>()));
+    });
+
+    test('a NEW file under a symlinked-out parent is rejected', () {
+      // The read resolver short-circuits on a missing target and would
+      // hand this back as writable — the reason writes resolve the parent.
+      final outside = Directory.systemTemp.createTempSync('clide_w_parent_');
+      addTearDown(() => outside.existsSync() ? outside.deleteSync(recursive: true) : null);
+      Link('${root.path}/leak-dir').createSync(outside.path);
+      expect(() => resolveForWriteUnderRoot(root, 'leak-dir/planted.txt'), throwsA(isA<PathOutsideRoot>()));
+      // Contrast: the read-side resolver does hand it back, which is safe
+      // for a read (nothing is there) and would not be for a write.
+      expect(resolveUnderRootFollowingSymlinks(root, 'leak-dir/planted.txt'), isNotEmpty);
+    });
+
+    test('a missing parent directory is left for the write to report', () {
+      // Not a containment failure — no directories are created implicitly,
+      // so the caller surfaces a normal filesystem error instead.
+      expect(resolveForWriteUnderRoot(root, 'no/such/dir/file.txt'), endsWith('/no/such/dir/file.txt'));
+    });
+
+    test('a symlinked root itself is tolerated on both sides of the check', () {
+      final linkedRoot = Directory('${Directory.systemTemp.path}/clide_w_rootlink_${root.path.hashCode}');
+      addTearDown(() {
+        final l = Link(linkedRoot.path);
+        if (l.existsSync()) l.deleteSync();
+      });
+      Link(linkedRoot.path).createSync(root.path);
+      File('${root.path}/inside.txt').writeAsStringSync('x');
+      expect(resolveForWriteUnderRoot(linkedRoot, 'inside.txt'), endsWith('/inside.txt'));
+    });
+  });
+
   group('resolveUnderRoots (extra read roots, D-80)', () {
     late Directory extra;
     setUp(() => extra = Directory.systemTemp.createTempSync('clide_extra_root_'));
