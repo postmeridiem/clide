@@ -25,6 +25,24 @@ REPORTER="${TEST_REPORTER:-failures-only}"
 coverage=0
 [[ "${1:-}" == "--coverage" ]] && coverage=1
 
+# The serial-tagged suites, named explicitly — same reason the pty line below
+# names its files rather than selecting by tag alone.
+#
+# `flutter test --tags serial` with no paths COMPILES AND LOADS EVERY SUITE to
+# discover which ones carry the tag, and at --concurrency=1 that load is
+# serial: measured at 156s to run 50 tests, versus 6s when the three files are
+# named. It was 75% of the suite's wall clock for 1% of its tests. The tag is
+# still passed so the filter inside these files stays honest.
+#
+# Keeping this list in step with the tree is test/tooling/serial_tags_test.dart's
+# job — it fails if a suite carries the tag and is not named here, so a new
+# serial test cannot silently stop running.
+SERIAL_TESTS=(
+  test/daemon/pql_commands_test.dart
+  test/pql/client_test.dart
+  test/search/grep_engine_test.dart
+)
+
 echo "==> flutter analyze"
 flutter analyze
 
@@ -58,7 +76,7 @@ if [[ "$coverage" == 1 ]]; then
   echo "==> flutter test --coverage (parallel pool; excludes pty + serial)"
   flutter test -r "$REPORTER" --coverage --coverage-path "$COV_TMP/parallel.info" --exclude-tags "pty || serial" --timeout 60s
   echo "==> flutter test --coverage (serial-tagged; --concurrency=1)"
-  flutter test -r "$REPORTER" --coverage --coverage-path "$COV_TMP/serial.info" --tags serial --concurrency=1 --timeout 60s
+  flutter test -r "$REPORTER" --coverage --coverage-path "$COV_TMP/serial.info" --tags serial --concurrency=1 --timeout 60s "${SERIAL_TESTS[@]}"
   echo "==> merge coverage (parallel + serial passes → coverage/lcov.info)"
   mkdir -p coverage
   python3 ci/merge_lcov.py "$COV_TMP/parallel.info" "$COV_TMP/serial.info" > "coverage/.lcov.$$.info"
@@ -67,5 +85,5 @@ else
   echo "==> flutter test (dev; parallel pool, excludes pty + serial)"
   flutter test -r "$REPORTER" --exclude-tags "pty || serial" --concurrency=12 --timeout 60s
   echo "==> flutter test (dev; serial-tagged, --concurrency=1)"
-  flutter test -r "$REPORTER" --tags serial --concurrency=1 --timeout 60s
+  flutter test -r "$REPORTER" --tags serial --concurrency=1 --timeout 60s "${SERIAL_TESTS[@]}"
 fi

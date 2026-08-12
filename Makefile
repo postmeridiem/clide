@@ -172,7 +172,7 @@ t: gen-build-info ## Run one test path with tee'd output. Usage: make t T=test/p
 	flutter test $(T) 2>&1 | tee test/.test-output/last.log
 
 .PHONY: test
-test: gen-build-info ## Fast dev loop: analyze + format + unit + widget + golden, NO coverage, parallel (~20s).
+test: gen-build-info ## Fast dev loop: analyze + format + unit + widget + golden, NO coverage, parallel (~70s).
 	ci/test.sh
 
 .PHONY: test-coverage
