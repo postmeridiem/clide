@@ -202,6 +202,56 @@ void main() {
       expect(painter.doc.node('cli'), isNotNull);
     });
 
+    testWidgets('add-note routes through the kernel picker and lands a file node', (tester) async {
+      // The whole T-571 chain: toolbar → pane → quickOpen.pick() → path →
+      // FileNode → store → files.write.
+      f.ipc.stub('files.read', (args) async => IpcResponse.ok(id: '1', data: {'content': _validCanvas}));
+      final writes = <String>[];
+      f.ipc.stub('files.write', (args) async {
+        writes.add(args['text']! as String);
+        return IpcResponse.ok(id: '1', data: const {'bytes': 1});
+      });
+      final tabs = oneTab();
+      addTearDown(tabs.dispose);
+
+      await tester.pumpWidget(host(tabs));
+      await pumpAsync(tester);
+
+      await tester.tap(find.byWidgetPredicate((w) => w is ClideTooltip && w.message == 'Add note from file'));
+      await tester.pump();
+      expect(f.services.quickOpen.isPicking, isTrue, reason: 'the pane asked the kernel picker');
+
+      f.services.quickOpen.resolvePick('docs/design.md');
+      await pumpAsync(tester);
+
+      final saved = CanvasDoc.parse(writes.last);
+      final node = saved.nodes.last;
+      expect(node, isA<FileNode>());
+      expect((node as FileNode).file, 'docs/design.md');
+    });
+
+    testWidgets('dismissing the picker leaves the document alone', (tester) async {
+      f.ipc.stub('files.read', (args) async => IpcResponse.ok(id: '1', data: {'content': _validCanvas}));
+      var writes = 0;
+      f.ipc.stub('files.write', (args) async {
+        writes++;
+        return IpcResponse.ok(id: '1', data: const {'bytes': 1});
+      });
+      final tabs = oneTab();
+      addTearDown(tabs.dispose);
+
+      await tester.pumpWidget(host(tabs));
+      await pumpAsync(tester);
+      await tester.tap(find.byWidgetPredicate((w) => w is ClideTooltip && w.message == 'Add note from file'));
+      await tester.pump();
+
+      f.services.quickOpen.close(); // user hit escape
+      await pumpAsync(tester);
+
+      expect(writes, 0);
+      expect(store.doc('a.canvas')!.nodes, hasLength(1));
+    });
+
     testWidgets('edits during an in-flight write coalesce to the latest', (tester) async {
       final gate = Completer<void>();
       final written = <String>[];

@@ -4,6 +4,7 @@
 /// ```
 /// clide canvas list     notes/map.canvas
 /// clide canvas add-text notes/map.canvas "a thought" --x 100 --y 40
+/// clide canvas add-note notes/map.canvas docs/design.md
 /// clide canvas move     notes/map.canvas <nodeId> --x 100 --y 40
 /// clide canvas resize   notes/map.canvas <nodeId> --width 300 --height 90
 /// clide canvas connect  notes/map.canvas <fromId> <toId> --from-side right
@@ -68,6 +69,24 @@ void registerCanvasCommands(DaemonDispatcher d, CanvasDocuments? Function() docu
         'y': ArgSpec(type: ArgType.number),
         'width': ArgSpec(type: ArgType.number, min: 1),
         'height': ArgSpec(type: ArgType.number, min: 1),
+        'color': ArgSpec(),
+      },
+    ),
+  );
+
+  d.register(
+    'canvas.add-note',
+    (req) => _addNote(req, documents),
+    schema: const CommandSchema(
+      positional: ['path', 'file'],
+      args: {
+        'path': ArgSpec(required: true),
+        'file': ArgSpec(required: true),
+        'x': ArgSpec(type: ArgType.number),
+        'y': ArgSpec(type: ArgType.number),
+        'width': ArgSpec(type: ArgType.number, min: 1),
+        'height': ArgSpec(type: ArgType.number, min: 1),
+        'subpath': ArgSpec(),
         'color': ArgSpec(),
       },
     ),
@@ -196,6 +215,30 @@ Future<IpcResponse> _addText(IpcRequest req, CanvasDocuments? Function() source)
   );
   await docs.apply(path, doc.addNode(node));
   return IpcResponse.ok(id: req.id, data: {'path': path, 'id': node.id, 'x': node.x, 'y': node.y, 'width': node.width, 'height': node.height});
+});
+
+/// The CLI peer of the toolbar's add-note button. The UI gets its path from
+/// the file picker (T-571); out here the caller names it directly. The path
+/// is NOT checked against the workspace — a `.canvas` may legitimately
+/// reference a file that doesn't exist yet, and Obsidian allows it too.
+Future<IpcResponse> _addNote(IpcRequest req, CanvasDocuments? Function() source) => _withDoc(req, source, (docs, path, doc) async {
+  final file = req.args['file'] as String?;
+  if (file == null || file.isEmpty) return _userErr(req.id, 'a file to reference is required');
+  final width = _num(req.args['width']) ?? _newNodeWidth;
+  final height = _num(req.args['height']) ?? _newNodeHeight;
+  final (cx, cy) = CanvasBounds.of(doc).centre;
+  final node = FileNode(
+    id: doc.freshId(),
+    x: _num(req.args['x']) ?? cx - width / 2,
+    y: _num(req.args['y']) ?? cy - height / 2,
+    width: width,
+    height: height,
+    color: req.args['color'] as String?,
+    file: file,
+    subpath: req.args['subpath'] as String?,
+  );
+  await docs.apply(path, doc.addNode(node));
+  return IpcResponse.ok(id: req.id, data: {'path': path, 'id': node.id, 'file': file, 'x': node.x, 'y': node.y});
 });
 
 Future<IpcResponse> _delete(IpcRequest req, CanvasDocuments? Function() source) => _withDoc(req, source, (docs, path, doc) async {

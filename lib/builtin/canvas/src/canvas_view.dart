@@ -7,6 +7,7 @@
 /// gesture, not per frame, so a drag repaints freely but persists once.
 library;
 
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:clide/builtin/canvas/src/canvas_painter.dart';
@@ -20,7 +21,7 @@ import 'package:flutter/widgets.dart';
 enum _Grab { pan, move, resize, connect, toolbar }
 
 class CanvasView extends StatefulWidget {
-  const CanvasView({super.key, required this.doc, this.documentKey, this.onSelect, this.onChanged, this.editable = true});
+  const CanvasView({super.key, required this.doc, this.documentKey, this.onSelect, this.onChanged, this.onPickFile, this.editable = true});
 
   final CanvasDoc doc;
 
@@ -38,6 +39,12 @@ class CanvasView extends StatefulWidget {
   /// Fired with the edited document at the END of a move/resize gesture.
   /// Null (or `editable: false`) leaves the view read-only.
   final void Function(CanvasDoc doc)? onChanged;
+
+  /// Asks the host to get a workspace file path from the user, resolving
+  /// null if they dismiss. Supplied by the pane (which reaches the kernel's
+  /// picker); null hides the add-note button, keeping this widget free of
+  /// service lookups.
+  final Future<String?> Function()? onPickFile;
 
   /// Whether node move/resize is offered at all.
   final bool editable;
@@ -106,14 +113,37 @@ class _CanvasViewState extends State<CanvasView> {
   /// Obsidian's own default for a new text card.
   static const double _newNodeWidth = 250, _newNodeHeight = 60;
 
-  /// Add a text node at the middle of what the user is currently looking at,
-  /// not at the document origin, which may be off-screen.
-  void _addTextNode(Size size) {
+  /// Top-left of a new node, so it lands centred on what the user is
+  /// currently looking at rather than at the document origin, which may be
+  /// off-screen. Null when the viewport isn't usable yet.
+  (double, double)? _newNodeOrigin(Size size) {
     final vp = _viewport(size);
-    if (vp.scale <= 0) return;
+    if (vp.scale <= 0) return null;
     final centreX = (size.width / 2 - vp.dx) / vp.scale;
     final centreY = (size.height / 2 - vp.dy) / vp.scale;
-    final node = TextNode(id: _doc.freshId(), x: centreX - _newNodeWidth / 2, y: centreY - _newNodeHeight / 2, width: _newNodeWidth, height: _newNodeHeight);
+    return (centreX - _newNodeWidth / 2, centreY - _newNodeHeight / 2);
+  }
+
+  void _addTextNode(Size size) {
+    final origin = _newNodeOrigin(size);
+    if (origin == null) return;
+    _add(TextNode(id: _doc.freshId(), x: origin.$1, y: origin.$2, width: _newNodeWidth, height: _newNodeHeight));
+  }
+
+  /// Ask the host for a file, then drop a node referencing it. The picker is
+  /// modal from the user's point of view, so the viewport is re-measured on
+  /// return rather than captured before the await.
+  Future<void> _addFileNode(Size size) async {
+    final pick = widget.onPickFile;
+    if (pick == null) return;
+    final path = await pick();
+    if (path == null || path.isEmpty || !mounted) return;
+    final origin = _newNodeOrigin(size);
+    if (origin == null) return;
+    _add(FileNode(id: _doc.freshId(), x: origin.$1, y: origin.$2, width: _newNodeWidth, height: _newNodeHeight, file: path));
+  }
+
+  void _add(CanvasNode node) {
     setState(() {
       _doc = _doc.addNode(node);
       _selected = node.id;
@@ -293,6 +323,12 @@ class _CanvasViewState extends State<CanvasView> {
       label: ClideSettings.i18n.string(context, 'action.addText', namespace: 'builtin.canvas', placeholder: 'Add text node'),
       onPressed: () => _addTextNode(size),
     ),
+    if (widget.onPickFile != null)
+      CanvasToolbarAction(
+        glyph: 'file-plus',
+        label: ClideSettings.i18n.string(context, 'action.addNote', namespace: 'builtin.canvas', placeholder: 'Add note from file'),
+        onPressed: () => unawaited(_addFileNode(size)),
+      ),
     CanvasToolbarAction(
       glyph: 'trash',
       label: ClideSettings.i18n.string(context, 'action.delete', namespace: 'builtin.canvas', placeholder: 'Delete selected node'),
@@ -300,7 +336,9 @@ class _CanvasViewState extends State<CanvasView> {
     ),
   ];
 
-  static const int _actionCount = 2;
+  /// Must match [_actions] — the toolbar's height, and so its clamp and its
+  /// grip hit box, depend on it.
+  int get _actionCount => widget.onPickFile != null ? 3 : 2;
 
   /// [_toolbarPos] pulled back inside the pane — recomputed rather than
   /// stored, so a pane resize can't strand the toolbar out of reach.

@@ -4,5 +4,7 @@
   "status.loading": { "translation": "Laden…" },
   "save.failed": { "translation": "Kon {path} niet opslaan: {reason}" },
   "action.addText": { "translation": "Tekstknooppunt toevoegen" },
-  "action.delete": { "translation": "Geselecteerd knooppunt verwijderen" }
+  "action.addNote": { "translation": "Notitie uit bestand toevoegen" },
+  "action.delete": { "translation": "Geselecteerd knooppunt verwijderen" },
+  "pick.prompt": { "translation": "Kies een bestand om als notitie toe te voegen" }
 }

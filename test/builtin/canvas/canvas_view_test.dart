@@ -15,15 +15,21 @@ void main() {
   setUp(() async => f = await KernelFixture.create());
   tearDown(() => f.dispose());
 
-  Widget view(CanvasDoc doc, {void Function(String?)? onSelect, void Function(CanvasDoc)? onChanged, bool editable = true, double side = 400}) =>
-      anchoredHarness(
-        f,
-        SizedBox(
-          width: side,
-          height: side,
-          child: CanvasView(doc: doc, onSelect: onSelect, onChanged: onChanged, editable: editable),
-        ),
-      );
+  Widget view(
+    CanvasDoc doc, {
+    void Function(String?)? onSelect,
+    void Function(CanvasDoc)? onChanged,
+    Future<String?> Function()? onPickFile,
+    bool editable = true,
+    double side = 400,
+  }) => anchoredHarness(
+    f,
+    SizedBox(
+      width: side,
+      height: side,
+      child: CanvasView(doc: doc, onSelect: onSelect, onChanged: onChanged, onPickFile: onPickFile, editable: editable),
+    ),
+  );
 
   /// The live painter — the view owns its working document, so this is how
   /// a test sees what it currently holds.
@@ -444,6 +450,70 @@ void main() {
       expect(added.x + added.width / 2, closeTo((b.left + b.right) / 2, 0.5));
       expect(added.y + added.height / 2, closeTo((b.top + b.bottom) / 2, 0.5));
       expect(painterOf(tester).selected, added.id, reason: 'the new node is selected so it can be moved at once');
+    });
+
+    // Two tests rather than one that re-pumps: the shared harness's Overlay
+    // honours initialEntries on its first build only.
+    testWidgets('add-note is hidden when the host cannot pick a file', (tester) async {
+      await tester.pumpWidget(view(twoNodes, onChanged: (_) {}));
+      await tester.pump();
+      expect(button('Add note from file'), findsNothing);
+      expect(button('Add text node'), findsOneWidget, reason: 'the other actions are unaffected');
+    });
+
+    testWidgets('add-note appears once the host can pick a file', (tester) async {
+      await tester.pumpWidget(view(twoNodes, onChanged: (_) {}, onPickFile: () async => null));
+      await tester.pump();
+      expect(button('Add note from file'), findsOneWidget);
+    });
+
+    testWidgets('add-note turns the picked path into a file node', (tester) async {
+      CanvasDoc? saved;
+      await tester.pumpWidget(view(twoNodes, onChanged: (d) => saved = d, onPickFile: () async => 'docs/design.md'));
+      await tester.pump();
+
+      await tester.tap(button('Add note from file'));
+      await pumpAsync(tester);
+
+      final added = saved!.nodes.last;
+      expect(added, isA<FileNode>());
+      expect((added as FileNode).file, 'docs/design.md');
+      expect((added.width, added.height), (250.0, 60.0));
+      final b = CanvasBounds.of(twoNodes);
+      expect(added.x + added.width / 2, closeTo((b.left + b.right) / 2, 0.5));
+      expect(painterOf(tester).selected, added.id);
+    });
+
+    testWidgets('a dismissed picker adds nothing', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(view(twoNodes, onChanged: (_) => calls++, onPickFile: () async => null));
+      await tester.pump();
+
+      await tester.tap(button('Add note from file'));
+      await pumpAsync(tester);
+
+      expect(calls, 0);
+      expect(painterOf(tester).doc.nodes, hasLength(2));
+    });
+
+    testWidgets('an empty picked path adds nothing', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(view(twoNodes, onChanged: (_) => calls++, onPickFile: () async => ''));
+      await tester.pump();
+      await tester.tap(button('Add note from file'));
+      await pumpAsync(tester);
+      expect(calls, 0);
+    });
+
+    testWidgets('the third button grows the toolbar, and the clamp follows', (tester) async {
+      await tester.pumpWidget(view(twoNodes, onChanged: (_) {}, onPickFile: () async => null));
+      await tester.pump();
+      final origin = tester.getTopLeft(find.byType(CanvasView));
+
+      await tester.drag(grip(), const Offset(9999, 9999), touchSlopX: 0, touchSlopY: 0);
+      await tester.pump();
+      final parked = tester.getTopLeft(find.byType(CanvasToolbar)) - origin;
+      expect(parked.dy, 400 - canvasToolbarHeight(3), reason: 'clamped against the THREE-action height');
     });
 
     testWidgets('delete is disabled until a node is selected', (tester) async {

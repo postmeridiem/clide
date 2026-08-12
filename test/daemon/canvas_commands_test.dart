@@ -122,6 +122,40 @@ void main() {
     });
   });
 
+  group('canvas.add-note', () {
+    test('adds a file node referencing the given path', () async {
+      final r = await call('canvas.add-note', const {'path': path, 'file': 'docs/design.md', 'subpath': '#intro'});
+      expect(r.ok, isTrue, reason: r.error?.message);
+      expect(r.data['file'], 'docs/design.md');
+
+      final node = docs.applied.single.doc.node(r.data['id']! as String)! as FileNode;
+      expect(node.file, 'docs/design.md');
+      expect(node.subpath, '#intro');
+      expect((node.x, node.y), (25.0, 120.0), reason: 'centred on the content, like add-text');
+    });
+
+    test('requires a file to reference', () async {
+      final r = await call('canvas.add-note', const {'path': path});
+      expect(r.ok, isFalse);
+      expect(docs.applied, isEmpty);
+    });
+
+    test('does not require the referenced file to exist', () async {
+      // A .canvas may point at a file that isn't written yet; Obsidian
+      // allows it, and the daemon has no business second-guessing it.
+      final r = await call('canvas.add-note', const {'path': path, 'file': 'not/written/yet.md'});
+      expect(r.ok, isTrue, reason: r.error?.message);
+    });
+
+    test('CLI positionals bind path then file', () async {
+      final r = await call('canvas.add-note', const {
+        'positional': [path, 'docs/a.md'],
+      });
+      expect(r.ok, isTrue, reason: r.error?.message);
+      expect(r.data['file'], 'docs/a.md');
+    });
+  });
+
   group('canvas.delete', () {
     test('removes the node and reports the edges that went with it', () async {
       final r = await call('canvas.delete', const {'path': path, 'id': 'a'});
@@ -244,8 +278,10 @@ void main() {
     test('no live UI is a tool error, not a hang', () async {
       final headless = DaemonDispatcher();
       registerCanvasCommands(headless, () => null);
-      for (final cmd in ['canvas.list', 'canvas.add-text', 'canvas.delete', 'canvas.connect', 'canvas.move', 'canvas.resize']) {
-        final r = await headless.dispatch(IpcRequest(id: '1', cmd: cmd, args: const {'path': path, 'id': 'a', 'from': 'a', 'to': 'b'}));
+      for (final cmd in ['canvas.list', 'canvas.add-text', 'canvas.add-note', 'canvas.delete', 'canvas.connect', 'canvas.move', 'canvas.resize']) {
+        // Every required arg is supplied: the schema validates before the
+        // handler runs, so a missing one would mask the no-UI answer.
+        final r = await headless.dispatch(IpcRequest(id: '1', cmd: cmd, args: const {'path': path, 'id': 'a', 'from': 'a', 'to': 'b', 'file': 'x.md'}));
         expect(r.ok, isFalse, reason: cmd);
         expect(r.error!.kind, IpcErrorKind.toolError, reason: cmd);
         expect(r.error!.message, contains('no live UI'), reason: cmd);
@@ -253,7 +289,7 @@ void main() {
     });
 
     test('every verb requires a path', () async {
-      for (final cmd in ['canvas.list', 'canvas.add-text', 'canvas.delete', 'canvas.connect', 'canvas.move', 'canvas.resize']) {
+      for (final cmd in ['canvas.list', 'canvas.add-text', 'canvas.add-note', 'canvas.delete', 'canvas.connect', 'canvas.move', 'canvas.resize']) {
         final r = await call(cmd, const {'id': 'a', 'from': 'a', 'to': 'b'});
         expect(r.ok, isFalse, reason: cmd);
       }

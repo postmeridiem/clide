@@ -9,6 +9,7 @@ import 'dart:async';
 
 import 'package:clide/builtin/canvas/src/canvas_store.dart';
 import 'package:clide/builtin/canvas/src/canvas_view.dart';
+import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
@@ -108,6 +109,9 @@ class _CanvasDocumentTabState extends State<CanvasDocumentTab> {
           documentKey: widget.path,
           doc: doc,
           onChanged: (next) => unawaited(widget.store.apply(widget.path, next)),
+          onPickFile: () => ClideKernel.of(context).quickOpen.pick(
+            prompt: ClideSettings.i18n.string(context, 'pick.prompt', namespace: 'builtin.canvas', placeholder: 'Choose a file to add as a note'),
+          ),
         );
       },
     );

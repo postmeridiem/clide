@@ -4,5 +4,7 @@
   "status.loading": { "translation": "Loading…" },
   "save.failed": { "translation": "Could not save {path}: {reason}" },
   "action.addText": { "translation": "Add text node" },
-  "action.delete": { "translation": "Delete selected node" }
+  "action.addNote": { "translation": "Add note from file" },
+  "action.delete": { "translation": "Delete selected node" },
+  "pick.prompt": { "translation": "Choose a file to add as a note" }
 }

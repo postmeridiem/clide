@@ -27,6 +27,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   handles, drag a round edge handle onto another node to connect them, and add
   or delete nodes from a floating toolbar you can move aside. Every edit is
   written back to the `.canvas` file.
+- **Add a note to a canvas from a file** (T-571) — the canvas toolbar's new
+  add-note button opens the quick-open picker and turns the file you choose
+  into a node. Also `clide canvas add-note <canvas> <file>`.
 - **`clide canvas list|add-text|move|resize|connect|delete`** (T-570) — the CLI
   half of the canvas pane's edit actions. They drive the open document, so the
   pane updates live and keeps your pan, zoom and selection; a `.canvas` that
