@@ -18,6 +18,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [2.11.0] — 2026-08-12
+
+### Added
+
 - **`clide version` and `clide instance` report the build**, not just the
   release — commit and build time alongside the version, so a running app can
   be told apart from the one you just built. (T-247)
@@ -73,6 +81,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 - **Nothing animates while the window is minimised.** Settings → Clide → Power
   turns the behaviour off if you'd rather it kept running. (D-107, T-541)
+
+- **Clide speaks Dutch.** All of his chrome — settings, commands, and what a
+  screen reader announces for the face — resolves through the catalog, in
+  `en_US` and `nl_NL`. (D-21, D-102, T-530)
 
 ### Changed
 
