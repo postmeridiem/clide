@@ -19176,3 +19176,291 @@ Refs: D-6 (CLI/UI parity), D-47, D-48, D-50, D-51, D-53, D-78 (cards are display
 Clide is chrome, not a card), D-87, D-101, D-21/D-102. Related: T-241 (ultrawide audit).
 
 Measured (2026-08-12, T-556): the ~$0.002/comment figure in the cost model above is about 2x optimistic. Two Haiku turns driven through one session gave $0.0353 to start and $0.0041 for the second turn — see docs/spikes/cc-stream-json-2.1.226.md §9. Also measured there: 85-93% of Clide''s output tokens go on thinking rather than speaking, and result.total_cost_usd is cumulative for the session, not per-turn.', 'in_progress', 'medium', NULL, NULL, 'D-107', '2026-08-08 22:47:33.751', '2026-08-12 09:12:49.696', NULL, 'b64d46fe9c52a997341acf6cac26ebea', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE67WBTPXWZRD0XXQH6TMDC', 'task', '06FY73ZFJHHB92SAKPKNJGD9XC', 'Lifetime token stat on Clide''s overlay, with the split and an honest cost line', 'A lifetime token stat on Clide''s overlay, with enough context to mean something.
+
+## Why it belongs here specifically
+
+The companion spends **the same subscription quota that rate-limits the primary
+session** (D-107). That is the sharpest risk in the whole initiative, and right
+now it is invisible: the kill switch and the stingy trigger are both defences
+against a cost nobody can see. Putting the number where Clide''s conversation is
+makes the trade-off legible at the moment you are reading what you paid for.
+
+## The data exists
+
+Verified at claude 2.1.226 (`docs/spikes/cc-stream-json-2.1.226.md`). Every turn
+ends with a `result` event carrying `usage`, `modelUsage` and `total_cost_usd`,
+and each `message_delta` carries per-turn `usage` with the breakdown:
+
+```
+input_tokens, output_tokens, cache_creation_input_tokens,
+cache_read_input_tokens, output_tokens_details.thinking_tokens
+```
+
+Accumulating those across the session is arithmetic, not new plumbing.
+
+## What "with some info to it" should mean
+
+A bare number is a curiosity. The parts that make it informative:
+
+- **The split**, not just the total — cache reads are roughly a tenth the price
+  of fresh input, so a large total that is mostly cache reads is cheap and a
+  small one that is all cache *creation* is not.
+- **Thinking tokens called out separately.** Haiku 4.5 thinks by default, no flag
+  stops it, and a one-line quip cost 36 thinking tokens in the probe. If the
+  companion turns out to spend more on thinking than on speaking, this is the
+  surface that would show it — and that is an argument someone will want to make
+  about the design.
+- **Cost stated honestly.** `total_cost_usd` is reported per turn and is real,
+  but under subscription auth **nothing is billed** — the true currency is quota,
+  which upstream does not expose (see the note on T-141: `/usage` is TUI-only,
+  no file or API under subscription auth). Show the dollar figure as an
+  equivalent, not an invoice, or it will be misread.
+
+## Scope question to settle when picked up
+
+"Lifetime" of what? The session model is **one per clide run**, so the natural
+boundary is this run — and it is also the only one available, since nothing is
+persisted across runs by design (D-107, as amended). Spanning runs would need
+storage the initiative has deliberately chosen not to have, so either accept
+per-run or reopen that decision explicitly rather than by accident.
+
+## Depends on
+
+Epic E''s overlay existing, and Epic D''s session producing turns to count.', 'done', 'medium', NULL, NULL, 'D-107', '2026-08-09 15:16:42.206', '2026-08-12 09:19:22.718', NULL, '0d35eaf35f426f2a6f2762e9e696d5c5', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Z35AYAJQZ4MZMT25DPWC', 'epic', '06FY73V6EVHP32P31NQRJCP104', 'Epic D: Clide companion session + observed/direct protocol', 'Stand up the Haiku companion session, feed it a filtered digest of the main conversation,
+and give it a protocol that distinguishes *watching* from *being spoken to*. Pure plumbing —
+**can start immediately, in parallel with Epic A**.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams** — publish the reply/state stream that Epic B (face reactions to
+   companion errors) and Epic E (answer rendering) consume, and coordinate with B on reading
+   `StreamJsonSession` so the two epics don''t each grow their own subscription layer.
+
+## Spawning — no new process plumbing needed
+
+`ClaudeSessionOrchestrator.spawn(SpawnSpec(..., visible: false))`
+(`lib/builtin/claude/src/session_orchestrator.dart:209`) already yields a live stream-json
+session with **no pane**, idempotent per `(id, cwd)`, serialized against races.
+`visible: false` is the intended primitive for a headless agent. Precedent for spawning
+outside a pane: `_forkMember` at `claude_meta_sidebar.dart:256-274`.
+
+- Spawn id `clide.companion`, `--model haiku`.
+- `--no-session-persistence` so it never pollutes `~/.claude/projects` (precedent:
+  `claude_config.dart:576`).
+- **There is no Anthropic API client in the repo** — grep for `anthropic` / `ANTHROPIC_API_KEY`
+  across `lib/` returns only comments. Everything goes through the `claude` CLI, so this runs
+  on subscription auth exactly like the main session.
+
+## Digest — what Clide sees
+
+Filter `session.items` to **`UserMessage` + `AssistantTextMessage` only**. Drop
+`AssistantToolUse`, `ToolResultMessage`, thinking, and the clide-injected image/drawing/icon
+cards. Item model: `transcript_reader.dart:41-267`.
+
+**Known limitation, accepted for v1:** with tool calls excluded, *"what did that tool call
+do?"* is unanswerable. Asking what Claude **said** works; asking what Claude **did** does
+not. Revisit if it bites in practice.
+
+## Protocol — observed vs direct
+
+```
+[observed] jeroen: <prompt text>
+[observed] claude: <assistant prose>
+[direct]   jeroen: <question typed into Clide''s own input>
+```
+
+The system prompt states the split explicitly: `observed` lines are a conversation between
+the user and Claude that Clide is watching — remark rarely and briefly; `direct` lines are
+addressed to Clide — always answer. Reply in the active locale (`app.locale`, carried into
+the prompt). One or two sentences.
+
+Trigger for unprompted remarks: **notable events only** — turn finished, error, long run
+crossing a threshold, commit landed. Never per-token.
+
+## Cost guards — the constraints that actually shape this
+
+- **Restart the session at ~50 comments.** Cost grows quadratically (history re-sends each
+  turn). A rolling window is the wrong fix: evicting the oldest event changes the cache
+  prefix, so every turn would pay full price. Grow-then-restart preserves cache hits within
+  an epoch and bounds growth.
+- **Haiku 4.5''s prompt-cache minimum is 4096 tokens — the highest of any current model.**
+  Below it `cache_control` is silently ignored (`cache_creation_input_tokens: 0`, no error).
+  A lean sidekick prompt is uncached for roughly its first 20 comments.
+- **Do not set `effort`** — it errors on Haiku 4.5.
+- Leave thinking off (latency and tokens for a one-line quip), and cap `max_tokens` ~100 so
+  a bad turn can''t produce an essay.
+- Budget: ~$0.002/comment at 50 comments. But under subscription auth the real cost is
+  **quota**, drawn from the same pool already rate-limiting the main session — keep the
+  trigger stingy.
+
+## Lifecycle
+
+Respect the settings kill switch (Epic C) and the power ladder (Epic B): a disabled or
+dormant Clide should not hold a live process open. Tear the session down, don''t just stop
+reading it.
+
+BLOCKED BY T-527 (kill switch) — added deliberately 2026-08-09. D-107 commits the companion to being user-disableable to zero, and this epic is the thing that spends subscription quota from the same pool that already rate-limits the primary session. Landing it before an off switch exists would leave a window with no way to stop it short of quitting the app. Note the requirement is a real teardown of the claude process, not just hiding the UI — a hidden face still spawning a process and burning quota is exactly the failure the blocker exists to prevent.
+
+Session lifecycle settled with the product owner (2026-08-09).
+
+**The companion session lives alongside the main conversation, not beside it in
+time.** It tracks the primary session''s clear and restart windows: when the user
+clears or restarts the main conversation, Clide''s session goes with it. Without
+that, Clide keeps context the user believes they threw away — which is both a
+surprise and a quiet privacy problem, and it defeats the "he is watching *this*
+conversation" framing.
+
+Clide already owns `/clear`, `/resume` and `/compact` rather than forwarding them
+(T-156), so there is an existing interception point to hang this on.
+
+**Ingest is gated on the strip being open.** The orchestrator only feeds the
+digest while the strip is visible; minimizing pauses the session and stops the
+feed (see T-528). A minimized stretch is conversation Clide did not see, by
+design — it is the honest privacy story and the cheapest power rung, stronger
+than Epic B''s `night` because it stops ingest rather than rendering.
+
+Three discontinuities therefore exist, and they are not the same thing:
+
+| | Cause | Does Clide know? |
+|---|---|---|
+| Detach | user minimized the strip | yes — tell him, see T-532 |
+| Clear / restart | user reset the main conversation | yes, implicitly — he is reset too |
+| ~50-comment restart | our cost control | open question, T-532 |
+
+Prompt text for all three is **T-532**, split out of this epic.
+
+Wiring gap left by T-528 (2026-08-09): **minimising must pause ingest**, and cannot yet, because there is no session to pause.
+
+`companion.state` already carries `open`, so this epic has everything it needs — subscribe, and stop feeding the digest while `open` is false. The semantics are settled and are not a limitation to paper over: a minimised period is conversation Clide genuinely did not see, which is simultaneously the honest privacy story (nothing goes to a second model while he is closed) and the cheapest power rung — stronger than Epic B''s `night`, which stops rendering but not ingest.
+
+The re-attach notice that follows from it ("you were away for N minutes") is T-532''s.
+
+Broken down 2026-08-09 into six leaves: **T-545** session lifecycle, **T-546** digest filter + observed/direct framing, **T-547** trigger policy, **T-548** the reply/state seam, plus the two already filed from asides — **T-532** prompt templates and **T-534** conversation log.
+
+Order: T-545 first (nothing works without a session), then T-546 and T-548 in parallel off it, then T-547 off T-546. T-532''s bake-off needs a live session, so it follows T-545 too. T-534 is independent of all of them but **opens with a governance question** — D-107 says the companion writes nothing to the workspace, and a durable log is a write; that decision is the user''s and blocks Epic E.
+
+Two notes recorded during breakdown rather than left to be rediscovered:
+
+- **The digest filter is written as an allow-list, not a deny-list** (T-546). D-107 commitment 3 makes it a privacy boundary, so a new item type appearing in the union must be invisible to Clide until someone decides otherwise. A deny-list would leak it silently.
+- **`speaking` cannot come from the `partial-` prefix** (T-548). Epic B''s audit found the final assistant event is rewritten to carry the same uuid, so the prefix means ''came through the streaming path'', not ''arriving now''. Both epics read the same class, so exposing a streaming signal is a joint decision rather than a patch either one makes alone.
+
+**Cost-guards section superseded 2026-08-09 (D-107 amended).** The companion is an ordinary persisted session, one per clide run, and the ~50-comment restart is deleted rather than deferred — the CLI''s autocompaction handles context growth and clide coordinates nothing. `--no-session-persistence` is dropped: Clide''s transcript is a strict subset of what the primary session already persists, so it was protecting nothing.
+
+Knock-on: **T-534 is largely dissolved** (the conversation is a transcript, so there is no bespoke buffer to build), and Epic E gets simpler with it — the answer surface reads a `ConversationController` like the main pane rather than inventing a renderer. The remaining cost guards stand unchanged: notable events only, no `effort`, thinking off, `max_tokens` ~100, and the kill switch.
+
+New work landing in T-545 from this: filter companion transcripts out of clide''s `/resume` picker, which lists the whole project dir.
+
+**Wire contract verified against claude 2.1.226 (2026-08-09)** — `docs/spikes/cc-stream-json-2.1.226.md`. Three things in this epic''s brief are now known to be wrong or unachievable:
+
+1. **''Do not set `effort` — it errors on Haiku 4.5'' is false at 2.1.226.** `--model haiku --effort low` was accepted and ran clean. The prohibition is lifted — but it buys nothing, see below.
+2. **''Leave thinking off'' is not achievable from the CLI.** Haiku 4.5 thinks by default and `--effort low` does not stop it; there is no flag that does. A one-line quip cost 36 thinking tokens. Either accept it or find another lever, but the brief''s instruction cannot be followed as written.
+3. **`--model haiku` works as a spawn flag** (`init.model` = `claude-haiku-4-5-20251001`), so the model can be selected at spawn rather than by a `set_model` control request afterwards — no window where the session exists on the wrong model.
+
+**Cost, measured:** a first turn in a fresh session cost $0.0346 and $0.0265 across two probes, dominated by cache creation for the repo context (16k tokens). That is a *per-session* cost, and with one session per clide run it amortises — but the steady-state per-comment figure is still **unmeasured**, and the initiative''s ~$0.002 was never verified. T-547 should measure it before anyone relies on the number.
+
+**Framing (2026-08-09):** the companion session is namespace-locked to clide and is **a pane you chat with directly** — a dock, the same kind of surface as the primary conversation panel, not a hidden headless process with a bubble bolted on.
+
+Consequences worth carrying into the leaves:
+
+- The orchestrator id lives in clide''s namespace (`clide.companion`), which also makes the `/resume` picker filter trivial — it is a namespace check, not a heuristic on transcript contents (T-545).
+- `visible: false` is about *where it is docked by default*, not about it being second-class. Epic E''s overlay is then a conversation surface like the Claude pane rather than a bespoke renderer, which is the same direction the persistence decision pushed T-534.
+- It reinforces the session-agnostic requirement on the reader epic (T-550/T-551): the companion is another session read the same way, not a special case.
+
+Live smoke test 2026-08-11 (first end-to-end run).
+
+WORKS: 25 digest lines sent, 25 replies, 2 remarks. One per 12.5 exchanges against a brief targeting ''one in twelve''. Both remarks were apt (''Advisories sitting staged will slip from memory. Worth a ticket to track them.'' / ''Root cause with teeth — found what breaks, fixed what to check for.''). Zero unprompted remarks on ordinary turns.
+
+THREE DEFECTS FOUND, none of which unit tests could have caught, all fixed:
+1. The brief''s HTML authoring comment was going into the system prompt — ~200 tokens of ticket numbers and tuning notes telling Clide he is a construct, four paragraphs above the rule forbidding him to mention it. Visible only on the process command line.
+2. setModel(''haiku'') after spawn is echoed by the CLI into his conversation as a local command (caveat block + /model + stdout) at the head of his context. Visible only by reading his transcript. Now --model at spawn.
+3. A half-written face tag reached the bubble (''[idle'') because the voice parsed every streaming item. Visible only on screen. Now parsed at the turn boundary, plus a first-character guard for the max_tokens-truncation case timing cannot cover.
+
+PROMPT TUNING, evidence-led: rule 1 rewritten to describe the shape (knowingly trading safety for speed) rather than list git vocabulary — he walked past ''no safety, just delete it'' three times while catching every skipped changelog. The [direct] contract restates the reply format — two consecutive runs dropped the face tag when answering rather than remarking. Both fixed by worked examples rather than more instruction, the third time that has been what worked.
+
+THE REAL FINDING, and it is not a defect: the product owner''s verdict was ''nothing broke but nothing really did anything''. Every number is green and the lived experience is inert. Once-an-hour means a session with no notable event correctly produces silence, so the ambient half cannot demonstrate itself on demand. The half that could — the input box, always answered, no trigger, no pacing — is T-564 and is not built. Epic E is not the next feature; it is the missing half of this one.', 'done', 'medium', NULL, NULL, NULL, '2026-08-08 22:48:05.674', '2026-08-12 09:19:33.785', NULL, 'f6f3efc85389cc8cc8a2b2b82b9ad29d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73ZFJHHB92SAKPKNJGD9XC', 'epic', '06FY73V6EVHP32P31NQRJCP104', 'Epic E: Clide direct addressing — input box and answer surface', 'Make Clide addressable: an input box on its surface, and a readable place for the answer.
+This is what turns the companion from decoration into a tool — the driving use case is
+**"what did that mean?"** about what Claude just said, answered right where the work is.
+
+Blocked by Epic C (needs the surface and its internal composition) and Epic D (needs the
+session and the `[direct]` protocol tag).
+
+## Epic''s own first job
+
+1. **Break this epic down** once C and D have landed and their contracts are real.
+2. **Own the cross-epic behaviour** — a direct question changes face state (Epic B), consumes
+   the companion session (Epic D), and occupies surface space (Epic C). Don''t reimplement any
+   of those; extend them, and fold any needed contract changes back into the sibling epic
+   rather than working around it locally.
+
+## Scope
+
+- Input affordance on the Clide surface. Distinct from the Claude composer — it must be
+  visually and behaviourally obvious which one you''re typing into, since the whole point is
+  that they go to different models.
+- Submit → `[direct]` tagged line into the companion session (Epic D''s protocol).
+- Answer rendering. **Shape depends on T-514''s answer-space decision** — fixed height with
+  scroll inside the bubble, grow-to-cap-then-scroll, or take over the panel body.
+- Focus handling: focusing the input should put the face into `listening` (Epic B).
+- Direct questions bypass the notable-events trigger — always answered.
+
+## Design notes
+
+- Interactive controls belong in an interaction zone, not inline in a display surface —
+  the same principle as D-78''s rule for the Claude pane. The bubble stays display-only; the
+  input is its own region.
+- Two-column control pattern and the no-double-edge-padding rule from
+  `.claude/skills/ui-design/references/geometry.md` apply to the input row.
+- Placeholder text is a catalog string (D-21/D-102) and must tolerate ~30% length growth in
+  Dutch. Clide''s *answers* are model output and are not catalog strings.
+- At ultrawide, right-align with `Expanded`, not a `Spacer` fighting a flex sibling — the
+  drift is proportional to width (~1500px adrift at 3440px). See the ultrawide section of the
+  geometry reference.
+
+## Known limitation to surface in the UI
+
+Clide sees prose only — no tool calls, no tool results (Epic D). "What did that tool call
+do?" cannot be answered. Consider whether the empty/placeholder state should set that
+expectation rather than letting the user discover it by getting a bad answer.
+
+## Added by T-514 spike (2026-08-09) — conversation popout
+
+Placement B was chosen, which caps the inline strip at ~2 lines of text at a 1000px context
+panel and ~4 short lines at the 220px minimum. Inline answers therefore grow the strip to a
+capped height (~40% of the column) and collapse back when idle.
+
+That is enough to read one answer. It is not enough to review a session''s worth of them, so
+Epic E also gains an **expand control that opens a conversation popout**:
+
+- A **light version of the conversation view** — not a second full implementation. Reuse
+  what the Claude pane already has where practical rather than forking it.
+- Shows the **full Clide exchange for this session**: his unprompted remarks and your direct
+  questions, interleaved.
+- **Latest first.**
+- **Fetch limit + lazy loading on scroll** — do not materialise the whole history up front.
+- **A text box underneath to talk back**, so the popout is a working surface rather than a
+  read-only log. Same `[direct]` protocol path as the inline input (Epic D).
+- Surfaces **only actually-said things — never tool uses, never injected metadata.** This
+  mirrors the digest boundary Epic D enforces on the way in: Clide never saw tool calls, so
+  the popout must not invent a view containing them.
+
+Open questions for this epic to settle at breakdown:
+
+- Overlay versus takeover of the context body. Overlay preserves the detail view underneath
+  but is new chrome for this repo (focus trap, Esc-to-dismiss, click-away).
+- Whether the popout and the inline strip share one scroll model and one controller, or the
+  popout is a separate surface fed by the same store. Prefer one store, two views.
+- What "session" means when Epic D restarts the companion session at ~50 comments — the
+  popout''s history should almost certainly outlive the underlying model session, which
+  implies the transcript is clide-side state, not a read of the companion process.
+
+That last one is load-bearing and worth resolving early: it decides whether the popout reads
+from a clide-owned store or from the companion session, and the restart behaviour makes the
+store the likelier answer.
+
+Blocked on **T-534** (Clide conversation log), filed 2026-08-09. The popout described here — previous messages this session, latest first, fetch limit, lazy loading on scroll — has nothing to page through today: D-107 spawns the companion with `--no-session-persistence`, so nothing Clide says is recorded anywhere. T-534 gives this epic its data source, and settles where that log may live given D-107''s ''writes nothing to the workspace'' clause.
+
+Note the split the user drew: T-534 is **visual replay only**. It does not resume a session or restore model context — what Clide *remembers* stays a session and prompt concern (T-519, T-532). This epic renders history; it does not reconstruct a mind.', 'done', 'medium', NULL, NULL, NULL, '2026-08-08 22:48:08.852', '2026-08-12 09:19:33.792', NULL, '61846a1be1a2503cdaa7eca488813b72', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
