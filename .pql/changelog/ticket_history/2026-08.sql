@@ -15382,3 +15382,40 @@ Related tickets both closed: T-570 (CLI parity), T-571 (file picker).
 Nothing outstanding. T-506''s other child (T-323, graph view) was already done, so the epic is closable.', NULL, '2026-08-12 16:08:02', '2026-08-12 16:08:02.711', '2026-08-12 16:08:02.711', NULL, '6bacf5ea22838b95985a19b1e0e702d9', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2G1WD1839Z90AQ5C0BHNV4', 'status', 'in_progress', 'done', NULL, '2026-08-12 16:08:05', '2026-08-12 16:08:05.870', '2026-08-12 16:08:05.870', NULL, '6fbdff0927f082fb8a45408033bec0af', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FHAX7FV5KWGZQ31617R63W94', 'status', 'backlog', 'done', NULL, '2026-08-12 16:08:13', '2026-08-12 16:08:13.933', '2026-08-12 16:08:13.933', NULL, '34855882c53bb8f723196abfb556f0d6', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZDK216SJHEHNB1R0B97JWDR', 'description', NULL, 'Both shared widget harnesses mount their child through `Overlay(initialEntries: [OverlayEntry(builder: (_) => child)])` — `harness()` at test/helpers/widget_harness.dart:24 and `anchoredHarness()` at :50.
+
+`initialEntries` is read **once**, when the Overlay is first built. The `OverlayEntry`''s builder closure captures the `child` from that first call and keeps returning it. So a second `tester.pumpWidget(...)` with different arguments updates the Overlay element but changes nothing on screen: **the original child stays mounted.**
+
+## Why this is worse than an ordinary gotcha
+
+It fails silently, and in the direction of a false pass. The natural shape is:
+
+```dart
+await tester.pumpWidget(view(doc, someFlag: false));
+expect(thing, findsNothing);            // passes — correctly
+await tester.pumpWidget(view(doc, someFlag: true));
+expect(thing, findsOneWidget);          // fails — confusingly
+```
+
+The failing half at least announces itself. The dangerous half is the inverse: a test that re-pumps and then asserts the OLD behaviour still holds passes trivially, having exercised nothing. Nothing in the failure message points at the Overlay.
+
+## Encountered twice, both worked around locally
+
+- **T-322** — swapping the document to assert the view resets. Worked around by driving the swap through a `ValueNotifier` inside a single pump (test/builtin/canvas/canvas_view_test.dart, "a genuinely new document resets zoom, pan and selection").
+- **T-571** — toggling `onPickFile` to assert the add-note button appears. Worked around by splitting into two single-pump tests ("add-note is hidden when…" / "add-note appears once…").
+
+Both workarounds are fine locally and both cost debugging time first. The comments left at each site describe the trap but don''t stop the next person meeting it.
+
+## Fix directions (pick when doing it)
+
+1. **Rebuild the entry on update** — the simplest correct shape is to not use `initialEntries` for the content at all: pass the child through a widget below the Overlay, or hold the `OverlayEntry` and call `markNeedsBuild()` when the harness rebuilds.
+2. **Drop the Overlay where it isn''t needed.** `harness()`''s doc comment says the Overlay exists for Draggable feedback / Tooltip. Many callers need neither, and an Overlay-free variant would be re-pumpable and simpler.
+3. **Make it loud rather than silent** if neither is practical — e.g. assert in debug when the harness is rebuilt with a different child.
+
+## Do it together with the width problem
+
+`harness()` uses `Overlay(canSizeOverlay: true)` plus a zero-size `MediaQuery`, which hands the child unbounded width. That has its own history of biting tests (T-122, T-160) and is why `anchoredHarness` exists at all. Both problems live in the same few lines, and the second harness exists because of the first — worth one considered pass over the file rather than two patches.
+
+## Acceptance
+
+A test can `pumpWidget` the same harness twice with different arguments and see the second one. The existing workarounds in canvas_view_test.dart can be simplified back to the natural shape (or keep them and just delete the explanatory comments — either is evidence the fix works).', NULL, '2026-08-12 16:27:12', '2026-08-12 16:27:12.203', '2026-08-12 16:27:12.203', NULL, 'f2fccbd575c1503ad2808be7398fbd2b', 2) ON CONFLICT(hash) DO NOTHING;

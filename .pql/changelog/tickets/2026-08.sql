@@ -20208,3 +20208,41 @@ Related tickets both closed: T-570 (CLI parity), T-571 (file picker).
 
 Nothing outstanding. T-506''s other child (T-323, graph view) was already done, so the epic is closable.', 'done', 'medium', NULL, NULL, NULL, '2026-06-10 11:17:17', '2026-08-12 16:08:05.870', NULL, 'ed9ca8efdd356baf9ab079d87b1715c6', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
 INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FHAX7FV5KWGZQ31617R63W94', 'epic', NULL, 'Tier-5 interactive panes: canvas editor + graph view', 'Split out of T-317 (unified drawing-card epic, D-91) on 2026-06-29, once that epic''s drawing-card TEMPLATE half was complete (svg/d2/image/icon/compare/graph cards + stdin input, all landed). These are the two Tier-5 INTERACTIVE PANES (absorbed from the former T-7) that REUSE clide''s owned rendering stack (T-318/T-320) but are full workspace panes — interactive/editable, NOT display-only conversation cards (D-78 governs cards, not these). Each is a multi-session feature in its own right; they were separated so the template epic could close cleanly. Children: T-322 (canvas .canvas pane), T-323 (force-directed graph view; its layout solver core is already built — lib/src/graph/force_layout.dart). Refs D-91 (shared renderer), D-47 (slots), T-83 (MultitabPane).', 'done', 'medium', NULL, NULL, NULL, '2026-06-29 22:16:52.953', '2026-08-12 16:08:13.933', NULL, 'f3945108de0743c4c7ff057124f87346', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZDK216SJHEHNB1R0B97JWDR', 'bug', NULL, 'Widget harnesses freeze their child: Overlay(initialEntries) ignores a re-pump', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-08-12 16:26:49.014', '2026-08-12 16:26:49.014', NULL, '2b3e7af439b333504e28741765f147d6', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZDK216SJHEHNB1R0B97JWDR', 'bug', NULL, 'Widget harnesses freeze their child: Overlay(initialEntries) ignores a re-pump', 'Both shared widget harnesses mount their child through `Overlay(initialEntries: [OverlayEntry(builder: (_) => child)])` — `harness()` at test/helpers/widget_harness.dart:24 and `anchoredHarness()` at :50.
+
+`initialEntries` is read **once**, when the Overlay is first built. The `OverlayEntry`''s builder closure captures the `child` from that first call and keeps returning it. So a second `tester.pumpWidget(...)` with different arguments updates the Overlay element but changes nothing on screen: **the original child stays mounted.**
+
+## Why this is worse than an ordinary gotcha
+
+It fails silently, and in the direction of a false pass. The natural shape is:
+
+```dart
+await tester.pumpWidget(view(doc, someFlag: false));
+expect(thing, findsNothing);            // passes — correctly
+await tester.pumpWidget(view(doc, someFlag: true));
+expect(thing, findsOneWidget);          // fails — confusingly
+```
+
+The failing half at least announces itself. The dangerous half is the inverse: a test that re-pumps and then asserts the OLD behaviour still holds passes trivially, having exercised nothing. Nothing in the failure message points at the Overlay.
+
+## Encountered twice, both worked around locally
+
+- **T-322** — swapping the document to assert the view resets. Worked around by driving the swap through a `ValueNotifier` inside a single pump (test/builtin/canvas/canvas_view_test.dart, "a genuinely new document resets zoom, pan and selection").
+- **T-571** — toggling `onPickFile` to assert the add-note button appears. Worked around by splitting into two single-pump tests ("add-note is hidden when…" / "add-note appears once…").
+
+Both workarounds are fine locally and both cost debugging time first. The comments left at each site describe the trap but don''t stop the next person meeting it.
+
+## Fix directions (pick when doing it)
+
+1. **Rebuild the entry on update** — the simplest correct shape is to not use `initialEntries` for the content at all: pass the child through a widget below the Overlay, or hold the `OverlayEntry` and call `markNeedsBuild()` when the harness rebuilds.
+2. **Drop the Overlay where it isn''t needed.** `harness()`''s doc comment says the Overlay exists for Draggable feedback / Tooltip. Many callers need neither, and an Overlay-free variant would be re-pumpable and simpler.
+3. **Make it loud rather than silent** if neither is practical — e.g. assert in debug when the harness is rebuilt with a different child.
+
+## Do it together with the width problem
+
+`harness()` uses `Overlay(canSizeOverlay: true)` plus a zero-size `MediaQuery`, which hands the child unbounded width. That has its own history of biting tests (T-122, T-160) and is why `anchoredHarness` exists at all. Both problems live in the same few lines, and the second harness exists because of the first — worth one considered pass over the file rather than two patches.
+
+## Acceptance
+
+A test can `pumpWidget` the same harness twice with different arguments and see the second one. The existing workarounds in canvas_view_test.dart can be simplified back to the natural shape (or keep them and just delete the explanatory comments — either is evidence the fix works).', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-12 16:26:49.014', '2026-08-12 16:27:12.203', NULL, '45e1529bd0ce97d26e0c094c2cbd02df', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
