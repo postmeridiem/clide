@@ -1,0 +1,240 @@
+{
+  "name": "T-322 Canvas edit affordances — toolbar placement",
+  "shapes": {
+    "title": {
+      "type": "Text",
+      "left": 40, "top": 12,
+      "text": "T-322 — canvas pane add/delete actions  ·  two toolbar placements  ·  edges drawn by dragging an EDGE handle (round)",
+      "fontColor": "#c8d0e0", "fontSize": 16
+    },
+    "legend": {
+      "type": "Text",
+      "left": 40, "top": 38,
+      "text": "selected node shows  ■ corner handles (resize)  and  ● edge-midpoint handles (drag to another node to connect)",
+      "fontColor": "#6a7280", "fontSize": 12
+    },
+
+    "a-label": {
+      "type": "Text",
+      "left": 40, "top": 66,
+      "text": "A — toolbar strip under the sub-tab bar",
+      "fontColor": "#c8d8f0", "fontSize": 14
+    },
+    "a-pane": {
+      "type": "Rectangle",
+      "left": 40, "top": 90, "width": 620, "height": 420,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [8, 8, 8, 8]
+    },
+    "a-tabbar": {
+      "type": "Rectangle", "parent": "a-pane",
+      "left": 40, "top": 90, "width": 620, "height": 26,
+      "fillColor": "#21262f", "strokeColor": "#333340", "corners": [8, 8, 0, 0]
+    },
+    "a-tab1": {
+      "type": "Text", "parent": "a-tabbar",
+      "left": 54, "top": 95, "text": "architecture.canvas", "fontColor": "#c8d0e0", "fontSize": 12
+    },
+    "a-tab2": {
+      "type": "Text", "parent": "a-tabbar",
+      "left": 196, "top": 95, "text": "roadmap.canvas", "fontColor": "#6a7280", "fontSize": 12
+    },
+
+    "a-toolbar": {
+      "type": "Rectangle", "parent": "a-pane",
+      "left": 40, "top": 116, "width": 620, "height": 32,
+      "fillColor": "#21262f", "strokeColor": "#333340", "corners": [0, 0, 0, 0]
+    },
+    "a-btn-text": {
+      "type": "Rectangle", "parent": "a-toolbar",
+      "left": 52, "top": 122, "width": 78, "height": 20,
+      "fillColor": "#2a3040", "strokeColor": "#3a4254", "corners": [4, 4, 4, 4]
+    },
+    "a-btn-text-l": {
+      "type": "Text", "parent": "a-btn-text",
+      "left": 60, "top": 126, "text": "+ Text", "fontColor": "#c8d0e0", "fontSize": 11
+    },
+    "a-btn-note": {
+      "type": "Rectangle", "parent": "a-toolbar",
+      "left": 138, "top": 122, "width": 78, "height": 20,
+      "fillColor": "#2a3040", "strokeColor": "#3a4254", "corners": [4, 4, 4, 4]
+    },
+    "a-btn-note-l": {
+      "type": "Text", "parent": "a-btn-note",
+      "left": 146, "top": 126, "text": "+ Note…", "fontColor": "#c8d0e0", "fontSize": 11
+    },
+    "a-sep": {
+      "type": "Line", "parent": "a-toolbar",
+      "left": 228, "top": 124, "width": 1, "height": 16,
+      "strokeColor": "#3a4254"
+    },
+    "a-btn-del": {
+      "type": "Rectangle", "parent": "a-toolbar",
+      "left": 240, "top": 122, "width": 78, "height": 20,
+      "fillColor": "#2a3040", "strokeColor": "#3a4254", "corners": [4, 4, 4, 4]
+    },
+    "a-btn-del-l": {
+      "type": "Text", "parent": "a-btn-del",
+      "left": 248, "top": 126, "text": "Delete", "fontColor": "#c8d0e0", "fontSize": 11
+    },
+    "a-hint": {
+      "type": "Text", "parent": "a-toolbar",
+      "left": 470, "top": 126, "text": "always visible", "fontColor": "#6a7280", "fontSize": 11
+    },
+
+    "a-canvas": {
+      "type": "Rectangle", "parent": "a-pane",
+      "left": 40, "top": 148, "width": 620, "height": 362,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [0, 0, 8, 8]
+    },
+    "a-nodeA": {
+      "type": "Rectangle", "parent": "a-canvas",
+      "left": 130, "top": 210, "width": 150, "height": 76,
+      "fillColor": "#21262f", "strokeColor": "#c8d8f0", "corners": [5, 5, 5, 5]
+    },
+    "a-nodeA-l": {
+      "type": "Text", "parent": "a-nodeA",
+      "left": 140, "top": 218, "text": "IPC dispatcher", "fontColor": "#c8d0e0", "fontSize": 12
+    },
+    "a-nodeB": {
+      "type": "Rectangle", "parent": "a-canvas",
+      "left": 410, "top": 350, "width": 150, "height": 76,
+      "fillColor": "#21262f", "strokeColor": "#333340", "corners": [5, 5, 5, 5]
+    },
+    "a-nodeB-l": {
+      "type": "Text", "parent": "a-nodeB",
+      "left": 420, "top": 358, "text": "files service", "fontColor": "#c8d0e0", "fontSize": 12
+    },
+    "a-edge": {
+      "type": "Line", "parent": "a-canvas",
+      "left": 280, "top": 248, "width": 130, "height": 140,
+      "strokeColor": "#6a7280"
+    },
+
+    "a-h-tl": { "type": "Rectangle", "parent": "a-canvas", "left": 126, "top": 206, "width": 8, "height": 8, "fillColor": "#c8d8f0", "strokeColor": "#1a1e24" },
+    "a-h-tr": { "type": "Rectangle", "parent": "a-canvas", "left": 276, "top": 206, "width": 8, "height": 8, "fillColor": "#c8d8f0", "strokeColor": "#1a1e24" },
+    "a-h-bl": { "type": "Rectangle", "parent": "a-canvas", "left": 126, "top": 282, "width": 8, "height": 8, "fillColor": "#c8d8f0", "strokeColor": "#1a1e24" },
+    "a-h-br": { "type": "Rectangle", "parent": "a-canvas", "left": 276, "top": 282, "width": 8, "height": 8, "fillColor": "#c8d8f0", "strokeColor": "#1a1e24" },
+
+    "a-e-top": { "type": "Ellipse", "parent": "a-canvas", "left": 201, "top": 206, "width": 8, "height": 8, "fillColor": "#44CF6E", "strokeColor": "#1a1e24" },
+    "a-e-bot": { "type": "Ellipse", "parent": "a-canvas", "left": 201, "top": 282, "width": 8, "height": 8, "fillColor": "#44CF6E", "strokeColor": "#1a1e24" },
+    "a-e-left": { "type": "Ellipse", "parent": "a-canvas", "left": 126, "top": 244, "width": 8, "height": 8, "fillColor": "#44CF6E", "strokeColor": "#1a1e24" },
+    "a-e-right": { "type": "Ellipse", "parent": "a-canvas", "left": 276, "top": 244, "width": 8, "height": 8, "fillColor": "#44CF6E", "strokeColor": "#1a1e24" },
+
+    "b-label": {
+      "type": "Text",
+      "left": 720, "top": 66,
+      "text": "B — floating toolbar over the canvas",
+      "fontColor": "#c8d8f0", "fontSize": 14
+    },
+    "b-pane": {
+      "type": "Rectangle",
+      "left": 720, "top": 90, "width": 620, "height": 420,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [8, 8, 8, 8]
+    },
+    "b-tabbar": {
+      "type": "Rectangle", "parent": "b-pane",
+      "left": 720, "top": 90, "width": 620, "height": 26,
+      "fillColor": "#21262f", "strokeColor": "#333340", "corners": [8, 8, 0, 0]
+    },
+    "b-tab1": {
+      "type": "Text", "parent": "b-tabbar",
+      "left": 734, "top": 95, "text": "architecture.canvas", "fontColor": "#c8d0e0", "fontSize": 12
+    },
+    "b-tab2": {
+      "type": "Text", "parent": "b-tabbar",
+      "left": 876, "top": 95, "text": "roadmap.canvas", "fontColor": "#6a7280", "fontSize": 12
+    },
+    "b-canvas": {
+      "type": "Rectangle", "parent": "b-pane",
+      "left": 720, "top": 116, "width": 620, "height": 394,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [0, 0, 8, 8]
+    },
+
+    "b-float": {
+      "type": "Rectangle", "parent": "b-canvas",
+      "left": 736, "top": 132, "width": 34, "height": 112,
+      "fillColor": "#21262f", "strokeColor": "#3a4254", "corners": [6, 6, 6, 6]
+    },
+    "b-fb1": {
+      "type": "Rectangle", "parent": "b-float",
+      "left": 743, "top": 139, "width": 20, "height": 20,
+      "fillColor": "#2a3040", "strokeColor": "#3a4254", "corners": [4, 4, 4, 4]
+    },
+    "b-fb1-l": { "type": "Text", "parent": "b-fb1", "left": 749, "top": 143, "text": "T", "fontColor": "#c8d0e0", "fontSize": 11 },
+    "b-fb2": {
+      "type": "Rectangle", "parent": "b-float",
+      "left": 743, "top": 173, "width": 20, "height": 20,
+      "fillColor": "#2a3040", "strokeColor": "#3a4254", "corners": [4, 4, 4, 4]
+    },
+    "b-fb2-l": { "type": "Text", "parent": "b-fb2", "left": 749, "top": 177, "text": "N", "fontColor": "#c8d0e0", "fontSize": 11 },
+    "b-fb3": {
+      "type": "Rectangle", "parent": "b-float",
+      "left": 743, "top": 207, "width": 20, "height": 20,
+      "fillColor": "#2a3040", "strokeColor": "#3a4254", "corners": [4, 4, 4, 4]
+    },
+    "b-fb3-l": { "type": "Text", "parent": "b-fb3", "left": 749, "top": 211, "text": "X", "fontColor": "#c8d0e0", "fontSize": 11 },
+
+    "b-nodeA": {
+      "type": "Rectangle", "parent": "b-canvas",
+      "left": 830, "top": 190, "width": 150, "height": 76,
+      "fillColor": "#21262f", "strokeColor": "#c8d8f0", "corners": [5, 5, 5, 5]
+    },
+    "b-nodeA-l": {
+      "type": "Text", "parent": "b-nodeA",
+      "left": 840, "top": 198, "text": "IPC dispatcher", "fontColor": "#c8d0e0", "fontSize": 12
+    },
+    "b-nodeB": {
+      "type": "Rectangle", "parent": "b-canvas",
+      "left": 1110, "top": 330, "width": 150, "height": 76,
+      "fillColor": "#21262f", "strokeColor": "#333340", "corners": [5, 5, 5, 5]
+    },
+    "b-nodeB-l": {
+      "type": "Text", "parent": "b-nodeB",
+      "left": 1120, "top": 338, "text": "files service", "fontColor": "#c8d0e0", "fontSize": 12
+    },
+    "b-edge": {
+      "type": "Line", "parent": "b-canvas",
+      "left": 980, "top": 228, "width": 130, "height": 140,
+      "strokeColor": "#6a7280"
+    },
+
+    "b-h-tl": { "type": "Rectangle", "parent": "b-canvas", "left": 826, "top": 186, "width": 8, "height": 8, "fillColor": "#c8d8f0", "strokeColor": "#1a1e24" },
+    "b-h-tr": { "type": "Rectangle", "parent": "b-canvas", "left": 976, "top": 186, "width": 8, "height": 8, "fillColor": "#c8d8f0", "strokeColor": "#1a1e24" },
+    "b-h-bl": { "type": "Rectangle", "parent": "b-canvas", "left": 826, "top": 262, "width": 8, "height": 8, "fillColor": "#c8d8f0", "strokeColor": "#1a1e24" },
+    "b-h-br": { "type": "Rectangle", "parent": "b-canvas", "left": 976, "top": 262, "width": 8, "height": 8, "fillColor": "#c8d8f0", "strokeColor": "#1a1e24" },
+
+    "b-e-top": { "type": "Ellipse", "parent": "b-canvas", "left": 901, "top": 186, "width": 8, "height": 8, "fillColor": "#44CF6E", "strokeColor": "#1a1e24" },
+    "b-e-bot": { "type": "Ellipse", "parent": "b-canvas", "left": 901, "top": 262, "width": 8, "height": 8, "fillColor": "#44CF6E", "strokeColor": "#1a1e24" },
+    "b-e-left": { "type": "Ellipse", "parent": "b-canvas", "left": 826, "top": 224, "width": 8, "height": 8, "fillColor": "#44CF6E", "strokeColor": "#1a1e24" },
+    "b-e-right": { "type": "Ellipse", "parent": "b-canvas", "left": 976, "top": 224, "width": 8, "height": 8, "fillColor": "#44CF6E", "strokeColor": "#1a1e24" },
+
+    "b-drag": {
+      "type": "Line", "parent": "b-canvas",
+      "left": 984, "top": 228, "width": 96, "height": 82,
+      "strokeColor": "#44CF6E"
+    },
+    "b-drag-l": {
+      "type": "Text", "parent": "b-canvas",
+      "left": 1000, "top": 268, "text": "drag → connect", "fontColor": "#44CF6E", "fontSize": 11
+    },
+
+    "note-a": {
+      "type": "Text",
+      "left": 40, "top": 526,
+      "text": "A · costs 32px of canvas height, always discoverable, matches the diff/editor pane chrome. Buttons disable when nothing is selected.",
+      "fontColor": "#6a7280", "fontSize": 12
+    },
+    "note-b": {
+      "type": "Text",
+      "left": 40, "top": 548,
+      "text": "B · no height cost and the canvas stays full-bleed, but it floats over content and needs its own hide/show rule at small pane sizes.",
+      "fontColor": "#6a7280", "fontSize": 12
+    },
+    "note-c": {
+      "type": "Text",
+      "left": 40, "top": 570,
+      "text": "Both · every button also gets a CLI verb for D-6 parity (clide canvas add-text / add-note / delete / connect). Right-click menus stay T-289's.",
+      "fontColor": "#6a7280", "fontSize": 12
+    }
+  }
+}
