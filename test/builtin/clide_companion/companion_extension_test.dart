@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
+
+import 'package:clide/src/ipc/envelope.dart';
 
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
@@ -173,6 +176,80 @@ void main() {
       await f.services.extensions.deactivate(ext.id);
 
       expect(companion(), isNull, reason: 'a process that outlives its extension outlives its off switch');
+    });
+
+    test('a language change re-composes his brief (T-558)', () async {
+      // His brief is a locale-routed document and the prompt is argv, so a
+      // language change cannot be applied to a running process — the sync path
+      // has to run again and hand the controller a new one.
+      //
+      // The trigger is I18n's own notification, NOT the `app.locale` setting.
+      // Both fire, but `root_shell` reacts to that same store to call
+      // setLocale: with our listener first we would compose from the locale on
+      // its way out and conclude nothing had changed. I18n notifies once, after
+      // the catalogs are loaded, which is the only moment the new locale is
+      // true. Asserted here as "a settings write did not do it" — the locale is
+      // never written in this test.
+      await pumpEventQueue();
+      expect(companion(), isNotNull);
+
+      await f.services.i18n.setLocale(const Locale('nl', 'NL'));
+      await pumpEventQueue();
+
+      // Only `en_us/clide-brief.md` is bundled, so nl_NL falls back to it and
+      // the composed prompt is byte-identical. That must NOT restart him: a
+      // locale with no brief of its own is not a language change as far as
+      // Clide is concerned, and throwing away his conversation for a prompt
+      // that did not move is the failure this compare exists to prevent.
+      expect(companion(), isNotNull, reason: 'an identical brief must not cost him his conversation');
+      expect(ext.sessionController!.running, isTrue);
+    });
+  });
+
+  group('a language change reaches him (T-558)', () {
+    // Both tests count trips through `_syncSession`. With no workspace open,
+    // resolving the root falls through to `files.root` over IPC — so stubbing
+    // it turns "did the sync path run" into something countable. An empty path
+    // answers "no workspace", which keeps this process-free: nothing spawns,
+    // and the count is the only effect.
+
+    test('it follows i18n rather than the app.locale setting', () async {
+      // Both notifications exist. The settings one races: `root_shell` reacts
+      // to that same store to call setLocale, so if our listener ran first we
+      // would compose the brief from the locale on its way out and conclude
+      // nothing had changed. I18n notifies once, after the catalogs are loaded,
+      // which is the only moment the new locale is actually true.
+      //
+      // The locale is never written to settings here, so a settings listener
+      // could not have produced this.
+      var calls = 0;
+      f.ipc.stub('files.root', (_) async {
+        calls++;
+        return IpcResponse.ok(id: '', data: const {'path': ''});
+      });
+      await pumpEventQueue();
+      calls = 0;
+
+      await f.services.i18n.setLocale(const Locale('nl', 'NL'));
+      await pumpEventQueue();
+
+      expect(calls, greaterThan(0), reason: 'a language change must re-run the sync path — the brief is fixed at spawn');
+    });
+
+    test('and stops when the extension does', () async {
+      var calls = 0;
+      f.ipc.stub('files.root', (_) async {
+        calls++;
+        return IpcResponse.ok(id: '', data: const {'path': ''});
+      });
+      await f.services.extensions.deactivate(ext.id);
+      await pumpEventQueue();
+      calls = 0;
+
+      await f.services.i18n.setLocale(const Locale('nl', 'NL'));
+      await pumpEventQueue();
+
+      expect(calls, 0, reason: 'a listener that outlives its extension is a leak that spawns processes');
     });
   });
 

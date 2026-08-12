@@ -185,6 +185,38 @@ void main() {
       expect(identical(c.session, before), isTrue);
     });
 
+    test('a changed brief replaces the session (T-558)', () async {
+      // The prompt is argv, so there is no way to apply a new one to a running
+      // process. This is the whole mechanism behind restart-on-language-change,
+      // and behind a rename or an edited self-description taking effect at all.
+      final c = controller();
+      addTearDown(c.shutdown);
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
+      final before = c.session;
+
+      await c.sync(enabled: true, open: true, root: '/repo', brief: 'Je bent Clide.');
+
+      expect(procs, hasLength(2));
+      expect(procs.first.killed, isTrue, reason: 'the old process was launched with the old instructions');
+      expect(identical(c.session, before), isFalse);
+      expect(ids.toSet(), hasLength(2), reason: 'a fresh session, not a resume — his history is in the old language');
+    });
+
+    test('an identical brief does not', () async {
+      // Recomposed on every sync, so this comparison runs constantly. Getting
+      // it wrong would respawn him on every settings notification and cost him
+      // his conversation each time.
+      final c = controller();
+      addTearDown(c.shutdown);
+      await c.sync(enabled: true, open: true, root: '/repo', brief: _brief);
+      final before = c.session;
+
+      await c.sync(enabled: true, open: true, root: '/repo', brief: 'You are Clide.');
+
+      expect(procs, hasLength(1));
+      expect(identical(c.session, before), isTrue);
+    });
+
     test('a workspace switch spawns a companion for the new repo', () async {
       final c = controller();
       addTearDown(c.shutdown);

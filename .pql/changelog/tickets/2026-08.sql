@@ -18820,3 +18820,133 @@ E (T-520) mounts its input box and answer surface inside C1''s strip. C1 therefo
 **internal composition** — face region, bubble region, input region — and settles it once, so
 E fills a slot rather than renegotiating layout. C2 owns height behaviour including the
 grow-to-cap-while-answering that E''s answers trigger; E should not implement its own resizing.', 'done', 'medium', NULL, NULL, NULL, '2026-08-08 22:48:02.404', '2026-08-11 21:26:51.979', NULL, '99f71ffad0eaeed6586d0690ce17552d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE8GBV5MVX2X928BTJ2399W', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'Changing the UI language restarts the companion session', 'Changing the UI language must restart the companion session.
+
+## The caveat does not apply — the change is live
+
+Checked before filing: `root_shell._applyLocale` reads `app.locale` on settings
+changes and calls `i18n.setLocale`, which reloads the catalogs and notifies. The
+UI relabels itself in place; **there is no restart to piggyback on**, so this
+needs handling explicitly.
+
+## Why a restart rather than a note mid-conversation
+
+The locale reaches Clide **through the prompt** — D-107 is explicit that his
+replies are model output, not catalog strings, and that the language is carried
+by the prompt rather than translated afterwards. So a language change is a change
+to his instructions, and there are three reasons that wants a fresh session
+rather than a mid-conversation correction:
+
+1. **The system prompt itself changes.** T-532 has the prompt templates resolving
+   through i18n; if that lands, the instruction text is different in the new
+   locale and cannot be retro-applied to a session that was started with the old
+   one.
+2. **"From now on, reply in Dutch" is weaker than starting in Dutch.** A session
+   whose entire history is English has a strong pull back toward it, and the
+   failure is quiet — the occasional English reply rather than an error.
+3. **The visible conversation would go bilingual.** The overlay shows one
+   conversation; half of it in the previous language reads as a bug.
+
+## Consequences to accept deliberately
+
+- **The visible history is lost.** Under the settled design the conversation *is*
+  the session''s transcript, so a restart starts a new one. Acceptable — switching
+  UI language is a deliberate, rare act — but it should be a decision here rather
+  than a surprise later.
+- **`app.locale` is app-scoped and the companion is per-repo.** One language
+  change restarts every workspace''s companion, not just the focused one. That is
+  correct, and worth being explicit about so it is not read as a bug.
+
+## Where it belongs
+
+The same place as the other lifecycle triggers (T-545): the kill switch tears
+down, `/clear` tears down, the primary''s clear/restart follows — and a locale
+change joins that list. Do not build a second mechanism for it.
+
+If T-532 concludes the prompt templates stay single-language after all, revisit:
+the argument in §1 weakens, though §2 and §3 stand on their own.
+
+Correction (2026-08-10, from T-532): this ticket''s first argument is RESTORED, having briefly looked dead.
+
+T-532 settled the prompt as a locale-routed document — assets/clide/prompts/<locale>/clide-brief.md, resolved through the same FallbackChain as the catalogs — rather than either catalog keys or one English text. So the instruction body genuinely differs per locale, and it cannot be retro-applied to a running session: changing the language changes the brief, and the brief is fixed at spawn.
+
+Also note root_shell._applyLocale calls i18n.setLocale LIVE — nothing restarts today, by design, so the UI relabels in place. The companion restart has to be wired explicitly; it does not come for free.
+
+The wiring is small under T-545: CompanionSessionController.sync() already takes desired state and tears down/respawns when it changes. Adding the locale to that state makes a language change a restart with no new mechanism.
+
+Same rule now covers three more settings T-532 added, all prompt-shaped and therefore all restart-on-change: app.companion.userName, app.companion.about, app.companion.moodChannel (the last also changes the spawn posture, not just the text).
+
+Done 2026-08-11. Wired to I18n''s notification, plus 4 tests.
+
+**The trigger is i18n, not the app.locale setting — that is the whole decision.** Both notifications exist and the settings one races: root_shell reacts to the same store to call setLocale, so with our listener registered first we would compose the brief from the locale on its way out and conclude nothing had changed. Listener order on a ChangeNotifier is registration order, which is not something to depend on. I18n notifies once, after the catalogs are loaded, which is the only moment the new locale is actually true.
+
+**No new mechanism, as the ticket asked.** The locale change routes into the same _syncSession the kill switch, a workspace switch and a rename already take: the brief is recomposed, the controller compares it against the one the live session was launched with, and replaces the session when they differ. Both halves are now tested — a changed brief spawns a fresh session and kills the old process; an identical one does not.
+
+**Consequence found while checking, and it is the right behaviour:** only assets/clide/prompts/en_us/clide-brief.md is bundled, so switching to Dutch today resolves to the same document through the fallback chain and produces a byte-identical prompt — and therefore no restart. That is correct: a locale with no brief of its own is not a language change as far as Clide is concerned, and throwing away his conversation for a prompt that did not move is exactly what the compare exists to prevent. The wiring goes live the moment a locale gets its own brief, which is a file rather than a code change. Asserted as a test.
+
+The deactivate path is covered too — a listener that outlives its extension is a leak that spawns processes.', 'backlog', 'medium', NULL, NULL, 'D-107', '2026-08-09 15:26:35.993', '2026-08-12 06:20:30.154', NULL, '5f383c83a785bc17ea5d51d91d7f247d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE8GBV5MVX2X928BTJ2399W', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'Changing the UI language restarts the companion session', 'Changing the UI language must restart the companion session.
+
+## The caveat does not apply — the change is live
+
+Checked before filing: `root_shell._applyLocale` reads `app.locale` on settings
+changes and calls `i18n.setLocale`, which reloads the catalogs and notifies. The
+UI relabels itself in place; **there is no restart to piggyback on**, so this
+needs handling explicitly.
+
+## Why a restart rather than a note mid-conversation
+
+The locale reaches Clide **through the prompt** — D-107 is explicit that his
+replies are model output, not catalog strings, and that the language is carried
+by the prompt rather than translated afterwards. So a language change is a change
+to his instructions, and there are three reasons that wants a fresh session
+rather than a mid-conversation correction:
+
+1. **The system prompt itself changes.** T-532 has the prompt templates resolving
+   through i18n; if that lands, the instruction text is different in the new
+   locale and cannot be retro-applied to a session that was started with the old
+   one.
+2. **"From now on, reply in Dutch" is weaker than starting in Dutch.** A session
+   whose entire history is English has a strong pull back toward it, and the
+   failure is quiet — the occasional English reply rather than an error.
+3. **The visible conversation would go bilingual.** The overlay shows one
+   conversation; half of it in the previous language reads as a bug.
+
+## Consequences to accept deliberately
+
+- **The visible history is lost.** Under the settled design the conversation *is*
+  the session''s transcript, so a restart starts a new one. Acceptable — switching
+  UI language is a deliberate, rare act — but it should be a decision here rather
+  than a surprise later.
+- **`app.locale` is app-scoped and the companion is per-repo.** One language
+  change restarts every workspace''s companion, not just the focused one. That is
+  correct, and worth being explicit about so it is not read as a bug.
+
+## Where it belongs
+
+The same place as the other lifecycle triggers (T-545): the kill switch tears
+down, `/clear` tears down, the primary''s clear/restart follows — and a locale
+change joins that list. Do not build a second mechanism for it.
+
+If T-532 concludes the prompt templates stay single-language after all, revisit:
+the argument in §1 weakens, though §2 and §3 stand on their own.
+
+Correction (2026-08-10, from T-532): this ticket''s first argument is RESTORED, having briefly looked dead.
+
+T-532 settled the prompt as a locale-routed document — assets/clide/prompts/<locale>/clide-brief.md, resolved through the same FallbackChain as the catalogs — rather than either catalog keys or one English text. So the instruction body genuinely differs per locale, and it cannot be retro-applied to a running session: changing the language changes the brief, and the brief is fixed at spawn.
+
+Also note root_shell._applyLocale calls i18n.setLocale LIVE — nothing restarts today, by design, so the UI relabels in place. The companion restart has to be wired explicitly; it does not come for free.
+
+The wiring is small under T-545: CompanionSessionController.sync() already takes desired state and tears down/respawns when it changes. Adding the locale to that state makes a language change a restart with no new mechanism.
+
+Same rule now covers three more settings T-532 added, all prompt-shaped and therefore all restart-on-change: app.companion.userName, app.companion.about, app.companion.moodChannel (the last also changes the spawn posture, not just the text).
+
+Done 2026-08-11. Wired to I18n''s notification, plus 4 tests.
+
+**The trigger is i18n, not the app.locale setting — that is the whole decision.** Both notifications exist and the settings one races: root_shell reacts to the same store to call setLocale, so with our listener registered first we would compose the brief from the locale on its way out and conclude nothing had changed. Listener order on a ChangeNotifier is registration order, which is not something to depend on. I18n notifies once, after the catalogs are loaded, which is the only moment the new locale is actually true.
+
+**No new mechanism, as the ticket asked.** The locale change routes into the same _syncSession the kill switch, a workspace switch and a rename already take: the brief is recomposed, the controller compares it against the one the live session was launched with, and replaces the session when they differ. Both halves are now tested — a changed brief spawns a fresh session and kills the old process; an identical one does not.
+
+**Consequence found while checking, and it is the right behaviour:** only assets/clide/prompts/en_us/clide-brief.md is bundled, so switching to Dutch today resolves to the same document through the fallback chain and produces a byte-identical prompt — and therefore no restart. That is correct: a locale with no brief of its own is not a language change as far as Clide is concerned, and throwing away his conversation for a prompt that did not move is exactly what the compare exists to prevent. The wiring goes live the moment a locale gets its own brief, which is a file rather than a code change. Asserted as a test.
+
+The deactivate path is covered too — a listener that outlives its extension is a leak that spawns processes.', 'done', 'medium', NULL, NULL, 'D-107', '2026-08-09 15:26:35.993', '2026-08-12 06:20:34.634', NULL, 'a8ba6bb42b21b94fcc33047e333cd810', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

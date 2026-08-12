@@ -76,6 +76,7 @@ class ClideCompanionExtension extends ClideExtension {
     _sets = ctx.messages.subscribe(publisher: clideCompanionPublisher, channel: companionSetChannel).listen(_onSet);
     ctx.settings.addListener(_onSettingsChanged);
     ctx.project.addListener(_onProjectChanged);
+    ctx.i18n.addListener(_onLocaleChanged);
     _session = CompanionSessionController();
     // Seed: announce once so anything already mounted agrees with the store.
     // Late subscribers seed themselves from the store instead — the bus does
@@ -92,6 +93,7 @@ class ClideCompanionExtension extends ClideExtension {
     await _sets?.cancel();
     _ctx?.settings.removeListener(_onSettingsChanged);
     _ctx?.project.removeListener(_onProjectChanged);
+    _ctx?.i18n.removeListener(_onLocaleChanged);
     await _session?.shutdown();
     _session = null;
     _ctx = null;
@@ -201,6 +203,26 @@ class ClideCompanionExtension extends ClideExtension {
   }
 
   void _onProjectChanged() => unawaited(_syncSession());
+
+  /// The UI language changed, so Clide's instructions did (T-558).
+  ///
+  /// His brief is a locale-routed document (T-532) and the prompt is argv, so a
+  /// language change cannot be applied to a running process — the controller
+  /// sees a different brief and replaces the session. No new mechanism: this is
+  /// the same desired-state path the kill switch and a workspace switch take.
+  ///
+  /// **Listening to i18n rather than to the `app.locale` setting is the point.**
+  /// Both notifications exist, but the settings one races: `root_shell` reacts to
+  /// the same store to call `setLocale`, and if our listener runs first we
+  /// compose the brief from the locale that is on its way out and decide nothing
+  /// changed. `I18n` notifies once, after the catalogs are loaded, which is the
+  /// only moment the new locale is actually true.
+  ///
+  /// Two accepted consequences, both from the ticket: the visible conversation
+  /// is his transcript, so a restart starts an empty one; and `app.locale` is
+  /// app-scoped while he is per-repo, so one language change restarts every
+  /// workspace's companion. Both are correct for a deliberate, rare act.
+  void _onLocaleChanged() => unawaited(_syncSession());
 
   ClideCompanionSettings get _prefs {
     final ctx = _ctx;
