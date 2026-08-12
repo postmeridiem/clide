@@ -6,10 +6,10 @@
 /// events through the [DaemonEventSink].
 library;
 
-import 'dart:convert';
 import 'dart:io';
 
 import '../files/path_safety.dart';
+import '../ipc/content_args.dart' as ipc_content;
 import '../ipc/envelope.dart';
 import '../panes/event_sink.dart';
 import 'buffer.dart';
@@ -234,12 +234,6 @@ class EditorRegistry {
   }
 
   // Support JSON decode of content payloads (base64 for binary safety
-  // or plain text).
-  static String contentFromArgs(Map<String, Object?> args) {
-    final text = args['text'];
-    if (text is String) return text;
-    final b64 = args['content_b64'];
-    if (b64 is String) return utf8.decode(base64Decode(b64));
-    return '';
-  }
+  // or plain text). Shared with `files.write` — see [contentFromArgs].
+  static String contentFromArgs(Map<String, Object?> args) => ipc_content.contentFromArgs(args);
 }
