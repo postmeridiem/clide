@@ -99,6 +99,8 @@ Commit and push directly to `main` for routine work — this is a solo-dev repo 
 
 The pre-commit hook auto-exports and stages `.pql/changelog/` (the pql ticket DB) on every commit — don't hand-stage it. A ticket change only persists if the turn makes at least one commit; with no commit the hook never fires and a later branch switch can drop it.
 
+**Commit per change; batch pushes to checkpoints.** The pre-push gate (`.githooks/pre-push`, installed by `make hooks`) runs the full suite *plus the coverage gate* — ~2 minutes — whenever the push touches `lib/`, `test/`, `ci/`, `.githooks/` or `pubspec.*`. It costs the same whether it guards one commit or twenty, so pushing per commit pays it over and over for no extra safety. Push at a natural checkpoint, or when asked. (A push touching none of those runs only the instant decisions + changelog gates, so plan-only commits are cheap to send.) Never `--no-verify`: if the gate is slow, fix the slow test.
+
 ## Changelog discipline
 
 [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/). Every user-visible commit adds an entry under `## [Unreleased]` in [`CHANGELOG.md`](CHANGELOG.md). Cutting a release means moving Unreleased entries under a new dated version heading **and** bumping `pubspec.yaml` `version:` in the same commit — see [`.claude/skills/git-commit/SKILL.md`](.claude/skills/git-commit/SKILL.md) for the full rule.
