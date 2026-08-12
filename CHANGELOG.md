@@ -23,9 +23,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   broken out from what he actually said. Nothing is billed under a subscription;
   the real cost is quota shared with your main session. Also `clide
   companion.usage`.
-- **Canvas nodes can be moved and resized** (T-322) — drag a node to move it,
-  drag a corner handle to resize it. The view no longer re-fits as you drag, so
-  the canvas holds still under the cursor.
+- **The canvas pane is editable** (T-322) — drag a node to move it, drag a
+  corner handle to resize it, and the `.canvas` file is written back on disk
+  after each edit. The view no longer re-fits as you drag, so the canvas holds
+  still under the cursor.
 - **`clide files write <path> [text]`** (T-322) — writes a workspace file over
   IPC, confined to the workspace root. Unlike `files.read` it does not honour
   the trusted extra read roots, and it resolves a new file's parent directory

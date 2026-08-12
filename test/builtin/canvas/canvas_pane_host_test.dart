@@ -4,9 +4,13 @@
 /// [CanvasView].
 library;
 
+import 'dart:async';
+
 import 'package:clide/builtin/canvas/canvas.dart';
 import 'package:clide/builtin/canvas/src/canvas_view.dart';
 import 'package:clide/clide.dart';
+import 'package:clide/kernel/kernel.dart';
+import 'package:clide/src/canvas/json_canvas.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -89,6 +93,111 @@ void main() {
 
     expect(find.text('canvas: top level must be a JSON object'), findsOneWidget);
     expect(find.byType(CanvasView), findsNothing);
+  });
+
+  group('persistence', () {
+    MultitabController<String> oneTab() => MultitabController<String>(
+      initial: [const MultitabEntry(id: 'a.canvas', title: 'a.canvas', payload: 'a.canvas')],
+    );
+
+    testWidgets('an edit is written back through files.write', (tester) async {
+      final writes = <Map<String, Object?>>[];
+      f.ipc.stub('files.read', (args) async => IpcResponse.ok(id: '1', data: {'content': _validCanvas}));
+      f.ipc.stub('files.write', (args) async {
+        writes.add(args);
+        return IpcResponse.ok(id: '1', data: const {'bytes': 1});
+      });
+      final tabs = oneTab();
+      addTearDown(tabs.dispose);
+
+      await tester.pumpWidget(host(tabs));
+      await pumpAsync(tester);
+      await tester.dragFrom(tester.getCenter(find.byType(CanvasView)), const Offset(40, 0), touchSlopX: 0, touchSlopY: 0);
+      await pumpAsync(tester);
+
+      expect(writes, hasLength(1));
+      expect(writes.single['path'], 'a.canvas');
+      final saved = CanvasDoc.parse(writes.single['text']! as String);
+      expect(saved.node('n1')!.x, greaterThan(0), reason: 'the moved position is what got written');
+      expect((saved.node('n1')! as TextNode).text, 'hi', reason: 'the payload survives the round trip');
+    });
+
+    testWidgets('a pan does not write — only a real edit does', (tester) async {
+      var writes = 0;
+      f.ipc.stub('files.read', (args) async => IpcResponse.ok(id: '1', data: {'content': _validCanvas}));
+      f.ipc.stub('files.write', (args) async {
+        writes++;
+        return IpcResponse.ok(id: '1', data: const {'bytes': 1});
+      });
+      final tabs = oneTab();
+      addTearDown(tabs.dispose);
+
+      await tester.pumpWidget(host(tabs));
+      await pumpAsync(tester);
+      // Top-left corner of the view is padding, not the node.
+      await tester.dragFrom(tester.getTopLeft(find.byType(CanvasView)) + const Offset(3, 3), const Offset(40, 0), touchSlopX: 0, touchSlopY: 0);
+      await pumpAsync(tester);
+
+      expect(writes, 0);
+    });
+
+    testWidgets('a failed write toasts and keeps the canvas on screen', (tester) async {
+      f.ipc.stub('files.read', (args) async => IpcResponse.ok(id: '1', data: {'content': _validCanvas}));
+      f.ipc.stub('files.write', (args) async {
+        return IpcResponse.err(
+          id: '1',
+          error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'path outside workspace: a.canvas'),
+        );
+      });
+      final tabs = oneTab();
+      addTearDown(tabs.dispose);
+
+      await tester.pumpWidget(host(tabs));
+      await pumpAsync(tester);
+      await tester.dragFrom(tester.getCenter(find.byType(CanvasView)), const Offset(40, 0), touchSlopX: 0, touchSlopY: 0);
+      await pumpAsync(tester);
+
+      expect(f.services.toast.entries, hasLength(1));
+      expect(f.services.toast.entries.single.severity, ToastSeverity.error);
+      expect(f.services.toast.entries.single.message, contains('a.canvas'));
+      expect(f.services.toast.entries.single.message, contains('path outside workspace'));
+      // The edit the user made is still theirs to retry — not blanked out.
+      expect(find.byType(CanvasView), findsOneWidget);
+    });
+
+    testWidgets('edits during an in-flight write coalesce to the latest', (tester) async {
+      final gate = Completer<void>();
+      final written = <String>[];
+      f.ipc.stub('files.read', (args) async => IpcResponse.ok(id: '1', data: {'content': _validCanvas}));
+      f.ipc.stub('files.write', (args) async {
+        written.add(args['text']! as String);
+        if (written.length == 1) await gate.future; // hold the first write open
+        return IpcResponse.ok(id: '1', data: const {'bytes': 1});
+      });
+      final tabs = oneTab();
+      addTearDown(tabs.dispose);
+
+      await tester.pumpWidget(host(tabs));
+      await pumpAsync(tester);
+      final centre = tester.getCenter(find.byType(CanvasView));
+
+      await tester.dragFrom(centre, const Offset(20, 0), touchSlopX: 0, touchSlopY: 0);
+      await tester.pump();
+      // Two more edits while the first write is still in flight.
+      await tester.dragFrom(centre, const Offset(20, 0), touchSlopX: 0, touchSlopY: 0);
+      await tester.pump();
+      await tester.dragFrom(centre, const Offset(20, 0), touchSlopX: 0, touchSlopY: 0);
+      await tester.pump();
+      expect(written, hasLength(1), reason: 'writes do not overlap');
+
+      gate.complete();
+      await pumpAsync(tester);
+
+      // The two queued edits collapse into one write, carrying the last
+      // position — not two round trips for a position already superseded.
+      expect(written, hasLength(2));
+      expect(CanvasDoc.parse(written.last).node('n1')!.x, greaterThan(CanvasDoc.parse(written.first).node('n1')!.x));
+    });
   });
 
   testWidgets('two documents render as two sub-tabs, keep-alive across switches', (tester) async {

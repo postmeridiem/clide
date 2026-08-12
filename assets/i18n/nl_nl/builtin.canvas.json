@@ -1,5 +1,6 @@
 {
   "tab.title": { "translation": "Canvas" },
   "empty": { "translation": "Open een .canvas-bestand om het hier te bekijken." },
-  "status.loading": { "translation": "Laden…" }
+  "status.loading": { "translation": "Laden…" },
+  "save.failed": { "translation": "Kon {path} niet opslaan: {reason}" }
 }

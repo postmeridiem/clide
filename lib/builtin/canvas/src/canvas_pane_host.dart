@@ -55,7 +55,8 @@ class _EmptyHint extends StatelessWidget {
 }
 
 /// One open `.canvas` document: fetches [path] through `files.read`, parses
-/// the JSONCanvas model, and hands it to the interactive [CanvasView].
+/// the JSONCanvas model, hands it to the interactive [CanvasView], and
+/// writes edits back through `files.write`.
 class CanvasDocumentTab extends StatefulWidget {
   const CanvasDocumentTab({super.key, required this.path});
 
@@ -69,6 +70,12 @@ class _CanvasDocumentTabState extends State<CanvasDocumentTab> {
   CanvasDoc? _doc;
   String? _error;
   bool _requested = false;
+
+  /// One write at a time. [CanvasView] reports once per gesture, but a fast
+  /// sequence of drags would otherwise overlap writes to the same file and
+  /// land in completion order rather than edit order.
+  bool _writing = false;
+  CanvasDoc? _queued;
 
   @override
   void didChangeDependencies() {
@@ -93,6 +100,56 @@ class _CanvasDocumentTabState extends State<CanvasDocumentTab> {
     }
   }
 
+  void _onChanged(CanvasDoc doc) {
+    setState(() => _doc = doc);
+    unawaited(_save(ClideKernel.of(context), doc));
+  }
+
+  /// Persist [doc], coalescing anything that arrives mid-write down to the
+  /// latest — an intermediate drag position isn't worth a second round trip.
+  Future<void> _save(KernelServices kernel, CanvasDoc doc) async {
+    if (_writing) {
+      _queued = doc;
+      return;
+    }
+    _writing = true;
+    try {
+      var pending = doc;
+      while (true) {
+        final resp = await kernel.ipc.request('files.write', args: {'path': widget.path, 'text': pending.encode()});
+        if (!resp.ok) _reportSaveFailure(kernel, resp.error?.message ?? '');
+        final next = _queued;
+        _queued = null;
+        if (next == null) return;
+        pending = next;
+      }
+    } finally {
+      _writing = false;
+    }
+  }
+
+  /// A failed save is a toast, not a pane replacement: the canvas on screen
+  /// is still the user's work and blanking it would lose the edit they were
+  /// trying to keep.
+  void _reportSaveFailure(KernelServices kernel, String reason) {
+    if (!mounted) return;
+    publishToast(
+      kernel.messages,
+      'builtin.canvas',
+      ClideSettings.i18n.interpolated(
+        context,
+        'save.failed',
+        namespace: 'builtin.canvas',
+        placeholder: 'Could not save {path}: {reason}',
+        replacers: [
+          I18nReplacer(from: '{path}', replace: widget.path),
+          I18nReplacer(from: '{reason}', replace: reason),
+        ],
+      ),
+      severity: ToastSeverity.error,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final error = _error;
@@ -106,6 +163,6 @@ class _CanvasDocumentTabState extends State<CanvasDocumentTab> {
         child: ClideText(ClideSettings.i18n.string(context, 'status.loading', namespace: 'builtin.canvas', placeholder: 'Loading…'), muted: true),
       );
     }
-    return CanvasView(doc: doc);
+    return CanvasView(doc: doc, onChanged: _onChanged);
   }
 }
