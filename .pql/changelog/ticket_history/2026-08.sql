@@ -15183,3 +15183,47 @@ NOT DONE, filed rather than left implicit:
 T-322 stays in_progress: its own scope names the file-picker affordance, so it isn''t met until T-571 lands (or the user splits that out and closes this).', NULL, '2026-08-12 15:13:09', '2026-08-12 15:13:09.719', '2026-08-12 15:13:09.719', NULL, '2b7f4a0203738903b89391a5ceca47eb', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZD201SDN651G02NYSDFN018', 'status', 'backlog', 'in_progress', NULL, '2026-08-12 15:21:43', '2026-08-12 15:21:43.375', '2026-08-12 15:21:43.375', NULL, 'e0b193a60e845eb21bf743cb096a2c2f', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZD201SDN651G02NYSDFN018', 'status', 'in_progress', 'in_progress', NULL, '2026-08-12 15:21:51', '2026-08-12 15:21:51.126', '2026-08-12 15:21:51.126', NULL, '339f8923b6edf953e8096276dcc517f5', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZD201SDN651G02NYSDFN018', 'description', 'The canvas pane''s edit actions ship with no CLI, which is a live D-6 violation ("every UI action has a CLI"). Filed at the moment it was introduced (T-322, 8d564afb) rather than discovered later.
+
+**The actions needing verbs:** add text node, delete selected node, connect two nodes, move/resize a node. `clide canvas add-text <path> [--x --y]`, `canvas delete <path> <nodeId>`, `canvas connect <path> <fromId> <toId> [--from-side]` is the obvious shape; the read side already exists as `clide ui open canvas <path>`.
+
+**Why it isn''t a quick add.** The working document lives in `_CanvasViewState`, not in a service. A verb has no way to reach the open document, and writing the file behind the pane''s back would desync it — the pane holds its own copy and would overwrite the CLI''s edit on the next drag.
+
+So this needs the document state lifted out of the widget, most likely onto `CanvasExtension` (which already holds the app-scoped `MultitabController`), with the view rendering it and reporting edits up. That is the same shape as the T-233 diff pattern. Once the doc is service-side, the verbs are thin.
+
+**Do it before adding more edit affordances** — every one added first is another verb owed, and another call site to migrate when the state moves.
+
+Note the pane already persists through `files.write`, so the CLI could technically read-modify-write a `.canvas` on disk today. That is NOT an acceptable shortcut here: with the pane open, its in-memory copy wins the next time the user drags anything.', 'The canvas pane''s edit actions ship with no CLI, which is a live D-6 violation ("every UI action has a CLI"). Filed at the moment it was introduced (T-322, 8d564afb) rather than discovered later.
+
+**The actions needing verbs:** add text node, delete selected node, connect two nodes, move/resize a node. `clide canvas add-text <path> [--x --y]`, `canvas delete <path> <nodeId>`, `canvas connect <path> <fromId> <toId> [--from-side]` is the obvious shape; the read side already exists as `clide ui open canvas <path>`.
+
+**Why it isn''t a quick add.** The working document lives in `_CanvasViewState`, not in a service. A verb has no way to reach the open document, and writing the file behind the pane''s back would desync it — the pane holds its own copy and would overwrite the CLI''s edit on the next drag.
+
+So this needs the document state lifted out of the widget, most likely onto `CanvasExtension` (which already holds the app-scoped `MultitabController`), with the view rendering it and reporting edits up. That is the same shape as the T-233 diff pattern. Once the doc is service-side, the verbs are thin.
+
+**Do it before adding more edit affordances** — every one added first is another verb owed, and another call site to migrate when the state moves.
+
+Note the pane already persists through `files.write`, so the CLI could technically read-modify-write a `.canvas` on disk today. That is NOT an acceptable shortcut here: with the pane open, its in-memory copy wins the next time the user drags anything.
+
+DONE (2026-08-12). Six verbs, the D-6 gap closed: `canvas.list`, `add-text`, `move`, `resize`, `connect`, `delete`.
+
+STATE LIFT (abffb86d) — the prerequisite this ticket predicted. `CanvasDocumentStore` (lib/builtin/canvas/src/canvas_store.dart) holds the working documents app-scoped on `CanvasExtension`, beside the `MultitabController` it mirrors (diff/T-233 pattern), and owns the load, the write serialisation/coalescing and the failure toast that `_CanvasDocumentTabState` used to. The tab is now a `ListenableBuilder` over the store.
+
+`CanvasView` gained `documentKey` (the pane passes the path). It previously conflated two cases: a NEW doc under the SAME key is an external edit and now keeps pan/zoom/selection; a new key is a different file and resets. Without this the first CLI verb would have yanked the viewport out from under whoever was looking at it. Selection is dropped only when the node it pointed at is gone. NOTE this changed an existing behaviour — the old "any unfamiliar doc resets" is still what a null key does.
+
+`CanvasBounds` moved from canvas_painter.dart to json_canvas.dart: it is geometry over the model, not painting, and the daemon needs it to place a node with no viewport. The painter kept the fitting (`CanvasViewport`).
+
+VERBS (d35e16f3) — lib/src/daemon/canvas_commands.dart, Flutter-free, tested under `dart test` against a fake. They reach live state through an injected `CanvasDocuments` interface (the `ui.filter` FilterValueSource pattern), wired in main.dart from `canvasExtension.documents` after `activateAll()`.
+
+KEY CONTRACT: the verbs drive the OPEN document, never the file on disk. The ticket flagged the disk shortcut as unacceptable and that held up — the pane holds its own copy and would overwrite it on the next drag. A `.canvas` that isn''t open is a not-found whose hint names what IS open (or how to open one). Same stance `ui.open`/`ui.filter` take about needing a live GUI.
+
+Behaviour worth not re-deriving: add-text with no --x/--y centres on existing content (the CLI analogue of the button''s "middle of what you''re looking at"); delete reports `edgesRemoved` because dropping edges is a side effect nobody asked for; connect refuses a duplicate and a self-connection; `--from-side` is validated by the schema (`allowed:`), not by hand.
+
+NO C-CLIENT CHANGE NEEDED. The client ships raw argv under `_argv` and `_isValidIdentifier` already allows hyphens, so `clide canvas add-text --from-side right` routes as-is. Covered by two new parseArgv tests.
+
+TRAP: `store.open()` must NOT notify on the loading transition — the tab calls it from `didChangeDependencies`, i.e. during build, and marking an already-building widget dirty throws. Nothing is lost; a tab with no document renders the loading state either way.
+
+Tests: 26 canvas_commands (dart test), 13 canvas_store, 74 canvas suite total, 2 argv routing. Full `make test` green (4528 + 50 + 8), `make test-core` green (57 + 682), `make run-testmode` real boot 48/48 failed:0.
+
+NOT VERIFIED LIVE: the running instance hosting the session predates the build (`clide canvas list` → "unknown command: canvas.list", as expected), and it was not restarted mid-session. Every hop is covered by tests — argv→cmd, cmd→handler, handler→store, store→pane — leaving only the generic socket layer unexercised for these particular verbs.', NULL, '2026-08-12 15:42:02', '2026-08-12 15:42:02.951', '2026-08-12 15:42:02.951', NULL, '50e42417ae5c211aa520908c7ac16ed5', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZD201SDN651G02NYSDFN018', 'status', 'in_progress', 'done', NULL, '2026-08-12 15:42:05', '2026-08-12 15:42:05.692', '2026-08-12 15:42:05.692', NULL, '7013719ac5947dde94175f457f581fce', 2) ON CONFLICT(hash) DO NOTHING;
