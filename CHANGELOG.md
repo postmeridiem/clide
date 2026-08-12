@@ -27,6 +27,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   handles, drag a round edge handle onto another node to connect them, and add
   or delete nodes from a floating toolbar you can move aside. Every edit is
   written back to the `.canvas` file.
+- **`clide canvas list|add-text|move|resize|connect|delete`** (T-570) — the CLI
+  half of the canvas pane's edit actions. They drive the open document, so the
+  pane updates live and keeps your pan, zoom and selection; a `.canvas` that
+  isn't open is a clean error rather than a silent write.
 - **`clide files write <path> [text]`** (T-322) — writes a workspace file over
   IPC, confined to the workspace root. Unlike `files.read` it does not honour
   the trusted extra read roots, and it resolves a new file's parent directory

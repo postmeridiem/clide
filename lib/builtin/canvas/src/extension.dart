@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:clide/builtin/canvas/src/canvas_pane_host.dart';
+import 'package:clide/builtin/canvas/src/canvas_store.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/src/daemon/canvas_commands.dart' show CanvasDocuments;
 import 'package:clide/widgets/widgets.dart';
 
 /// Tier-5 interactive `.canvas` pane (T-322). Renders Obsidian JSONCanvas
@@ -24,9 +26,18 @@ class CanvasExtension extends ClideExtension {
   /// while another workspace tab is active. Built in [activate]; the
   /// contribution's build closure reads the field at widget-build time.
   MultitabController<String>? _tabs;
+
+  /// The working documents. Lives here rather than in the tab widget so the
+  /// `canvas.*` verbs can drive the same state the pane renders (T-570).
+  CanvasDocumentStore? _store;
+
   StreamSubscription<Message>? _selectionSub;
   StreamSubscription<ProjectOpened>? _projectSub;
   String? _projectRoot;
+
+  /// The open documents, for the `canvas.*` command handlers. Null before
+  /// activation — the verbs report "no live UI" then.
+  CanvasDocuments? get documents => _store;
 
   @override
   List<ContributionPoint> get contributions => [
@@ -37,13 +48,14 @@ class CanvasExtension extends ClideExtension {
       titleKey: 'tab.title',
       i18nNamespace: id,
       priority: -60, // below the readers' home surfaces, near diff (-70)
-      build: (_) => CanvasPaneHost(tabs: _tabs),
+      build: (_) => CanvasPaneHost(tabs: _tabs, store: _store),
     ),
   ];
 
   @override
   Future<void> activate(ClideExtensionContext ctx) async {
     _tabs = MultitabController<String>();
+    _store = CanvasDocumentStore(ipc: ctx.ipc, messages: ctx.messages, i18n: ctx.i18n);
     _selectionSub = ctx.messages.subscribe(publisher: id, channel: 'selection').listen((msg) {
       final path = msg.data['path'];
       if (path is! String || path.isEmpty) return;
@@ -74,6 +86,7 @@ class CanvasExtension extends ClideExtension {
     final prev = _projectRoot;
     _projectRoot = e.path;
     if (prev == null || prev == e.path) return;
+    _store?.closeAll();
     final tabs = _tabs;
     if (tabs == null) return;
     for (final id in tabs.entries.map((x) => x.id).toList()) {
@@ -94,5 +107,7 @@ class CanvasExtension extends ClideExtension {
     _projectSub = null;
     _tabs?.dispose();
     _tabs = null;
+    _store?.dispose();
+    _store = null;
   }
 }

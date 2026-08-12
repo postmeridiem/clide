@@ -46,6 +46,7 @@ import 'package:clide/src/daemon/draw_commands.dart';
 import 'package:clide/src/draw/compare_template.dart' show compareTemplateHandler;
 import 'package:clide/src/draw/d2_template.dart' show d2TemplateHandler;
 import 'package:clide/src/draw/graph_template.dart' show graphTemplateHandler;
+import 'package:clide/src/daemon/canvas_commands.dart';
 import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
 import 'package:clide/src/daemon/git_commands.dart';
@@ -170,6 +171,9 @@ Future<void> main() async {
   // The filter-state cache, captured post-boot so `ui.filter` can read a
   // box's current value back — the observe-half of D-6 (T-270).
   FilterStateCache? kernelFilterStates;
+  // The canvas extension's open documents, captured post-activation so the
+  // `canvas.*` verbs edit the same document the pane renders (T-570).
+  CanvasDocuments? canvasDocuments;
   // The kernel Logger, captured in the factory so a post-boot project switch
   // can rebuild the dispatcher with PTY breadcrumbs wired (T-434).
   Logger? kernelLog;
@@ -384,6 +388,10 @@ Future<void> main() async {
     // (T-231, drive-half of D-6). Publishes a 'selection' to the kernel
     // MessageBus, captured post-boot; null in headless contexts.
     registerUiCommands(dispatcher, () => kernelMessages?.publish, filterValue: (address) => kernelFilterStates?.get(address));
+    // `clide canvas add-text|move|resize|connect|delete|list` — the CLI half
+    // of the canvas pane's edit actions (T-570, D-6). Drives the OPEN
+    // document, not the file on disk, so the pane can't overwrite it.
+    registerCanvasCommands(dispatcher, () => canvasDocuments);
     // `clide image show <path>` — drive an image card into the Claude
     // conversation log (T-249, drive-half of D-6). Resolves the path
     // (workspace-relative → absolute, must exist) here where workRoot is in
@@ -599,6 +607,10 @@ Future<void> main() async {
   // shows socket-side logs alongside kernel/extension ones.
   ipcLog.addSink(services.logRing.add);
 
+  // Held rather than constructed inline so its document store can be handed
+  // to the `canvas.*` verbs after activation (T-570).
+  final canvasExtension = CanvasExtension();
+
   // Register every built-in. Tier 0 activates only the four that do
   // real work; the rest compile in as stubs so the extensions-ui can
   // list them when Tier 6 lands.
@@ -628,7 +640,7 @@ Future<void> main() async {
     ..register(GrammarsCoreExtension())
     ..register(MarkdownExtension())
     ..register(TodosExtension())
-    ..register(CanvasExtension())
+    ..register(canvasExtension)
     ..register(GraphExtension())
     // UI extensions
     ..register(ViewExtension(textZoom: services.textZoom))
@@ -642,6 +654,9 @@ Future<void> main() async {
     ..register(CliInstallExtension());
 
   await services.extensions.activateAll();
+  // The store exists only once the extension has activated; until then the
+  // `canvas.*` verbs correctly report "no live UI".
+  canvasDocuments = canvasExtension.documents;
 
   if (!kIsWeb) {
     await services.project.loadRecents();

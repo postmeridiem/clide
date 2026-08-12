@@ -158,6 +158,20 @@ void main() {
     });
   });
 
+  group('parseArgv — hyphenated verbs and flags (canvas.*, T-570)', () {
+    test('a hyphenated verb becomes subsystem.verb', () {
+      final req = _expectOk(parseArgv(['canvas', 'add-text', 'map.canvas', 'a thought'], requestId: '1'));
+      expect(req.cmd, 'canvas.add-text');
+      expect(req.args['positional'], ['map.canvas', 'a thought']);
+    });
+
+    test('a hyphenated flag name survives to the handler', () {
+      final req = _expectOk(parseArgv(['canvas', 'connect', 'map.canvas', 'a', 'b', '--from-side', 'right'], requestId: '2'));
+      expect(req.cmd, 'canvas.connect');
+      expect((req.args['flags']! as Map)['from-side'], 'right');
+    });
+  });
+
   group('parseArgv — clide:// deep links route to the gated handler (T-56)', () {
     test('a clide:// URL is handed verbatim to deeplink.invoke (not translated)', () {
       // Validation + the user prompt happen in the handler (D-90), not here.
