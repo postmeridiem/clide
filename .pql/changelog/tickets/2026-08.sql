@@ -19683,3 +19683,133 @@ Clide is chrome, not a card), D-87, D-101, D-21/D-102. Related: T-241 (ultrawide
 Measured (2026-08-12, T-556): the ~$0.002/comment figure in the cost model above is about 2x optimistic. Two Haiku turns driven through one session gave $0.0353 to start and $0.0041 for the second turn — see docs/spikes/cc-stream-json-2.1.226.md §9. Also measured there: 85-93% of Clide''s output tokens go on thinking rather than speaking, and result.total_cost_usd is cumulative for the session, not per-turn.
 
 Closed 2026-08-12. All 36 filed descendants resolved (34 done, 2 cancelled — T-534 dissolved by the D-107 amendment that let Clide write an ordinary transcript, T-565 superseded by T-566''s popout). The acceptance bar''s golden-coverage clause was the one gap found on review: goldens covered clide_face and clide_strip but not the popout, where Epic E put the answer surface. Closed with that filled — clide_popout_states and clide_usage_line.', 'done', 'medium', NULL, NULL, 'D-107', '2026-08-08 22:47:33.751', '2026-08-12 10:03:22.799', NULL, '339a6606555ed1c5410cb2b01b713b86', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0FWH7B6FN89P3THTVCZTM', 'epic', NULL, 'Shared Claude session reader — one interface, all four consumers', 'One interface for reading a Claude session, and every consumer on it. Rescoped
+from T-549 (a task) on 2026-08-09 at the user''s direction: *"create a shared
+claude stream reader interface and apply it to all four consumers."*
+
+**Blocks Epic D''s session work (T-545, T-548).** Deliberately — Epic D would
+otherwise write the fourth copy of this logic, and its own brief already asked
+the two epics not to each grow their own subscription layer.
+
+## The problem, counted
+
+Three independent implementations of *bind to a session, rebind when the
+orchestrator notifies, cancel the old subscriptions*, plus a fourth about to be
+written:
+
+| Consumer | Reads |
+|---|---|
+| `claude_pane.dart` | busy, items, ended, model errors, pending prompt |
+| `claude_meta_sidebar.dart:205` `_bindPrimary()` | status, items, workflows |
+| `clide_companion/src/load_adapter.dart` (T-538) | busy, via the orchestrator |
+| **the companion''s own session** (Epic D) | items for the digest, state for the face |
+
+The third was written by copying the second. That is the tell: the rule is real,
+nobody wrote it down, and it is spreading.
+
+## Why an interface, not just a helper
+
+Because the same hazards are rediscovered at every site and each is one oversight
+from being got wrong:
+
+- **`endedStream` has no replay.** Check `session.end` first, *then* subscribe,
+  or a session that died before you bound looks alive forever
+  (`claude_pane.dart:421-426` gets this right; nothing makes the next copy).
+- **Rebind must cancel first.** The orchestrator notifies on spawn, close, show,
+  hide, mute and session-id resolution — all routine — so a missed cancel means
+  every later event is handled twice.
+- **Some streams replay and some do not** (`busyStream`, `statusStream`,
+  `pendingPromptStream`, `workflowsStream` do; `endedStream`, `modelErrors` do
+  not), and nothing in the type tells you which.
+
+An interface can encode all three once. A helper each site calls differently
+cannot.
+
+## Requirements
+
+1. **Session-agnostic.** It reads *a* session, not *the primary* one — the fourth
+   consumer binds the companion, and a design that hardcodes `''primary''` fails
+   that on day one. Primary-tracking is then a thin case of the general one.
+2. **Consumers never see the orchestrator.** Bind once, keep working across
+   respawns, workspace switches and session-id resolution.
+3. **Seeding is part of the contract**, not something each caller remembers: a
+   consumer that binds late must get current state, including for the streams
+   that do not replay.
+4. **Teardown is total.** Disposing releases every subscription and the
+   orchestrator listener.
+
+The concrete shape — facade, controller, `bindSession()` — is for the
+implementer, and should be settled by reading the three existing call sites
+rather than from this description.
+
+## Acceptance
+
+Refactor with **no behaviour change**: the existing tests for each migrated
+consumer must pass **unmodified**. A test that needs editing is evidence
+behaviour moved, not code — investigate rather than update it.
+
+## Not in scope
+
+Anything added to `StreamJsonSession` itself. Epic B''s audit lists real gaps
+(no public streaming signal, `thinking_delta` dropped by `_onStreamEvent`, no
+turn-start timestamp); each wants its own decision and its own ticket. This epic
+changes who subscribes and how, not what there is to subscribe to.
+
+**Redesigned 2026-08-09 after probing the real wire contract**
+(`docs/spikes/cc-stream-json-2.1.226.md`). Read this over the "Not in scope"
+section above, which it reverses.
+
+## What the probe changed
+
+The epic said: *"Not in scope: anything added to `StreamJsonSession` itself…
+This epic changes who subscribes and how, not what there is to subscribe to."*
+
+That boundary was drawn on the belief — inherited from the Epic B audit and the
+2.1.150 spike — that the missing signals were missing **from the wire**. They are
+not. At 2.1.226 the CLI streams thinking as its own content block with
+`thinking_delta` deltas, and every `result` carries `is_error`, `stop_reason`,
+`terminal_reason` and `api_error_status`. `_onStreamEvent` drops all of it
+because it gates on `text_delta` and reads only `total_cost_usd`.
+
+So the gap is **in our parser**, not upstream. And that changes the argument: if
+this epic ships a reader while leaving the parser blind, then Epic D — which
+needs exactly those signals for the companion''s face and its digest — has no
+choice but to patch `StreamJsonSession` alongside the new reader. That is the
+duplication this epic exists to prevent, reproduced one layer down.
+
+**The exclusion is therefore lifted for the signals the probe proved are on the
+wire.** Not as a licence to grow the class generally: each addition surfaces
+something already arriving and already being discarded, and anything else still
+wants its own decision.
+
+## Revised requirement
+
+The reader''s job is to expose **what the session actually reports**, which now
+includes:
+
+- **Thinking as a live signal** — in progress, not only the completed block.
+  This is the honest `pensive` → `speaking` distinction Epic D needs, and it
+  retires the "busy but no text yet" inference the plan has been resting on.
+- **Turn outcome** — whether the turn failed, and why. The Epic B audit recorded
+  that `rage` had no source; it has one, and it is two fields we never read.
+
+Both are added at the parser and surfaced through the reader, once, rather than
+by each consumer learning to parse events.
+
+## Traps the probe found, to be honoured rather than rediscovered
+
+- **`system/thinking_tokens` is not a token count.** It is the CLI''s own running
+  estimate from delta sizes, it counts the signature blob as thinking, and it
+  reported 99 against an authoritative 36. Fine as a liveness hint; wrong as a
+  number. If the reader surfaces it at all, name it so nobody sums it.
+- **A `partial-` uuid does not mean "arriving now."** The final assistant event is
+  rewritten to carry it. Anything deriving "is streaming" from the prefix is
+  wrong, and a real streaming signal is now available instead.
+
+## Sequencing
+
+R1 grows: the interface lands together with the parser additions, because a
+reader shaped around today''s blind parser is the wrong shape. The three
+migrations (R2–R4) and the non-primary case (R5) are unchanged — their consumers
+do not use the new signals, which is exactly why "their tests pass unmodified"
+remains the right acceptance check.', 'done', 'high', NULL, NULL, NULL, '2026-08-09 14:51:34.922', '2026-08-12 10:17:20.523', NULL, 'a295dff171debdf44aef9bfb28249f29', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
