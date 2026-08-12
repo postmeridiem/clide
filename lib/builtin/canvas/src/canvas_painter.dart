@@ -33,6 +33,14 @@ class CanvasBounds {
     }
     return CanvasBounds(l, t, r, b);
   }
+
+  // Value equality so a repaint check compares the fit, not the instance.
+  @override
+  bool operator ==(Object other) =>
+      other is CanvasBounds && other.left == left && other.top == top && other.right == right && other.bottom == bottom;
+
+  @override
+  int get hashCode => Object.hash(left, top, right, bottom);
 }
 
 /// Fits a doc's [content] bounds into the pane (aspect-preserving, padded, and
@@ -77,9 +85,12 @@ Color? canvasContentColor(String? spec) {
 /// The id of the topmost node under [local], or null. Uses the same
 /// [CanvasViewport.fit] the painter draws with, so a click lands on what's
 /// shown. Cards (drawn last) win over the group frames behind them.
-String? hitTestCanvasNode(CanvasDoc doc, Offset local, Size size, {double zoom = 1, Offset pan = Offset.zero}) {
+///
+/// [bounds] must match what the painter was given — pass the editing pane's
+/// frozen bounds, or omit it to re-derive from [doc] as the viewer does.
+String? hitTestCanvasNode(CanvasDoc doc, Offset local, Size size, {CanvasBounds? bounds, double zoom = 1, Offset pan = Offset.zero}) {
   if (doc.isEmpty) return null;
-  final vp = CanvasViewport.fit(size, CanvasBounds.of(doc), zoom: zoom, pan: pan);
+  final vp = CanvasViewport.fit(size, bounds ?? CanvasBounds.of(doc), zoom: zoom, pan: pan);
   for (final n in doc.nodes.reversed) {
     if (n is! GroupNode && vp.rectOf(n).contains(local)) return n.id;
   }
@@ -97,21 +108,59 @@ Color? _hex(String s) {
   return v == null ? null : Color(0xFF000000 | v);
 }
 
+/// Half-width of a corner resize handle, in pixels. The grab area is the
+/// same square inflated by [canvasHandleGrabSlop].
+const double canvasHandleRadius = 4;
+
+/// Extra pixels around a handle that still count as grabbing it — a 4px
+/// square is drawable but not reliably clickable.
+const double canvasHandleGrabSlop = 4;
+
+/// The four corner handle centres of a node's screen [rect], in the order
+/// [CanvasCorner] declares.
+List<Offset> canvasHandleCentres(Rect rect) => [rect.topLeft, rect.topRight, rect.bottomLeft, rect.bottomRight];
+
+/// Which corner of a node a resize gesture grabbed.
+enum CanvasCorner { topLeft, topRight, bottomLeft, bottomRight }
+
+/// The corner handle of [rect] under [local], or null. Only meaningful for
+/// the selected node — handles are drawn for that node alone.
+CanvasCorner? canvasHandleAt(Rect rect, Offset local) {
+  final centres = canvasHandleCentres(rect);
+  const reach = canvasHandleRadius + canvasHandleGrabSlop;
+  for (var i = 0; i < centres.length; i++) {
+    if ((local - centres[i]).dx.abs() <= reach && (local - centres[i]).dy.abs() <= reach) {
+      return CanvasCorner.values[i];
+    }
+  }
+  return null;
+}
+
 class CanvasPainter extends CustomPainter {
-  CanvasPainter({required this.doc, required this.tokens, this.zoom = 1, this.pan = Offset.zero, this.selected});
+  CanvasPainter({required this.doc, required this.tokens, this.bounds, this.zoom = 1, this.pan = Offset.zero, this.selected, this.showHandles = false});
 
   final CanvasDoc doc;
   final SurfaceTokens tokens;
+
+  /// Content bounds to fit into the pane. The editing pane freezes these at
+  /// load so moving a node doesn't re-fit — and so re-scale — the whole
+  /// canvas under the cursor. Null re-derives per paint (the viewer).
+  final CanvasBounds? bounds;
+
   final double zoom;
   final Offset pan;
 
   /// The id of the currently-selected node, drawn with a focus ring.
   final String? selected;
 
+  /// Draw corner resize handles on the selected node (editing panes only —
+  /// a display-only viewer offers no resize).
+  final bool showHandles;
+
   @override
   void paint(ui.Canvas canvas, Size size) {
     if (doc.isEmpty) return;
-    final vp = CanvasViewport.fit(size, CanvasBounds.of(doc), zoom: zoom, pan: pan);
+    final vp = CanvasViewport.fit(size, bounds ?? CanvasBounds.of(doc), zoom: zoom, pan: pan);
     final byId = {for (final n in doc.nodes) n.id: n};
 
     // Groups sit behind everything as translucent framed regions.
@@ -123,6 +172,22 @@ class CanvasPainter extends CustomPainter {
     }
     for (final n in doc.nodes) {
       if (n is! GroupNode) _card(canvas, vp, n);
+    }
+    // Handles last, so they sit above any node that overlaps the selection.
+    final sel = selected == null ? null : byId[selected];
+    if (showHandles && sel != null) _handles(canvas, vp.rectOf(sel));
+  }
+
+  void _handles(ui.Canvas canvas, Rect rect) {
+    final fill = Paint()..color = tokens.globalFocus;
+    final ring = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = tokens.panelBackground;
+    for (final c in canvasHandleCentres(rect)) {
+      final box = Rect.fromCenter(center: c, width: canvasHandleRadius * 2, height: canvasHandleRadius * 2);
+      canvas.drawRect(box, fill);
+      canvas.drawRect(box, ring);
     }
   }
 
@@ -224,5 +289,12 @@ class CanvasPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CanvasPainter old) => !identical(old.doc, doc) || old.tokens != tokens || old.zoom != zoom || old.pan != pan || old.selected != selected;
+  bool shouldRepaint(CanvasPainter old) =>
+      !identical(old.doc, doc) ||
+      old.tokens != tokens ||
+      old.bounds != bounds ||
+      old.zoom != zoom ||
+      old.pan != pan ||
+      old.selected != selected ||
+      old.showHandles != showHandles;
 }

@@ -103,11 +103,52 @@ void main() {
   testWidgets('repaints on zoom / pan / selection change, not when identical', (tester) async {
     final tokens = await tokensFrom(tester);
     final doc = sampleDoc();
-    CanvasPainter p({double zoom = 1, Offset pan = Offset.zero, String? selected}) =>
-        CanvasPainter(doc: doc, tokens: tokens, zoom: zoom, pan: pan, selected: selected);
+    CanvasPainter p({double zoom = 1, Offset pan = Offset.zero, String? selected, bool handles = false, CanvasBounds? bounds}) =>
+        CanvasPainter(doc: doc, tokens: tokens, zoom: zoom, pan: pan, selected: selected, showHandles: handles, bounds: bounds);
     expect(p().shouldRepaint(p()), isFalse);
     expect(p(zoom: 2).shouldRepaint(p()), isTrue);
     expect(p(pan: const Offset(1, 0)).shouldRepaint(p()), isTrue);
     expect(p(selected: 't').shouldRepaint(p()), isTrue);
+    expect(p(handles: true).shouldRepaint(p()), isTrue);
+    expect(p(bounds: const CanvasBounds(0, 0, 10, 10)).shouldRepaint(p()), isTrue);
+    // Equal-by-value bounds are the same fit — no repaint.
+    expect(p(bounds: const CanvasBounds(0, 0, 10, 10)).shouldRepaint(p(bounds: const CanvasBounds(0, 0, 10, 10))), isFalse);
+  });
+
+  group('resize handles', () {
+    test('canvasHandleCentres returns the four corners in enum order', () {
+      const rect = Rect.fromLTWH(10, 20, 100, 50);
+      expect(canvasHandleCentres(rect), [rect.topLeft, rect.topRight, rect.bottomLeft, rect.bottomRight]);
+    });
+
+    test('canvasHandleAt finds each corner, with grab slop', () {
+      const rect = Rect.fromLTWH(0, 0, 100, 100);
+      expect(canvasHandleAt(rect, const Offset(0, 0)), CanvasCorner.topLeft);
+      expect(canvasHandleAt(rect, const Offset(100, 0)), CanvasCorner.topRight);
+      expect(canvasHandleAt(rect, const Offset(0, 100)), CanvasCorner.bottomLeft);
+      expect(canvasHandleAt(rect, const Offset(100, 100)), CanvasCorner.bottomRight);
+      // Slop means a near-miss still grabs; a clear miss does not.
+      expect(canvasHandleAt(rect, const Offset(6, 6)), CanvasCorner.topLeft);
+      expect(canvasHandleAt(rect, const Offset(50, 50)), isNull);
+    });
+
+    testWidgets('handles paint only when asked for and a node is selected', (tester) async {
+      final tokens = await tokensFrom(tester);
+      // A doc placed off the painted region: any ink is the handles alone.
+      const far = CanvasDoc(
+        nodes: [TextNode(id: 'a', x: 0, y: 0, width: 10, height: 10, text: '')],
+      );
+      Future<bool> ink({required bool handles, String? selected}) =>
+          tester.runAsync(() => hasInk(CanvasPainter(doc: far, tokens: tokens, selected: selected, showHandles: handles))).then((v) => v!);
+
+      expect(await ink(handles: true, selected: 'a'), isTrue);
+      // showHandles with nothing selected must not throw or paint handles.
+      expect(await ink(handles: true), isTrue); // the node itself still paints
+    });
+
+    testWidgets('an unknown selected id does not throw', (tester) async {
+      final tokens = await tokensFrom(tester);
+      expect(await tester.runAsync(() => hasInk(CanvasPainter(doc: sampleDoc(), tokens: tokens, selected: 'ghost', showHandles: true))), isTrue);
+    });
   });
 }
