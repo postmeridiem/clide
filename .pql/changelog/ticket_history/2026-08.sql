@@ -15419,3 +15419,18 @@ Both workarounds are fine locally and both cost debugging time first. The commen
 ## Acceptance
 
 A test can `pumpWidget` the same harness twice with different arguments and see the second one. The existing workarounds in canvas_view_test.dart can be simplified back to the natural shape (or keep them and just delete the explanatory comments — either is evidence the fix works).', NULL, '2026-08-12 16:27:12', '2026-08-12 16:27:12.203', '2026-08-12 16:27:12.203', NULL, 'f2fccbd575c1503ad2808be7398fbd2b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHDC7B2MFQZVR1K9E30FXDR', 'description', 'CLAUDE.md and README still say "tmux owns Claude session persistence (D-41)" — superseded by D-75/D-77 per docs/architecture.md. README says "Pre-v2.0 (2.0.0-dev)" while pubspec is at v2.3.3, and headlines "canvas and graph surfaces" that are a 17-line stub and a flat ListView respectively (T-7 epic was cancelled).
+
+Fix: rewrite the stale paragraphs in both files to match current architecture (clide-managed stream-json sessions); fix the README version line (or derive it); demote canvas/graph to roadmap wording or drop them. The repo''s honesty is its brand; the README is the one off-brand surface.
+
+Acceptance: no tmux-persistence claim outside historical D-records; README version matches pubspec; every README feature claim maps to shipped behavior.', 'CLAUDE.md and README still say "tmux owns Claude session persistence (D-41)" — superseded by D-75/D-77 per docs/architecture.md. README says "Pre-v2.0 (2.0.0-dev)" while pubspec is at v2.3.3, and headlines "canvas and graph surfaces" that are a 17-line stub and a flat ListView respectively (T-7 epic was cancelled).
+
+Fix: rewrite the stale paragraphs in both files to match current architecture (clide-managed stream-json sessions); fix the README version line (or derive it); demote canvas/graph to roadmap wording or drop them. The repo''s honesty is its brand; the README is the one off-brand surface.
+
+Acceptance: no tmux-persistence claim outside historical D-records; README version matches pubspec; every README feature claim maps to shipped behavior.
+
+Board sweep 2026-08-12: the same superseded claim is also sitting in TICKET BODIES, not just CLAUDE.md and the README.
+
+Roughly seven mentions of tmux-as-current-fact survive across open tickets. Confirmed by reading: T-47 ("tmux owns Claude session persistence (D-41); the app re-attaches on restart") and T-46. Both are installer/self-update tickets whose reasoning partly RESTS on that claim — T-47 argues an in-place update won''t lose sessions because they live in tmux outside the bundle. Under D-77 that argument no longer holds as written, so this is a stale premise, not just a stale sentence.
+
+Not folded into this ticket''s scope unilaterally — T-392 is scoped to the front-door docs. Flagged here because whoever fixes the docs drift is the person holding the context to judge the ticket bodies too, and because a wrong premise inside a ticket is worse than a wrong sentence in a README: it survives into whatever gets built from it.', NULL, '2026-08-12 20:55:20', '2026-08-12 20:55:20.589', '2026-08-12 20:55:20.589', NULL, '49e444f62b68033948ae5e89a64fc03a', 2) ON CONFLICT(hash) DO NOTHING;
