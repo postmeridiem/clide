@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/builtin/clide_companion/src/companion_popout.dart';
+import 'package:clide/builtin/clide_companion/src/companion_usage_line.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -113,6 +114,14 @@ void main() {
       await tester.pump(const Duration(milliseconds: 1));
 
       expect(find.text('Still here.'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('the spend sits between his words and the box that spends more (T-556)', (tester) async {
+      // Plumbing only — what the line renders is companion_usage_line_test's.
+      // Without a ledger there is nothing to report and nothing is built.
+      await tester.pumpWidget(host(CompanionPopout(conversation: null, onDismiss: () {}, onAsk: (_) {})));
+      expect(find.byType(CompanionUsageLine), findsNothing);
       await tester.pumpWidget(const SizedBox());
     });
 

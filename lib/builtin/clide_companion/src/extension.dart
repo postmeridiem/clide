@@ -19,6 +19,7 @@ library;
 import 'dart:async';
 
 import 'package:clide/builtin/clide_companion/src/companion_channel.dart';
+import 'package:clide/builtin/clide_companion/src/companion_ledger.dart';
 import 'package:clide/builtin/clide_companion/src/companion_lifecycle.dart';
 import 'package:clide/builtin/clide_companion/src/prompt/brief_loader.dart';
 import 'package:clide/builtin/clide_companion/src/prompt/companion_prompt.dart';
@@ -40,6 +41,16 @@ class ClideCompanionExtension extends ClideExtension {
   /// Exposed for the surfaces that will read the companion's conversation
   /// (T-546 onward). Null before activation.
   CompanionSessionController? get sessionController => _session;
+
+  /// What Clide has spent this run (T-556).
+  ///
+  /// Owned here rather than by the popout, because it must outlive every
+  /// surface that shows it: the window is opened and dismissed freely, and a
+  /// total that started over each time it was looked at would be worthless. It
+  /// tracks the session by id, so his restarts are invisible to it.
+  CompanionLedger? _ledger;
+
+  CompanionLedger? get ledger => _ledger;
 
   /// Bumped to ask the strip to open his conversation (T-567).
   ///
@@ -78,6 +89,7 @@ class ClideCompanionExtension extends ClideExtension {
     ctx.project.addListener(_onProjectChanged);
     ctx.i18n.addListener(_onLocaleChanged);
     _session = CompanionSessionController();
+    _ledger = CompanionLedger()..start();
     // Seed: announce once so anything already mounted agrees with the store.
     // Late subscribers seed themselves from the store instead — the bus does
     // not retain.
@@ -96,6 +108,8 @@ class ClideCompanionExtension extends ClideExtension {
     _ctx?.i18n.removeListener(_onLocaleChanged);
     await _session?.shutdown();
     _session = null;
+    _ledger?.dispose();
+    _ledger = null;
     _ctx = null;
   }
 
@@ -353,6 +367,45 @@ class ClideCompanionExtension extends ClideExtension {
         return IpcResponse.ok(
           id: '',
           data: {'enabled': prefs.enabled, 'open': prefs.open, 'frequency': prefs.frequency.name, 'running': _session?.running ?? false},
+        );
+      },
+    ),
+    // The stat the popout shows, as data (T-556, D-6). Worth a verb of its own
+    // rather than a field on `companion.status`: that verb answers "is he on",
+    // which a script polls, and burying a spend total inside it would make the
+    // cheap question expensive to ask.
+    CommandContribution(
+      id: 'companion.usage',
+      command: 'companion.usage',
+      title: 'Clide: what he has spent this run',
+      titleKey: 'command.usage',
+      i18nNamespace: id,
+      run: (_) async {
+        final ledger = _ledger;
+        if (ledger == null) {
+          return IpcResponse.err(
+            id: '',
+            error: IpcError(code: 1, kind: 'inactive', message: 'the companion is not active'),
+          );
+        }
+        final t = ledger.total;
+        return IpcResponse.ok(
+          id: '',
+          data: {
+            'turns': ledger.turns,
+            'totalTokens': t.totalTokens,
+            'inputTokens': t.inputTokens,
+            'outputTokens': t.outputTokens,
+            'thinkingTokens': t.thinkingTokens,
+            'spokenTokens': t.spokenTokens,
+            'cacheCreationTokens': t.cacheCreationTokens,
+            'cacheReadTokens': t.cacheReadTokens,
+            'costUsd': t.costUsd,
+            // Named so a reader cannot mistake the figure for a bill, and
+            // scoped so nobody reads it as a lifetime-across-runs total.
+            'costBasis': 'api-equivalent; nothing is billed under subscription auth',
+            'scope': 'this clide run',
+          },
         );
       },
     ),

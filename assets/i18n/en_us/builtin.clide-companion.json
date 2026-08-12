@@ -9,6 +9,7 @@
   "command.say": "Clide: read his last remark",
   "command.show": "Clide: show the strip",
   "command.status": "Clide: report his state",
+  "command.usage": "Clide: what he has spent this run",
   "face.semantics.amused": "Clide is amused",
   "face.semantics.approving": "Clide approves",
   "face.semantics.concerned": "Clide is concerned",
@@ -89,5 +90,13 @@
     "translation": "Clide"
   },
   "strip.ask.hint": "ask Clide…",
-  "strip.expand.semantics": "Open Clide's conversation"
+  "strip.expand.semantics": "Open Clide's conversation",
+  "usage.cacheRead": "{n} cache read",
+  "usage.cacheWrite": "{n} cache write",
+  "usage.costCaveat": "What the API would charge for this. Under a subscription nothing is billed — the real cost is quota, shared with your main session, which Claude Code does not report.",
+  "usage.equivalent": "≈{n} equivalent",
+  "usage.spoken": "{n} spoken",
+  "usage.thinking": "{n} thinking",
+  "usage.tokens": "{n} tokens",
+  "usage.turns": "{n} turns"
 }

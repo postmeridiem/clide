@@ -377,6 +377,27 @@ class StreamJsonSession {
   /// a subscriber that missed one has missed it.
   Stream<TurnOutcome> get turnOutcomes => _outcomeCtl.stream;
 
+  final _usageCtl = StreamController<TurnUsage>.broadcast();
+
+  /// What each turn spent (T-556). One event per `result`, carrying that
+  /// turn's delta — never a running total, so a consumer can simply add.
+  ///
+  /// **No replay**, for the same reason as [turnOutcomes] and with a sharper
+  /// consequence: replaying the last turn to a late subscriber would let it add
+  /// a turn it did not see, and a ledger that double-counts is worse than one
+  /// that starts late.
+  Stream<TurnUsage> get turnUsage => _usageCtl.stream;
+
+  /// The session's cumulative cost as last reported, so each turn's cost can be
+  /// differenced out of it. `total_cost_usd` is cumulative despite the name.
+  double _costSoFar = 0;
+
+  /// Thinking tokens seen on `message_delta` events since the last `result`.
+  ///
+  /// Accumulated rather than overwritten: a turn with several assistant
+  /// messages produces several deltas, each carrying its own message's count.
+  int _pendingThinking = 0;
+
   void _setPhase(TurnPhase p) {
     if (_phaseCtl.value == p) return;
     _phaseCtl.add(p);
@@ -582,6 +603,7 @@ class StreamJsonSession {
       // the session still claiming to be answering.
       _setPhase(TurnPhase.idle);
       if (!_outcomeCtl.isClosed) _outcomeCtl.add(TurnOutcome.fromResult(ev));
+      _emitTurnUsage(ev);
     }
 
     // Token-by-token streaming: `stream_event` envelopes carry the in-progress
@@ -677,6 +699,14 @@ class StreamJsonSession {
             _items.add(item);
           }
         }
+      case 'message_delta':
+        // The only place a real thinking-token count appears (T-556). Not in
+        // the turn's `result`, not in `modelUsage`, and emphatically not the
+        // `system/thinking_tokens` estimate — that one counts the signature
+        // blob and ran 2.7x high when measured. Banked here and folded into the
+        // turn at its `result`.
+        final usage = event['usage'];
+        if (usage is Map) _pendingThinking += TurnUsage.thinkingFromMessageDelta(usage.cast<String, dynamic>());
       case 'message_stop':
         _streamingMsgId = null;
         // `result` also resets this, but a turn that stops without one — an
@@ -855,6 +885,28 @@ class StreamJsonSession {
     _pendingCtl.add(pendingPrompt);
   }
 
+  /// Close the books on a turn (T-556).
+  ///
+  /// Runs on every `result`, including a failed one — a turn that errored still
+  /// spent the tokens it spent, and a ledger that only counted successes would
+  /// understate exactly when it matters most.
+  void _emitTurnUsage(Map<String, dynamic> ev) {
+    final thinking = _pendingThinking;
+    _pendingThinking = 0;
+
+    // Cumulative on the wire, so difference it. Guarded against going backwards:
+    // a session that is replaced under the same object, or a CLI that resets the
+    // counter, must not emit a negative cost.
+    final raw = ev['total_cost_usd'];
+    final cumulative = raw is num ? raw.toDouble() : _costSoFar;
+    final delta = cumulative >= _costSoFar ? cumulative - _costSoFar : cumulative;
+    _costSoFar = cumulative;
+
+    final usage = TurnUsage.fromResult(ev).copyWith(thinkingTokens: thinking, costUsd: delta);
+    if (usage.isEmpty) return;
+    if (!_usageCtl.isClosed) _usageCtl.add(usage);
+  }
+
   SessionStatus _statusFromEvent(Map<String, dynamic> j) {
     switch (j['type'] as String?) {
       case 'system':
@@ -863,7 +915,9 @@ class StreamJsonSession {
         }
       case 'result':
         // Extract cumulative cost and context-window size from the result event
-        // (T-168). `total_cost_usd` is the turn cost. `modelUsage.<model>.contextWindow`
+        // (T-168). `total_cost_usd` is the session's running total, NOT the turn's
+        // — measured, T-556; this comment claimed the opposite until then, and the
+        // per-turn delta lives in [turnUsage]. `modelUsage.<model>.contextWindow`
         // is the model's context limit in tokens (e.g. 1_000_000 for claude-opus-4-7[1m]).
         final costRaw = j['total_cost_usd'];
         final cost = costRaw is num ? costRaw.toDouble() : null;
@@ -1074,5 +1128,6 @@ class StreamJsonSession {
     await _modelErrorCtl.close();
     await _phaseCtl.close();
     await _outcomeCtl.close();
+    await _usageCtl.close();
   }
 }

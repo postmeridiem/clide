@@ -30,6 +30,8 @@ library;
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/builtin/clide_companion/src/ask_box.dart';
+import 'package:clide/builtin/clide_companion/src/companion_ledger.dart';
+import 'package:clide/builtin/clide_companion/src/companion_usage_line.dart';
 import 'package:clide/builtin/clide_companion/src/prompt/companion_reply.dart';
 import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_text.dart';
@@ -83,7 +85,7 @@ List<CompanionTurn> companionExchange(List<ConversationItem> items) {
 
 /// The popout itself. Shown through the dialog router, over the detail area.
 class CompanionPopout extends StatefulWidget {
-  const CompanionPopout({super.key, required this.conversation, required this.onDismiss, required this.onAsk, this.draft, this.canAsk = true});
+  const CompanionPopout({super.key, required this.conversation, required this.onDismiss, required this.onAsk, this.draft, this.canAsk = true, this.ledger});
 
   /// His session's conversation. Listened to, so a reply arriving while the
   /// popout is open lands in it.
@@ -98,6 +100,10 @@ class CompanionPopout extends StatefulWidget {
   final TextEditingController? draft;
 
   final bool canAsk;
+
+  /// What he has spent this run (T-556). Null where there is nothing to report
+  /// — a test harness, or a popout opened before the extension is up.
+  final CompanionLedger? ledger;
 
   @override
   State<CompanionPopout> createState() => _CompanionPopoutState();
@@ -177,6 +183,15 @@ class _CompanionPopoutState extends State<CompanionPopout> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Expanded(child: turns.isEmpty ? _Empty() : _Exchange(turns: turns)),
+                        // Between his words and the box you ask more of him:
+                        // the last thing read before spending again.
+                        if (widget.ledger != null) ...[
+                          const SizedBox(height: clideInsetStandard),
+                          ListenableBuilder(
+                            listenable: widget.ledger!,
+                            builder: (_, _) => CompanionUsageLine(total: widget.ledger!.total, turns: widget.ledger!.turns),
+                          ),
+                        ],
                         const SizedBox(height: clideInsetStandard),
                         ClideAskBox(
                           onAsk: widget.onAsk,

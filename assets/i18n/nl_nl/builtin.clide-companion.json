@@ -9,6 +9,7 @@
   "command.say": "Clide: lees zijn laatste opmerking",
   "command.show": "Clide: toon de strip",
   "command.status": "Clide: rapporteer zijn status",
+  "command.usage": "Clide: wat hij deze sessie heeft gekost",
   "face.semantics.amused": "Clide is geamuseerd",
   "face.semantics.approving": "Clide keurt het goed",
   "face.semantics.concerned": "Clide is bezorgd",
@@ -89,5 +90,13 @@
     "translation": "Clide"
   },
   "strip.ask.hint": "vraag Clide…",
-  "strip.expand.semantics": "Open Clides gesprek"
+  "strip.expand.semantics": "Open Clides gesprek",
+  "usage.cacheRead": "{n} uit cache",
+  "usage.cacheWrite": "{n} naar cache",
+  "usage.costCaveat": "Wat de API hiervoor zou rekenen. Met een abonnement wordt niets in rekening gebracht — de echte kosten zijn quota, gedeeld met je hoofdsessie, en die meldt Claude Code niet.",
+  "usage.equivalent": "≈{n} equivalent",
+  "usage.spoken": "{n} gezegd",
+  "usage.thinking": "{n} gedacht",
+  "usage.tokens": "{n} tokens",
+  "usage.turns": "{n} beurten"
 }

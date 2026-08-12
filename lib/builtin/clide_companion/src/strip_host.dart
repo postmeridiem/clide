@@ -201,8 +201,14 @@ class _StripState extends State<_Strip> {
     if (kernel == null) return;
     final companion = _companion;
     kernel.dialog.show<Object>((ctx, dismiss) {
-      CompanionPopout build() =>
-          CompanionPopout(conversation: companion?.session?.conversation, draft: _draft, canAsk: companion?.running ?? false, onAsk: _ask, onDismiss: dismiss);
+      CompanionPopout build() => CompanionPopout(
+        conversation: companion?.session?.conversation,
+        draft: _draft,
+        canAsk: companion?.running ?? false,
+        ledger: _extension?.ledger,
+        onAsk: _ask,
+        onDismiss: dismiss,
+      );
       if (companion == null) return build();
       return ListenableBuilder(listenable: companion, builder: (_, _) => build());
     });

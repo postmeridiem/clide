@@ -83,6 +83,7 @@ class SessionReader extends ChangeNotifier {
   final _ended = StreamController<SessionEnd>.broadcast();
   final _modelErrors = StreamController<String>.broadcast();
   final _outcomes = StreamController<TurnOutcome>.broadcast();
+  final _usage = StreamController<TurnUsage>.broadcast();
 
   /// Whether a session is currently bound.
   ///
@@ -106,6 +107,14 @@ class SessionReader extends ChangeNotifier {
   Stream<SessionEnd> get ended => _ended.stream;
   Stream<String> get modelErrors => _modelErrors.stream;
   Stream<TurnOutcome> get turnOutcomes => _outcomes.stream;
+
+  /// What each turn spent, as a per-turn delta (T-556).
+  ///
+  /// Survives a session being replaced underneath, which is the whole reason a
+  /// ledger can be built on it: the companion restarts on `/clear`, a locale
+  /// change or an edited brief, and a total that reset with the process would
+  /// answer a question nobody asked.
+  Stream<TurnUsage> get turnUsage => _usage.stream;
 
   /// Latest busy state without subscribing.
   bool get isBusy => _busy.value;
@@ -173,7 +182,8 @@ class SessionReader extends ChangeNotifier {
       ..add(session.pendingPromptStream.listen(_pending.add))
       ..add(session.items.listen(_forward(_items)))
       ..add(session.modelErrors.listen(_forward(_modelErrors)))
-      ..add(session.turnOutcomes.listen(_forward(_outcomes)));
+      ..add(session.turnOutcomes.listen(_forward(_outcomes)))
+      ..add(session.turnUsage.listen(_forward(_usage)));
 
     // `endedStream` does NOT replay, so a reader binding after the process died
     // would otherwise wait forever for news that already came and gone — the
@@ -216,6 +226,7 @@ class SessionReader extends ChangeNotifier {
     _ended.close();
     _modelErrors.close();
     _outcomes.close();
+    _usage.close();
     super.dispose();
   }
 }

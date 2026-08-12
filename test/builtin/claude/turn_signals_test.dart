@@ -185,6 +185,165 @@ void main() {
     });
   });
 
+  group('turn usage (T-556)', () {
+    // Numbers below are the real ones from the two-turn probe recorded in the
+    // spike (§9). Using the measured pair rather than round invented figures is
+    // the point: it is what proves the cost is differenced and not summed.
+    Map<String, Object?> resultWithUsage({
+      required int input,
+      required int output,
+      required int cacheWrite,
+      required int cacheRead,
+      required double cumulativeCost,
+    }) => {
+      'type': 'result',
+      'subtype': 'success',
+      'is_error': false,
+      'total_cost_usd': cumulativeCost,
+      'usage': {'input_tokens': input, 'output_tokens': output, 'cache_creation_input_tokens': cacheWrite, 'cache_read_input_tokens': cacheRead},
+    };
+
+    Map<String, Object?> messageDelta(int thinking) => {
+      'type': 'stream_event',
+      'event': {
+        'type': 'message_delta',
+        'usage': {
+          'output_tokens': 103,
+          'output_tokens_details': {'thinking_tokens': thinking},
+        },
+      },
+    };
+
+    test('a turn reports its own split, with thinking from the message_delta', () async {
+      final seen = <TurnUsage>[];
+      final sub = session.turnUsage.listen(seen.add);
+
+      proc.emit(messageDelta(96));
+      await settle();
+      proc.emit(resultWithUsage(input: 10, output: 103, cacheWrite: 16440, cacheRead: 19021, cumulativeCost: 0.0353071));
+      await settle();
+      await sub.cancel();
+
+      expect(seen, hasLength(1));
+      final u = seen.single;
+      expect(u.inputTokens, 10);
+      expect(u.outputTokens, 103);
+      expect(u.cacheCreationTokens, 16440);
+      expect(u.cacheReadTokens, 19021);
+      // Not on the result event at all — only the message_delta carries it.
+      expect(u.thinkingTokens, 96);
+      expect(u.spokenTokens, 7, reason: '96 of 103 output tokens went on thinking');
+      expect(u.costUsd, closeTo(0.0353071, 1e-9));
+    });
+
+    test('cost is differenced, because total_cost_usd is cumulative', () async {
+      // The measured pair. A session that summed these would report $0.075 for
+      // two turns that actually cost $0.039.
+      final seen = <TurnUsage>[];
+      final sub = session.turnUsage.listen(seen.add);
+
+      proc.emit(resultWithUsage(input: 10, output: 103, cacheWrite: 16440, cacheRead: 19021, cumulativeCost: 0.0353071));
+      await settle();
+      proc.emit(resultWithUsage(input: 10, output: 44, cacheWrite: 146, cacheRead: 35461, cumulativeCost: 0.0393752));
+      await settle();
+      await sub.cancel();
+
+      expect(seen, hasLength(2));
+      expect(seen.first.costUsd, closeTo(0.0353071, 1e-9), reason: 'first turn pays the session start');
+      expect(seen.last.costUsd, closeTo(0.0040681, 1e-9), reason: 'steady-state comment, not another full session start');
+      expect(seen.first.costUsd + seen.last.costUsd, closeTo(0.0393752, 1e-9), reason: 'the deltas must re-sum to the cumulative figure');
+    });
+
+    test('thinking does not leak from one turn into the next', () async {
+      final seen = <TurnUsage>[];
+      final sub = session.turnUsage.listen(seen.add);
+
+      proc.emit(messageDelta(96));
+      await settle();
+      proc.emit(resultWithUsage(input: 10, output: 103, cacheWrite: 16440, cacheRead: 19021, cumulativeCost: 0.0353071));
+      await settle();
+      proc.emit(resultWithUsage(input: 10, output: 44, cacheWrite: 146, cacheRead: 35461, cumulativeCost: 0.0393752));
+      await settle();
+      await sub.cancel();
+
+      expect(seen.first.thinkingTokens, 96);
+      expect(seen.last.thinkingTokens, 0, reason: 'the bank is emptied at each turn boundary');
+    });
+
+    test('several message_deltas in one turn accumulate', () async {
+      // A turn with more than one assistant message — each delta carries its own
+      // message's count, so they add rather than overwrite.
+      final seen = <TurnUsage>[];
+      final sub = session.turnUsage.listen(seen.add);
+
+      proc.emit(messageDelta(96));
+      await settle();
+      proc.emit(messageDelta(37));
+      await settle();
+      proc.emit(resultWithUsage(input: 10, output: 147, cacheWrite: 0, cacheRead: 100, cumulativeCost: 0.01));
+      await settle();
+      await sub.cancel();
+
+      expect(seen.single.thinkingTokens, 133);
+    });
+
+    test('a failed turn still reports what it spent', () async {
+      // A turn that errored spent its tokens. A ledger that only counted
+      // successes would understate exactly when it matters most.
+      final seen = <TurnUsage>[];
+      final sub = session.turnUsage.listen(seen.add);
+      proc.emit({
+        'type': 'result',
+        'subtype': 'error',
+        'is_error': true,
+        'total_cost_usd': 0.002,
+        'usage': {'input_tokens': 5, 'output_tokens': 2, 'cache_creation_input_tokens': 0, 'cache_read_input_tokens': 90},
+      });
+      await settle();
+      await sub.cancel();
+
+      expect(seen.single.totalTokens, 97);
+      expect(seen.single.costUsd, closeTo(0.002, 1e-9));
+    });
+
+    test('a result carrying no usage reports nothing', () async {
+      final seen = <TurnUsage>[];
+      final sub = session.turnUsage.listen(seen.add);
+      proc.emit({'type': 'result', 'subtype': 'success'});
+      await settle();
+      await sub.cancel();
+      expect(seen, isEmpty, reason: 'an empty ledger entry is noise, not data');
+    });
+
+    test('a cost that goes backwards is treated as a fresh count, never negative', () async {
+      // Defensive: a replaced session or a reset counter must not subtract from
+      // the running total.
+      final seen = <TurnUsage>[];
+      final sub = session.turnUsage.listen(seen.add);
+      proc.emit(resultWithUsage(input: 1, output: 1, cacheWrite: 0, cacheRead: 0, cumulativeCost: 0.05));
+      await settle();
+      proc.emit(resultWithUsage(input: 1, output: 1, cacheWrite: 0, cacheRead: 0, cumulativeCost: 0.01));
+      await settle();
+      await sub.cancel();
+
+      expect(seen.last.costUsd, closeTo(0.01, 1e-9));
+      expect(seen.every((u) => u.costUsd >= 0), isTrue);
+    });
+
+    test('adding deltas sums every field', () {
+      const a = TurnUsage(inputTokens: 1, outputTokens: 2, cacheCreationTokens: 3, cacheReadTokens: 4, thinkingTokens: 1, costUsd: 0.5);
+      const b = TurnUsage(inputTokens: 10, outputTokens: 20, cacheCreationTokens: 30, cacheReadTokens: 40, thinkingTokens: 10, costUsd: 0.25);
+      final sum = a + b;
+      expect(sum.inputTokens, 11);
+      expect(sum.outputTokens, 22);
+      expect(sum.cacheCreationTokens, 33);
+      expect(sum.cacheReadTokens, 44);
+      expect(sum.thinkingTokens, 11);
+      expect(sum.costUsd, closeTo(0.75, 1e-9));
+      expect(sum.totalTokens, 110);
+    });
+  });
+
   group('parsing', () {
     test('tolerates a result with the fields absent', () async {
       // Older CLIs, and any future one that drops a field, must not throw.

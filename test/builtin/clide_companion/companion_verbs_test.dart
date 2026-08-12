@@ -42,6 +42,11 @@ void main() {
       expect(commands, containsAll(['companion.show', 'companion.hide', 'companion.enable', 'companion.disable', 'companion.frequency', 'companion.status']));
     });
 
+    test('and so is what he has spent (T-556)', () {
+      final commands = ext.contributions.whereType<CommandContribution>().map((c) => c.command).toSet();
+      expect(commands, contains('companion.usage'));
+    });
+
     test('each carries an i18n key, so the palette is translatable', () {
       // D-21/D-102: the inline English is the fallback, not the source.
       for (final c in ext.contributions.whereType<CommandContribution>()) {
@@ -59,6 +64,21 @@ void main() {
       final r = await verb('companion.status').run([]);
       expect(r.data.keys, containsAll(['enabled', 'open', 'frequency', 'running']));
       expect(r.data['running'], isFalse, reason: 'no workspace in this fixture');
+    });
+
+    test('usage reports the split, and names the cost basis so it cannot read as a bill (T-556)', () async {
+      final r = await verb('companion.usage').run([]);
+
+      // The split, not just a total: a large number that is mostly cache reads
+      // is a cheap one, and the total alone cannot say which it is.
+      expect(r.data.keys, containsAll(['turns', 'totalTokens', 'thinkingTokens', 'spokenTokens', 'cacheReadTokens', 'cacheCreationTokens', 'costUsd']));
+      // Nothing spent in this fixture — an honest zero, not an absent key.
+      expect(r.data['turns'], 0);
+      expect(r.data['totalTokens'], 0);
+      // The two facts a reader needs to not misread the dollar figure: it is an
+      // equivalent rather than an invoice, and it covers this run only.
+      expect(r.data['costBasis'], contains('nothing is billed'));
+      expect(r.data['scope'], 'this clide run');
     });
 
     test('hiding drives the same path the rail button does', () async {
