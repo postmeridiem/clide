@@ -83,6 +83,64 @@ void main() {
     expect(reparsed.toJson(), doc.toJson());
   });
 
+  group('mutation', () {
+    test('withRect keeps the subtype and every non-rect field', () {
+      final doc = CanvasDoc.parse(sample);
+
+      final t = (doc.node('t1')! as TextNode).withRect(x: 5, y: 6);
+      expect((t.x, t.y, t.width, t.height), (5.0, 6.0, 200.0, 120.0)); // size untouched
+      expect(t.text, 'hello');
+      expect(t.color, '3');
+
+      final f = (doc.node('f1')! as FileNode).withRect(width: 10, height: 20);
+      expect((f.x, f.y, f.width, f.height), (300.0, 0.0, 10.0, 20.0)); // position untouched
+      expect((f.file, f.subpath), ('notes/a.md', '#intro'));
+
+      final l = (doc.node('l1')! as LinkNode).withRect(x: 1);
+      expect(l.url, 'https://example.com');
+
+      final g = (doc.node('g1')! as GroupNode).withRect(y: 2);
+      expect((g.label, g.backgroundStyle), ('Cluster', CanvasBackgroundStyle.cover));
+    });
+
+    test('withRect with no arguments is an identical rect', () {
+      final t = (CanvasDoc.parse(sample).node('t1')! as TextNode).withRect();
+      expect((t.x, t.y, t.width, t.height), (0.0, 0.0, 200.0, 120.0));
+    });
+
+    test('replaceNode swaps in place, holding z-order', () {
+      final doc = CanvasDoc.parse(sample);
+      final moved = doc.replaceNode(doc.node('f1')!.withRect(x: 999));
+      // 'f1' stays second — paint order is list order, so an edited node
+      // must not jump in front of the group it sits inside.
+      expect(moved.nodes.map((n) => n.id), ['t1', 'f1', 'l1', 'g1']);
+      expect(moved.node('f1')!.x, 999);
+      expect(moved.edges, doc.edges);
+      expect(doc.node('f1')!.x, 300); // the original is untouched
+    });
+
+    test('replaceNode on an unknown id returns the doc unchanged', () {
+      final doc = CanvasDoc.parse(sample);
+      const stranger = TextNode(id: 'nope', x: 0, y: 0, width: 1, height: 1);
+      expect(identical(doc.replaceNode(stranger), doc), isTrue);
+    });
+
+    test('node() finds by id and returns null when absent', () {
+      final doc = CanvasDoc.parse(sample);
+      expect(doc.node('l1'), isA<LinkNode>());
+      expect(doc.node('missing'), isNull);
+      expect(const CanvasDoc().node('any'), isNull);
+    });
+
+    test('a moved node survives the encode round-trip', () {
+      final doc = CanvasDoc.parse(sample);
+      final moved = doc.replaceNode(doc.node('t1')!.withRect(x: 42, y: 43));
+      final reparsed = CanvasDoc.parse(moved.encode());
+      expect((reparsed.node('t1')!.x, reparsed.node('t1')!.y), (42.0, 43.0));
+      expect((reparsed.node('t1')! as TextNode).text, 'hello');
+    });
+  });
+
   test('toJson always carries both arrays; default end caps are omitted', () {
     const doc = CanvasDoc();
     expect(doc.toJson(), {'nodes': <Object?>[], 'edges': <Object?>[]});

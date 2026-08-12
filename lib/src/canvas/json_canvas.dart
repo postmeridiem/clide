@@ -73,6 +73,12 @@ sealed class CanvasNode {
   /// The `type` discriminator written to disk.
   String get type;
 
+  /// This node with its rect replaced field-wise, everything else carried
+  /// over — the whole mutation surface an editing pane needs (drag moves
+  /// x/y, resize moves the edge it grabbed). Returns the same subtype, so
+  /// callers keep their `TextNode`/`GroupNode` payload without a cast.
+  CanvasNode withRect({double? x, double? y, double? width, double? height});
+
   Map<String, Object?> toJson();
 
   Map<String, Object?> _base() => {'id': id, 'type': type, 'x': x, 'y': y, 'width': width, 'height': height, if (color != null) 'color': color};
@@ -86,6 +92,10 @@ class TextNode extends CanvasNode {
 
   @override
   String get type => 'text';
+
+  @override
+  TextNode withRect({double? x, double? y, double? width, double? height}) =>
+      TextNode(id: id, x: x ?? this.x, y: y ?? this.y, width: width ?? this.width, height: height ?? this.height, color: color, text: text);
 
   @override
   Map<String, Object?> toJson() => {..._base(), 'text': text};
@@ -111,6 +121,18 @@ class FileNode extends CanvasNode {
   String get type => 'file';
 
   @override
+  FileNode withRect({double? x, double? y, double? width, double? height}) => FileNode(
+    id: id,
+    x: x ?? this.x,
+    y: y ?? this.y,
+    width: width ?? this.width,
+    height: height ?? this.height,
+    color: color,
+    file: file,
+    subpath: subpath,
+  );
+
+  @override
   Map<String, Object?> toJson() => {..._base(), 'file': file, if (subpath != null) 'subpath': subpath};
 }
 
@@ -122,6 +144,10 @@ class LinkNode extends CanvasNode {
 
   @override
   String get type => 'link';
+
+  @override
+  LinkNode withRect({double? x, double? y, double? width, double? height}) =>
+      LinkNode(id: id, x: x ?? this.x, y: y ?? this.y, width: width ?? this.width, height: height ?? this.height, color: color, url: url);
 
   @override
   Map<String, Object?> toJson() => {..._base(), 'url': url};
@@ -148,6 +174,19 @@ class GroupNode extends CanvasNode {
 
   @override
   String get type => 'group';
+
+  @override
+  GroupNode withRect({double? x, double? y, double? width, double? height}) => GroupNode(
+    id: id,
+    x: x ?? this.x,
+    y: y ?? this.y,
+    width: width ?? this.width,
+    height: height ?? this.height,
+    color: color,
+    label: label,
+    background: background,
+    backgroundStyle: backgroundStyle,
+  );
 
   @override
   Map<String, Object?> toJson() => {
@@ -218,6 +257,25 @@ class CanvasDoc {
   final List<CanvasEdge> edges;
 
   bool get isEmpty => nodes.isEmpty && edges.isEmpty;
+
+  /// The node with [id], or null.
+  CanvasNode? node(String id) {
+    for (final n in nodes) {
+      if (n.id == id) return n;
+    }
+    return null;
+  }
+
+  /// This doc with [node] swapped in for the node of the same id, keeping
+  /// paint order (z-order is list order, so an edited node must not jump to
+  /// the front). Returns `this` unchanged when the id isn't present.
+  CanvasDoc replaceNode(CanvasNode node) {
+    final i = nodes.indexWhere((n) => n.id == node.id);
+    if (i < 0) return this;
+    final next = [...nodes];
+    next[i] = node;
+    return CanvasDoc(nodes: next, edges: edges);
+  }
 
   /// Parse `.canvas` JSON text. Malformed JSON, or a top level that isn't an
   /// object, throws [FormatException]; individual nodes/edges that are
