@@ -20257,3 +20257,48 @@ Board sweep 2026-08-12: the same superseded claim is also sitting in TICKET BODI
 Roughly seven mentions of tmux-as-current-fact survive across open tickets. Confirmed by reading: T-47 ("tmux owns Claude session persistence (D-41); the app re-attaches on restart") and T-46. Both are installer/self-update tickets whose reasoning partly RESTS on that claim — T-47 argues an in-place update won''t lose sessions because they live in tmux outside the bundle. Under D-77 that argument no longer holds as written, so this is a stale premise, not just a stale sentence.
 
 Not folded into this ticket''s scope unilaterally — T-392 is scoped to the front-door docs. Flagged here because whoever fixes the docs drift is the person holding the context to judge the ticket bodies too, and because a wrong premise inside a ticket is worse than a wrong sentence in a README: it survives into whatever gets built from it.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-11 22:02:44', '2026-08-12 20:55:20.588', NULL, 'abb81d3323c4c4e73c8c8157fb591fe4', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZTBJWJ8QHZBYEXBQBSAHP5W', 'task', NULL, 'clide verb to load a screenshot from the paste cache into the workspace', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-08-13 22:11:41.843', '2026-08-13 22:11:41.843', NULL, 'e24b30bc59108937b1f377d48801b9a9', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZTBJWJ8QHZBYEXBQBSAHP5W', 'task', NULL, 'clide verb to load a screenshot from the paste cache into the workspace', 'Pasted images and screenshots land outside the repo, where an agent''s permission scheme usually can''t reach them. `clide` itself is already cleared to run inside the repo path, so the CLI is the way in.
+
+## Where they actually are
+
+`pasteCacheDir()` — lib/builtin/claude/src/clipboard_paste.dart:85 — writes to `$XDG_CACHE_HOME/clide/pasted` (falling back to `~/.cache/clide/pasted`), or `~/Library/Caches/clide/pasted` on macOS. Files are named `paste-<millis>.png`. There are 69 of them on this box today, so this is a live surface, not a hypothetical.
+
+An agent restricted to the workspace cannot `Read` any of them. That restriction is correct and shouldn''t be relaxed; the fix is a verb that does the fetch on the agent''s behalf.
+
+## What "load" has to mean here
+
+Three readings, and the constraint picks one:
+
+1. **Show it to the user** — already works. `clide image show <abs-path>` (T-249) accepts an absolute path and doesn''t confine it, so a cache path renders today. Not the gap.
+2. **Get it where an agent can Read it** — copy the file into the workspace and print the resulting repo-relative path. This is what the permission constraint actually implies, and the recommended default.
+3. **Return the bytes on stdout** (base64) — plausible for scripting, but doesn''t help a vision-capable agent, which needs a readable *path*.
+
+Build (2) — and note that (1) already existing is what makes (2) the whole of the remaining work.
+
+## Shape
+
+```
+clide screenshot list [--limit N]      # newest first: id, timestamp, size
+clide screenshot get <id|latest> [--out <repo-relative>]
+```
+
+`get` defaults to writing under the gitignored `tmp/`, prints the repo-relative path, and is what the agent then reads.
+
+## Why this ISN''T just adding the cache dir to extraReadRoots
+
+The obvious-looking fix is to append the paste cache to `extraReadRoots` (main.dart:359-364), the D-80 mechanism that already trusts `~/.claude` for reads. It does not work: **`files.read` returns `content` as a String** (`file.readAsStringSync()`, files_commands.dart) and a PNG is binary. The verb needs its own byte path — copy-on-disk, or base64 — not a widened read root.
+
+Worth deciding anyway whether the cache belongs in `extraReadRoots` for the *listing* half.
+
+## Security notes
+
+- The destination must be workspace-confined. `resolveForWriteUnderRoot` (T-322) exists for exactly this and already handles the symlinked-parent escape.
+- Source resolution must be confined to the paste cache — `get ../../etc/passwd` must not become a copy-anything-into-the-repo primitive. This is a read-side confinement problem the codebase hasn''t had before; `path_safety.dart` currently confines against the workspace root, not an arbitrary allowed dir.
+- Writes deliberately do NOT honour `extraReadRoots` (T-322) — keep that asymmetry.
+
+## Also worth settling
+
+Nothing prunes the paste cache. 69 files and growing, unbounded. Out of scope here, but `screenshot list` is the point at which someone notices — worth its own ticket if this one confirms it matters.
+
+D-6 parity: this is CLI-first with no UI peer, which is the allowed direction (every UI action needs a CLI, not the reverse).', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-13 22:11:41.843', '2026-08-13 22:13:10.765', NULL, '97d701b1b7831b13ba36d79a0c0de946', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
