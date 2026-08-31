@@ -20444,3 +20444,32 @@ Whether the two scopes should also be **grouped** (a `user` subsection and a `re
 ## Acceptance
 
 Every row in Skills, Agents and Commands shows its scope without a click, the cue is not colour-only, and the labels come from the catalog.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-31 11:56:46.669', '2026-08-31 12:31:31.743', NULL, '599bac169e13cdd8c270c8218e5b0975', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06G5FBETSQNHTBZNCRJGNAH2NG', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'Config sidepanel: show whether a skill/agent/command is user- or repo-scoped', 'The Claude meta-sidebar''s Config tab lists skills, agents and commands as a flat name list with no indication of where each comes from. A user-scope skill (`~/.claude/skills/`) and a repo-scope one (`<repo>/.claude/skills/`) look identical.
+
+**Found the way these things are usually found.** Reviewing the list, a skill was read as a stray in this repo and nearly moved aside — it was user-scope, loading in every session, and nothing on screen said so. The list can''t currently answer "is this mine or the repo''s?", which is the first question you ask of it.
+
+## The data is already there
+
+`ClaudeSkill`, `ClaudeAgent` and `ClaudeCommand` each carry `final ConfigScope scope` (`global | local`) — lib/builtin/claude/src/claude_config.dart:33-62 — populated by `_loadSkills`/`_loadCommands` walking `_scopeDirs()` in scope order.
+
+It is then discarded at render: `config_tab.dart:164-169` calls `_fileRow(context, tokens, item.name, item.path)` for all three sections, passing name and path only. So this is a display change, not a plumbing one.
+
+## Shape
+
+Applies to **all three** file-backed sections, not just skills — agents and commands have the same ambiguity and the same available field.
+
+Options, in rough order of preference:
+
+1. **A leading scope icon** in the row — e.g. `user` vs `folder` Phosphor glyphs — reusing the existing icon slot idiom. Reads at a glance and survives a theme with a muted accent, which a colour-only cue may not.
+2. **A muted trailing tag** (`user` / `repo`), consistent with how the ticket/decision rows carry muted right-column metadata.
+3. **Colour alone** — cheapest, but the weakest: it fails for anyone who can''t distinguish the two hues, and this list is exactly where a wrong read causes the mistake above.
+
+Per the ui-design skill, whatever is chosen comes from `SurfaceTokens`, and an icon needs its Phosphor glyph registered. If a tag is used, remember the ~30% length growth rule — `user`/`repo` are short in English but the labels must resolve through the i18n catalog (`builtin.claude`), not literals.
+
+## Worth deciding at the same time
+
+Whether the two scopes should also be **grouped** (a `user` subsection and a `repo` subsection) rather than only marked. Grouping answers "what does this repo add?" in one glance; marking answers "where is this one from?". Marking is the smaller change and probably the right first step, but the counts shown in the section header (`config_tab.dart:142`) would arguably be more useful split.
+
+## Acceptance
+
+Every row in Skills, Agents and Commands shows its scope without a click, the cue is not colour-only, and the labels come from the catalog.', 'done', 'medium', NULL, NULL, NULL, '2026-08-31 11:56:46.669', '2026-08-31 12:41:09.580', NULL, '1c991a799a8ff2e8316453da147ad4c5', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
