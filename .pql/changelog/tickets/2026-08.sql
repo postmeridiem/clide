@@ -20385,3 +20385,33 @@ Survey of existing convention homes, done before writing it (2026-08-12):
 **No drift found, and nothing contradicting the principle.** The ground was uncovered rather than double-covered, so there was nothing to reconcile and no second home created.
 
 One judgement call worth recording: forms 2 and 3 are production-code rules, not test rules, so `coding-conventions.md` would arguably be a better fit for them. Creating it would have split one principle across two files — exactly the divergence the record is meant to avoid — so all three forms live in testing.md under one id. If `coding-conventions.md` is ever created for other reasons, D-108 should be cross-referenced from it, not copied into it.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-31 11:53:14.853', '2026-08-31 11:55:24.985', NULL, 'a7f891089a3e9089ba62b85eae4593e0', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06G5FBETSQNHTBZNCRJGNAH2NG', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'Config sidepanel: show whether a skill/agent/command is user- or repo-scoped', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-08-31 11:56:46.669', '2026-08-31 11:56:46.669', NULL, '197f123200a8d337aa940f274ca04820', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06G5FBETSQNHTBZNCRJGNAH2NG', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'Config sidepanel: show whether a skill/agent/command is user- or repo-scoped', 'The Claude meta-sidebar''s Config tab lists skills, agents and commands as a flat name list with no indication of where each comes from. A user-scope skill (`~/.claude/skills/`) and a repo-scope one (`<repo>/.claude/skills/`) look identical.
+
+**Found the way these things are usually found.** Reviewing the list, a skill was read as a stray in this repo and nearly moved aside — it was user-scope, loading in every session, and nothing on screen said so. The list can''t currently answer "is this mine or the repo''s?", which is the first question you ask of it.
+
+## The data is already there
+
+`ClaudeSkill`, `ClaudeAgent` and `ClaudeCommand` each carry `final ConfigScope scope` (`global | local`) — lib/builtin/claude/src/claude_config.dart:33-62 — populated by `_loadSkills`/`_loadCommands` walking `_scopeDirs()` in scope order.
+
+It is then discarded at render: `config_tab.dart:164-169` calls `_fileRow(context, tokens, item.name, item.path)` for all three sections, passing name and path only. So this is a display change, not a plumbing one.
+
+## Shape
+
+Applies to **all three** file-backed sections, not just skills — agents and commands have the same ambiguity and the same available field.
+
+Options, in rough order of preference:
+
+1. **A leading scope icon** in the row — e.g. `user` vs `folder` Phosphor glyphs — reusing the existing icon slot idiom. Reads at a glance and survives a theme with a muted accent, which a colour-only cue may not.
+2. **A muted trailing tag** (`user` / `repo`), consistent with how the ticket/decision rows carry muted right-column metadata.
+3. **Colour alone** — cheapest, but the weakest: it fails for anyone who can''t distinguish the two hues, and this list is exactly where a wrong read causes the mistake above.
+
+Per the ui-design skill, whatever is chosen comes from `SurfaceTokens`, and an icon needs its Phosphor glyph registered. If a tag is used, remember the ~30% length growth rule — `user`/`repo` are short in English but the labels must resolve through the i18n catalog (`builtin.claude`), not literals.
+
+## Worth deciding at the same time
+
+Whether the two scopes should also be **grouped** (a `user` subsection and a `repo` subsection) rather than only marked. Grouping answers "what does this repo add?" in one glance; marking answers "where is this one from?". Marking is the smaller change and probably the right first step, but the counts shown in the section header (`config_tab.dart:142`) would arguably be more useful split.
+
+## Acceptance
+
+Every row in Skills, Agents and Commands shows its scope without a click, the cue is not colour-only, and the labels come from the catalog.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-31 11:56:46.669', '2026-08-31 11:57:25.774', NULL, '82bda6aeb86a58f8396b7612a9503c96', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
