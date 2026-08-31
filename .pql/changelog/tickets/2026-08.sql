@@ -20302,3 +20302,86 @@ Worth deciding anyway whether the cache belongs in `extraReadRoots` for the *lis
 Nothing prunes the paste cache. 69 files and growing, unbounded. Out of scope here, but `screenshot list` is the point at which someone notices — worth its own ticket if this one confirms it matters.
 
 D-6 parity: this is CLI-first with no UI peer, which is the allowed direction (every UI action needs a CLI, not the reverse).', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-13 22:11:41.843', '2026-08-13 22:13:10.765', NULL, '97d701b1b7831b13ba36d79a0c0de946', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06G5FAMZCN413746QZ9MQZJGMR', 'task', NULL, 'Sweep for optimistic defaults — succeed-unless-broken should be fail-unless-proven', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-08-31 11:53:14.853', '2026-08-31 11:53:14.853', NULL, 'fc785ea1a610d2b74f0e7c76fa665529', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06G5FAMZCN413746QZ9MQZJGMR', 'task', NULL, 'Sweep for optimistic defaults — succeed-unless-broken should be fail-unless-proven', 'A pattern worth combing this codebase for rather than fixing in one place. Code tends to default to success and then enumerate the failures the author anticipated. The safer inversion is to default to failure and require a positive success condition, so that an unanticipated failure — or a forgotten line — lands on the safe side.
+
+## Three forms to look for
+
+Translated to Dart/Flutter, which is what this repo is.
+
+**1. Tests asserting what must NOT appear rather than what must.** `expect(x, isNot(...))`, `findsNothing`, `isFalse` on a "no error" flag. A check that the bad value is absent passes for every wrong output that merely avoids it, and quietly stops covering new failure modes as the code grows — no coverage number moves when it stops covering something, which is why the 95% gate (D-66) cannot see this. The strict form asserts the exact expected result, so a mutation has to reproduce it rather than dodge one named mistake.
+
+**2. Checks and error handling that report success when nothing could be determined.** A failed read, an empty probe, or a swallowed parse error leaving the zero value flowing on — `?? ''''`, `?? 0`, `catch (_) { }` — each render as a pass indistinguishable from a real one.
+
+**3. Fields, flags and defaults initialised to the optimistic value**, so every early return has to remember to clear them. The version that starts false and is set only on success cannot be broken by an omission.
+
+## Rough size, to scope the survey (2026-08-12)
+
+Counted, not audited — most of these are legitimate and the number is a search space, not a defect count:
+
+- Form 1: ~1106 negative-shaped assertions (`isNot(` / `findsNothing` / `isFalse`) across 115 test files.
+- Form 2: 79 `catch (_)` sites under `lib/`; ~157 `?? ''''` / `?? 0` fallbacks.
+
+`findsNothing` is often exactly right (asserting a widget is absent IS the specification). The survey''s job is separating those from the ones standing in for an assertion nobody wrote.
+
+## Scope
+
+**Survey and report before changing anything.** The goal is to learn how common the pattern is, not to land a large diff. Findings get named; scope for fixing comes back from the user.
+
+## Overlaps with existing tickets — read before starting
+
+- **T-387** ("Ban `catch (_) {}` on I/O and lifecycle paths") is form 2, narrowed to empty catches, and already carries a decided rule: cleanup/teardown MAY swallow with a why-comment; spawn/read/dispose-adjacent MUST log through the kernel Logger. It cites real damage — a swallowed illegal-lookup-in-dispose became two resource leaks (T-366), and swallowed spawn failures became blank panes. **Don''t re-survey that ground**; take T-387''s classification as given and cover the rest of form 2 (zero-value-on-error, dropped parse results).
+- **T-388** ("sync-I/O-in-async-handlers rule") is adjacent and will mint its own D-record. Same shape of work — a rule plus a sweep — so worth sequencing near this one.
+- Both sit under **T-359** (the Fable-review epic), which is the existing home for systemic-pattern sweeps. Consider parenting this there if it proceeds, rather than leaving it top-level.
+
+## Convention
+
+The principle is recorded as **D-107** in `governance/decisions/testing.md`. This ticket is the sweep; the D-record is the rule.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-31 11:53:14.853', '2026-08-31 11:54:41.017', NULL, '073f068965a430937e24b51df0a85dee', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06G5FAMZCN413746QZ9MQZJGMR', 'task', NULL, 'Sweep for optimistic defaults — succeed-unless-broken should be fail-unless-proven', 'A pattern worth combing this codebase for rather than fixing in one place. Code tends to default to success and then enumerate the failures the author anticipated. The safer inversion is to default to failure and require a positive success condition, so that an unanticipated failure — or a forgotten line — lands on the safe side.
+
+## Three forms to look for
+
+Translated to Dart/Flutter, which is what this repo is.
+
+**1. Tests asserting what must NOT appear rather than what must.** `expect(x, isNot(...))`, `findsNothing`, `isFalse` on a "no error" flag. A check that the bad value is absent passes for every wrong output that merely avoids it, and quietly stops covering new failure modes as the code grows — no coverage number moves when it stops covering something, which is why the 95% gate (D-66) cannot see this. The strict form asserts the exact expected result, so a mutation has to reproduce it rather than dodge one named mistake.
+
+**2. Checks and error handling that report success when nothing could be determined.** A failed read, an empty probe, or a swallowed parse error leaving the zero value flowing on — `?? ''''`, `?? 0`, `catch (_) { }` — each render as a pass indistinguishable from a real one.
+
+**3. Fields, flags and defaults initialised to the optimistic value**, so every early return has to remember to clear them. The version that starts false and is set only on success cannot be broken by an omission.
+
+## Rough size, to scope the survey (2026-08-12)
+
+Counted, not audited — most of these are legitimate and the number is a search space, not a defect count:
+
+- Form 1: ~1106 negative-shaped assertions (`isNot(` / `findsNothing` / `isFalse`) across 115 test files.
+- Form 2: 79 `catch (_)` sites under `lib/`; ~157 `?? ''''` / `?? 0` fallbacks.
+
+`findsNothing` is often exactly right (asserting a widget is absent IS the specification). The survey''s job is separating those from the ones standing in for an assertion nobody wrote.
+
+## Scope
+
+**Survey and report before changing anything.** The goal is to learn how common the pattern is, not to land a large diff. Findings get named; scope for fixing comes back from the user.
+
+## Overlaps with existing tickets — read before starting
+
+- **T-387** ("Ban `catch (_) {}` on I/O and lifecycle paths") is form 2, narrowed to empty catches, and already carries a decided rule: cleanup/teardown MAY swallow with a why-comment; spawn/read/dispose-adjacent MUST log through the kernel Logger. It cites real damage — a swallowed illegal-lookup-in-dispose became two resource leaks (T-366), and swallowed spawn failures became blank panes. **Don''t re-survey that ground**; take T-387''s classification as given and cover the rest of form 2 (zero-value-on-error, dropped parse results).
+- **T-388** ("sync-I/O-in-async-handlers rule") is adjacent and will mint its own D-record. Same shape of work — a rule plus a sweep — so worth sequencing near this one.
+- Both sit under **T-359** (the Fable-review epic), which is the existing home for systemic-pattern sweeps. Consider parenting this there if it proceeds, rather than leaving it top-level.
+
+## Convention
+
+The principle is recorded as **D-107** in `governance/decisions/testing.md`. This ticket is the sweep; the D-record is the rule.
+
+Correction to the line above: the D-record landed as **D-108**, not D-107 (D-107 was already taken when the id was claimed). See `governance/decisions/testing.md`.
+
+Survey of existing convention homes, done before writing it (2026-08-12):
+
+- `governance/decisions/testing.md` — the canonical home for quality strategy (D-23..D-30, D-66: pyramid, goldens, fakes, drivers, gates, organisation, coverage). Nothing on assertion strictness or fail-closed defaults. This is where D-108 went.
+- `CLAUDE.md` — operational guidance, and it explicitly defers: "All architectural choices live in governance/decisions/<domain>.md as D-NNN records." Not a second home.
+- `.claude/skills/` — clide, git-commit, testmode, ui-design, whats-next. None states an assertion philosophy; testmode covers the boot harness only.
+- `docs/testing/` — a11y-manual.md, claude-ui-workflow.md, README.md. Driver mechanics, not assertion discipline.
+- No CONTRIBUTING file. No `governance/decisions/coding-conventions.md` — that domain is listed as canonical in `governance/README.md` but has never been created.
+
+**No drift found, and nothing contradicting the principle.** The ground was uncovered rather than double-covered, so there was nothing to reconcile and no second home created.
+
+One judgement call worth recording: forms 2 and 3 are production-code rules, not test rules, so `coding-conventions.md` would arguably be a better fit for them. Creating it would have split one principle across two files — exactly the divergence the record is meant to avoid — so all three forms live in testing.md under one id. If `coding-conventions.md` is ever created for other reasons, D-108 should be cross-referenced from it, not copied into it.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-31 11:53:14.853', '2026-08-31 11:55:24.985', NULL, 'a7f891089a3e9089ba62b85eae4593e0', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
