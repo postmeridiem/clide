@@ -69,4 +69,16 @@ Test pyramid, drivers, client-side constraint.
 - **Cross-reference:** [D-29](#d-29-pre-push-gate-fast-layer-only).
 - **Raised by:** 2026-05-06 — coverage triage during T-73 follow-up.
 
+### D-108: Fail-unless-proven — choose the default that makes an omission safe
+- **Date:** 2026-08-12
+- **Decision:** Default to failure and require a positive success condition, rather than defaulting to success and enumerating the failures the author anticipated. Three concrete forms:
+  1. **Assert what must appear, not what must not.** `expect(got, 'the exact thing')` over `expect(got, isNot(contains('error')))`. A negative assertion passes for every wrong output that merely avoids the one named mistake.
+  2. **Never report success when nothing could be determined.** A failed read, an empty probe, or a swallowed parse error must not surface as a zero value flowing on (`?? ''`, `?? 0`, `catch (_) {}`) — that is indistinguishable from a real pass. See [D-29](#d-29-pre-push-gate-fast-layer-only) for the gate philosophy this mirrors.
+  3. **Initialise flags pessimistically.** A field that starts `false` and is set only on success cannot be broken by a forgotten early return; one that starts `true` must be cleared on every path out.
+- **The edge, stated so it doesn't become the excuse:** a strict assertion is *wrong* where the expected value could only be produced by reimplementing the thing under test — the test then passes whenever both copies share a bug. There, assert a property a wrong implementation cannot satisfy (output that is a subsequence of its input; a count that must sit between two others; a round-trip that must equal its start) **and say in the test why the weaker claim is the stronger one.** An unexplained weak assertion is indistinguishable from a lazy one.
+- **Rationale:** Coverage cannot see this. A negative assertion stops covering new failure modes as the code grows and no number moves — the 95% floor ([D-66](#d-66-line-coverage-gate-at-95-ratcheted-from-current)) reports the line as covered either way. The repo has already paid for form 2 twice: a swallowed illegal-lookup-in-dispose became two resource leaks (T-366), and swallowed spawn failures became blank panes (T-387).
+- **Cost:** Strict assertions churn more when behaviour legitimately changes — a deliberate trade, since that churn is the test doing its job. Some assertions genuinely belong in the negative (a widget's *absence* is often the specification); this is a default, not an absolute.
+- **Cross-reference:** [D-66](#d-66-line-coverage-gate-at-95-ratcheted-from-current) (why coverage can't enforce this), T-387 (empty-catch sweep), T-574 (survey of how common the pattern is).
+- **Raised by:** 2026-08-12.
+
 ---

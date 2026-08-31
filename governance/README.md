@@ -149,6 +149,7 @@ You might also want, project-permitting:
 - [D-105: Support Vibe CLI as opt-in alternative to Claude Code CLI](decisions/llm.md#d-105-support-vibe-cli-as-opt-in-alternative-to-claude-code-cli) — _llm_
 - [D-106: Per-workspace PATH preset prepended at spawn](decisions/tooling.md#d-106-per-workspace-path-preset-prepended-at-spawn) — _tooling_
 - [D-107: Clide — ambient companion surface backed by a second, non-primary model session](decisions/architecture.md#d-107-clide--ambient-companion-surface-backed-by-a-second-non-primary-model-session) — _architecture_
+- [D-108: Fail-unless-proven — choose the default that makes an omission safe](decisions/testing.md#d-108-fail-unless-proven--choose-the-default-that-makes-an-omission-safe) — _testing_
 
 ## Open questions
 
