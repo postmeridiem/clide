@@ -18,6 +18,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [2.12.0] — 2026-08-31
+
+### Added
+
 - **Clide's popout shows what he has spent this run** (T-556) — turns, tokens
   and a dollar *equivalent*, with the cache-read/cache-write split and thinking
   broken out from what he actually said. Nothing is billed under a subscription;

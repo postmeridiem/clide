@@ -13,7 +13,7 @@ description: >-
   subsystem handlers (pane, files, editor, git, pql), and the
   extension framework.
 publish_to: none
-version: 2.11.0
+version: 2.12.0
 repository: https://github.com/postmeridiem/clide
 # Short user-facing tagline (the welcome subtitle, web meta
 # description, etc.). Baked into lib/src/build_info.g.dart by
