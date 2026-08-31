@@ -162,11 +162,11 @@ class ConfigTabView extends StatelessWidget {
   List<Widget> _sectionChildren(BuildContext context, SurfaceTokens tokens, ClaudeConfig config, ConfigSection section) {
     switch (section) {
       case ConfigSection.skills:
-        return [for (final skill in config.skills) _fileRow(context, tokens, skill.name, skill.path)];
+        return [for (final skill in config.skills) _fileRow(context, tokens, skill.name, skill.path, skill.scope)];
       case ConfigSection.agents:
-        return [for (final agent in config.agents) _fileRow(context, tokens, agent.name, agent.path)];
+        return [for (final agent in config.agents) _fileRow(context, tokens, agent.name, agent.path, agent.scope)];
       case ConfigSection.commands:
-        return [for (final cmd in config.commands) _fileRow(context, tokens, cmd.name, cmd.path)];
+        return [for (final cmd in config.commands) _fileRow(context, tokens, cmd.name, cmd.path, cmd.scope)];
       case ConfigSection.hooks:
         return [
           for (final hook in config.hooks)
@@ -198,28 +198,51 @@ class ConfigTabView extends StatelessWidget {
     }
   }
 
+  /// Where a config item came from, as a word for screen readers and
+  /// tooltips. `global` is the user's `~/.claude`; `local` is this repo's.
+  String _scopeLabel(BuildContext context, ConfigScope scope) => switch (scope) {
+    ConfigScope.global => ClideSettings.i18n.string(context, 'config.scope.user', namespace: 'builtin.claude', placeholder: 'user'),
+    ConfigScope.local => ClideSettings.i18n.string(context, 'config.scope.repo', namespace: 'builtin.claude', placeholder: 'repo'),
+  };
+
   /// A tappable row for file-backed items (skills, agents, commands).
   /// All config items are .md files — opens in the markdown reader panel
   /// via the kernel MessageBus (D-6, T-183).
-  Widget _fileRow(BuildContext context, SurfaceTokens tokens, String name, String? path) {
-    final row = Padding(
+  ///
+  /// Leads with a scope glyph (T-575). A user-scope item loads in every
+  /// session and a repo-scope one doesn't, and the two used to be
+  /// indistinguishable here — which is how a user-scope skill gets mistaken
+  /// for a stray in the repo. Deliberately a SHAPE, not a colour: this is
+  /// the list where a misread causes the mistake, so the cue can't depend on
+  /// telling two hues apart.
+  Widget _fileRow(BuildContext context, SurfaceTokens tokens, String name, String? path, ConfigScope scope) {
+    final scopeWord = _scopeLabel(context, scope);
+    Widget content(Color nameColor) => Padding(
       padding: const EdgeInsets.only(left: 16, top: 2, bottom: 2),
-      child: ClideText(name, fontSize: clideFontSmall, color: path != null ? tokens.globalFocus : tokens.globalForeground),
+      child: Row(
+        children: [
+          ClideIcon(PhosphorIcons.byName(scope == ConfigScope.global ? 'user' : 'folder'), size: 10, color: tokens.globalTextMuted),
+          const SizedBox(width: 6),
+          Flexible(
+            child: ClideText(name, fontSize: clideFontSmall, color: nameColor, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+        ],
+      ),
     );
-    if (path == null) return row;
+
+    if (path == null) {
+      return Semantics(label: '$name, $scopeWord', excludeSemantics: true, child: content(tokens.globalForeground));
+    }
     void openMarkdown() => ClideKernel.of(context).messages.publish('builtin.markdown', 'selection', {'path': path});
     return Semantics(
       button: true,
-      label: name,
+      label: '$name, $scopeWord',
       excludeSemantics: true,
       onTap: openMarkdown,
       child: ClideTappable(
-        tooltip: path,
+        tooltip: '$scopeWord · $path',
         onTap: openMarkdown,
-        builder: (ctx, hovered, _) => Padding(
-          padding: const EdgeInsets.only(left: 16, top: 2, bottom: 2),
-          child: ClideText(name, fontSize: clideFontSmall, color: hovered ? tokens.globalForeground : tokens.globalFocus),
-        ),
+        builder: (ctx, hovered, _) => content(hovered ? tokens.globalForeground : tokens.globalFocus),
       ),
     );
   }

@@ -10,6 +10,7 @@ import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/claude/src/transcript_publisher.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/widgets/widgets.dart' show ClideIcon, PhosphorIcons;
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter/widgets.dart' show ActivateIntent, Actions, EditableText, SizedBox, Semantics;
 import 'package:flutter_test/flutter_test.dart';
@@ -818,6 +819,70 @@ void main() {
       expect(find.text('git-commit'), findsOneWidget);
       expect(find.text('pql'), findsOneWidget);
       expect(find.text('deep-research'), findsOneWidget);
+    });
+
+    testWidgets('T-575: each row says whether it is user- or repo-scoped', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('t575_scope');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      // One skill in each scope, so a row that only ever renders one label
+      // can't pass. The user-scope one is the case that caused the confusion:
+      // it loads in every session and looked like a stray in the repo.
+      final config = await tester.runAsync(() async {
+        final globalDir = Directory('${dir.path}/global')..createSync(recursive: true);
+        final cacheDir = Directory('${dir.path}/cache')..createSync(recursive: true);
+        final projectDir = Directory('${dir.path}/repo')..createSync(recursive: true);
+        await File(
+          '${(Directory('${globalDir.path}/skills/homelab')..createSync(recursive: true)).path}/SKILL.md',
+        ).writeAsString('---\nname: homelab\n---\nbody');
+        await File(
+          '${(Directory('${projectDir.path}/.claude/skills/git-commit')..createSync(recursive: true)).path}/SKILL.md',
+        ).writeAsString('---\nname: git-commit\n---\nbody');
+        final c = ClaudeConfig(
+          globalDir: globalDir,
+          cacheDir: cacheDir,
+          projectDir: projectDir,
+          versionRunner: () async => '2.1.0 (Claude Code)\n',
+          initProbe: () async => null,
+          watch: (_) => const Stream<void>.empty(),
+          debounce: Duration.zero,
+        );
+        await c.load();
+        return c;
+      });
+      addTearDown(config!.dispose);
+
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 320,
+            height: 700,
+            child: sidebar(config: config, initialTab: SidebarTab.config),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('SKILLS · 2'));
+      await tester.pump();
+
+      // Scope reaches the a11y tree, so the cue is not colour-only and a
+      // screen reader gets it too.
+      expect(find.bySemanticsLabel('homelab, user'), findsOneWidget);
+      expect(find.bySemanticsLabel('git-commit, repo'), findsOneWidget);
+
+      // Distinct glyphs, not two shades of one: `user` for the user scope,
+      // `folder` for the repo. Both verified present in the bundled
+      // Phosphor.ttf charset, which the name table alone doesn't prove.
+      final icons = tester.widgetList<ClideIcon>(find.byType(ClideIcon)).map((i) => i.painter).toSet();
+      expect(icons, contains(PhosphorIcons.byName('user')));
+      expect(icons, contains(PhosphorIcons.byName('folder')));
+      expect(
+        PhosphorIcons.byName('user'),
+        isNot(PhosphorIcons.byName(PhosphorIcons.fallbackName)),
+        reason: 'a mistyped name would silently degrade to the placeholder box',
+      );
     });
 
     testWidgets('expanding AGENTS section shows all agent names', (tester) async {

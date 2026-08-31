@@ -15622,3 +15622,4 @@ Whether the two scopes should also be **grouped** (a `user` subsection and a `re
 ## Acceptance
 
 Every row in Skills, Agents and Commands shows its scope without a click, the cue is not colour-only, and the labels come from the catalog.', NULL, '2026-08-31 11:57:25', '2026-08-31 11:57:25.774', '2026-08-31 11:57:25.774', NULL, 'd09c97e21c871968570d7012226ae8a7', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06G5FBETSQNHTBZNCRJGNAH2NG', 'status', 'backlog', 'in_progress', NULL, '2026-08-31 12:31:31', '2026-08-31 12:31:31.743', '2026-08-31 12:31:31.743', NULL, '7fc3b71e71d8a9a5ef74dd3c7ad35524', 2) ON CONFLICT(hash) DO NOTHING;

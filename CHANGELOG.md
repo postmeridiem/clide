@@ -41,6 +41,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- **The Config sidepanel shows where each skill, agent and command comes from**
+  (T-575) — a leading glyph marks user scope (`~/.claude`) apart from repo
+  scope, so a user-scope item can't be mistaken for a stray in the repo.
+
 ### Fixed
 
 - **The Claude pane no longer goes blind after `/clear` or `/resume`** (T-568).

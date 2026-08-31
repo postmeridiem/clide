@@ -175,6 +175,8 @@
   "config.section.hooks": { "translation": "HOOKS" },
   "config.section.permissions": { "translation": "PERMISSIONS" },
   "config.section.mcpServers": { "translation": "MCP SERVERS" },
+  "config.scope.user": { "translation": "user" },
+  "config.scope.repo": { "translation": "repo" },
   "config.perm.allow": { "translation": "allow" },
   "config.perm.ask": { "translation": "ask" },
   "config.perm.deny": { "translation": "deny" },
