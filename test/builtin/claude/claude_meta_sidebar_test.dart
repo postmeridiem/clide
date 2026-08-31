@@ -883,6 +883,45 @@ void main() {
         isNot(PhosphorIcons.byName(PhosphorIcons.fallbackName)),
         reason: 'a mistyped name would silently degrade to the placeholder box',
       );
+
+      // T-576: grouped under counted sub-headers, repo before user.
+      expect(find.text('repo · 1'), findsOneWidget);
+      expect(find.text('user · 1'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('repo · 1')).dy,
+        lessThan(tester.getTopLeft(find.text('user · 1')).dy),
+        reason: "the repo's own contributions come first",
+      );
+      expect(tester.getTopLeft(find.text('git-commit')).dy, lessThan(tester.getTopLeft(find.text('homelab')).dy), reason: 'rows follow their own group header');
+    });
+
+    testWidgets('T-576: a section with one scope shows that group only', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('t576_single');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      // Only user-scope skills — an empty repo group must not render a
+      // header standing over nothing.
+      final config = await loadedConfig(tester, dir, skills: [(name: 'pql', dir: 'pql'), (name: 'homelab', dir: 'homelab')]);
+      addTearDown(config.dispose);
+
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 320,
+            height: 700,
+            child: sidebar(config: config, initialTab: SidebarTab.config),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('SKILLS · 2'));
+      await tester.pump();
+
+      expect(find.text('user · 2'), findsOneWidget);
+      expect(find.textContaining('repo · '), findsNothing);
+      expect(find.text('pql'), findsOneWidget);
+      expect(find.text('homelab'), findsOneWidget);
     });
 
     testWidgets('expanding AGENTS section shows all agent names', (tester) async {

@@ -42,8 +42,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 ### Changed
 
 - **The Config sidepanel shows where each skill, agent and command comes from**
-  (T-575) — a leading glyph marks user scope (`~/.claude`) apart from repo
-  scope, so a user-scope item can't be mistaken for a stray in the repo.
+  (T-575, T-576) — grouped under counted `repo` / `user` sub-headers, each row
+  led by a scope glyph, so a user-scope item can't be mistaken for a stray in
+  the repo and the repo's own additions are countable at a glance.
 
 ### Fixed
 

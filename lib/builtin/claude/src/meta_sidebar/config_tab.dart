@@ -162,11 +162,11 @@ class ConfigTabView extends StatelessWidget {
   List<Widget> _sectionChildren(BuildContext context, SurfaceTokens tokens, ClaudeConfig config, ConfigSection section) {
     switch (section) {
       case ConfigSection.skills:
-        return [for (final skill in config.skills) _fileRow(context, tokens, skill.name, skill.path, skill.scope)];
+        return _scopeGrouped(context, tokens, config.skills, (s) => s.scope, (s, indent) => _fileRow(context, tokens, s.name, s.path, s.scope, indent));
       case ConfigSection.agents:
-        return [for (final agent in config.agents) _fileRow(context, tokens, agent.name, agent.path, agent.scope)];
+        return _scopeGrouped(context, tokens, config.agents, (a) => a.scope, (a, indent) => _fileRow(context, tokens, a.name, a.path, a.scope, indent));
       case ConfigSection.commands:
-        return [for (final cmd in config.commands) _fileRow(context, tokens, cmd.name, cmd.path, cmd.scope)];
+        return _scopeGrouped(context, tokens, config.commands, (c) => c.scope, (c, indent) => _fileRow(context, tokens, c.name, c.path, c.scope, indent));
       case ConfigSection.hooks:
         return [
           for (final hook in config.hooks)
@@ -205,6 +205,41 @@ class ConfigTabView extends StatelessWidget {
     ConfigScope.local => ClideSettings.i18n.string(context, 'config.scope.repo', namespace: 'builtin.claude', placeholder: 'repo'),
   };
 
+  /// Split a file-backed section into scope groups, each under its own
+  /// counted sub-header (T-576). The per-row glyph (T-575) answers "where is
+  /// this one from?"; the grouped count answers "what does this repo add?",
+  /// which is the question you actually arrive with.
+  ///
+  /// Repo first: when you're working in a repo, its own contributions are
+  /// what you came to look at, and the user-scope set is the stable backdrop.
+  /// A scope with nothing in it renders no header at all rather than an empty
+  /// one — an absent group is already the answer.
+  List<Widget> _scopeGrouped<T>(
+    BuildContext context,
+    SurfaceTokens tokens,
+    List<T> items,
+    ConfigScope Function(T) scopeOf,
+    Widget Function(T item, double indent) row,
+  ) {
+    if (items.isEmpty) return const [];
+    final out = <Widget>[];
+    for (final scope in [ConfigScope.local, ConfigScope.global]) {
+      final group = [
+        for (final item in items)
+          if (scopeOf(item) == scope) item,
+      ];
+      if (group.isEmpty) continue;
+      out.add(
+        Padding(
+          padding: const EdgeInsets.only(left: 16, top: 4, bottom: 1),
+          child: ClideText('${_scopeLabel(context, scope)} · ${group.length}', fontSize: clideFontSmall, color: tokens.sidebarSectionHeader),
+        ),
+      );
+      out.addAll([for (final item in group) row(item, 26)]);
+    }
+    return out;
+  }
+
   /// A tappable row for file-backed items (skills, agents, commands).
   /// All config items are .md files — opens in the markdown reader panel
   /// via the kernel MessageBus (D-6, T-183).
@@ -215,10 +250,10 @@ class ConfigTabView extends StatelessWidget {
   /// for a stray in the repo. Deliberately a SHAPE, not a colour: this is
   /// the list where a misread causes the mistake, so the cue can't depend on
   /// telling two hues apart.
-  Widget _fileRow(BuildContext context, SurfaceTokens tokens, String name, String? path, ConfigScope scope) {
+  Widget _fileRow(BuildContext context, SurfaceTokens tokens, String name, String? path, ConfigScope scope, [double indent = 16]) {
     final scopeWord = _scopeLabel(context, scope);
     Widget content(Color nameColor) => Padding(
-      padding: const EdgeInsets.only(left: 16, top: 2, bottom: 2),
+      padding: EdgeInsets.only(left: indent, top: 2, bottom: 2),
       child: Row(
         children: [
           ClideIcon(PhosphorIcons.byName(scope == ConfigScope.global ? 'user' : 'folder'), size: 10, color: tokens.globalTextMuted),
