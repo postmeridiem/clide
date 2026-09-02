@@ -22,6 +22,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **The web build boots past workspace resolution** (T-577) — `Directory.current`
+  was read before the web guard, so the wasm build threw before reaching its own
+  web handling. Desktop unaffected.
+
 ## [2.12.0] — 2026-08-31
 
 ### Added
