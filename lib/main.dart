@@ -111,7 +111,11 @@ Future<void> main() async {
   // pql hits a stale ~/.pql/pql.db and the sidebars error on first load. Boot
   // at the last project instead so the daemon targets the real repo from the
   // first request. (T-352)
-  Directory startupWorkRoot = resolveWorkspaceRoot(Directory.current);
+  // `Directory.current` reads the filesystem namespace, which dart:io does
+  // not implement on web — it throws `Unsupported operation: _Namespace`
+  // before any of the kIsWeb guards below are reached. Constructing a
+  // Directory is fine (no I/O); only resolving one isn't.
+  Directory startupWorkRoot = kIsWeb ? Directory('/clide-web-no-disk') : resolveWorkspaceRoot(Directory.current);
   // Crash-survivable logging (T-425): resolve the dev/prod verbosity once and
   // attach a FileLogSink as the leading sink so a freeze leaves on-disk
   // breadcrumbs. Desktop-only — the sink uses dart:io.
