@@ -9,7 +9,11 @@
 library;
 
 import 'package:clide/widgets/src/clide_code_block.dart';
+import 'package:clide/widgets/src/clide_context_menu.dart';
 import 'package:clide/widgets/src/clide_markdown.dart';
+import 'package:clide/widgets/src/clide_menu.dart';
+import 'package:clide/widgets/src/clide_selection_area.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -202,6 +206,37 @@ void main() {
               'should be owned by a Text (built via Text.rich, not bare RichText)',
         );
       }
+    });
+
+    testWidgets('right-click over selected prose offers Copy (D-109)', (tester) async {
+      // Guards the trap that kept this surface menu-less: passing
+      // `emptyTextSelectionControls` makes SelectableRegion ignore
+      // `contextMenuBuilder` outright, with nothing failing to say so.
+      setSurfaceSize(tester, 800, height: 600);
+
+      await tester.pumpWidget(anchoredHarness(f, const SizedBox(width: 400, child: ClideSelectionArea(child: ClideMarkdown('hello world')))));
+      await tester.pump();
+
+      final origin = tester.getTopLeft(find.byType(ClideMarkdown));
+      final drag = await tester.startGesture(origin + const Offset(1, 7), kind: PointerDeviceKind.mouse);
+      await tester.pump();
+      await drag.moveTo(origin + const Offset(120, 7));
+      await tester.pump();
+      await drag.up();
+      await tester.pump();
+
+      final rightClick = await tester.startGesture(origin + const Offset(40, 7), kind: PointerDeviceKind.mouse, buttons: kSecondaryButton);
+      await rightClick.up();
+      await tester.pump();
+
+      expect(find.byType(ClideMenu), findsOneWidget);
+      expect(find.text('Copy'), findsOneWidget);
+
+      await tester.tap(find.text('Copy'));
+      await tester.pump();
+
+      expect(clipboard.text, isNotNull);
+      expect(clipboard.text, isNotEmpty);
     });
   });
 }
