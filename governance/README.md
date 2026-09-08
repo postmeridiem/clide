@@ -150,6 +150,7 @@ You might also want, project-permitting:
 - [D-106: Per-workspace PATH preset prepended at spawn](decisions/tooling.md#d-106-per-workspace-path-preset-prepended-at-spawn) — _tooling_
 - [D-107: Clide — ambient companion surface backed by a second, non-primary model session](decisions/architecture.md#d-107-clide--ambient-companion-surface-backed-by-a-second-non-primary-model-session) — _architecture_
 - [D-108: Fail-unless-proven — choose the default that makes an omission safe](decisions/testing.md#d-108-fail-unless-proven--choose-the-default-that-makes-an-omission-safe) — _testing_
+- [D-109: clide owns the text selection + clipboard layer](decisions/design.md#d-109-clide-owns-the-text-selection--clipboard-layer) — _design_
 
 ## Open questions
 
