@@ -60,6 +60,40 @@ Widget anchoredHarness(KernelFixture fixture, Widget child, {Size size = const S
   );
 }
 
+/// Puts an [Overlay] ancestor above [child] without disturbing the incoming
+/// constraints.
+///
+/// Since D-109 every clide text input carries a context menu, and Flutter
+/// requires an Overlay ancestor for one — in the app that is `WidgetsApp`'s, but
+/// a tight hand-built test tree has none and asserts on first selection. Reach
+/// for this rather than the shared [harness], whose `canSizeOverlay` entry hands
+/// its child unbounded width.
+///
+/// Written as a widget rather than a bare `Overlay(initialEntries: [...])`
+/// because those entries are read **only on first mount**: a test that re-pumps
+/// its tree with a new child would silently keep showing the old one.
+class OverlayHost extends StatefulWidget {
+  const OverlayHost({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<OverlayHost> createState() => _OverlayHostState();
+}
+
+class _OverlayHostState extends State<OverlayHost> {
+  late final OverlayEntry _entry = OverlayEntry(builder: (_) => widget.child);
+
+  @override
+  void didUpdateWidget(OverlayHost old) {
+    super.didUpdateWidget(old);
+    if (old.child != widget.child) _entry.markNeedsBuild();
+  }
+
+  @override
+  Widget build(BuildContext context) => Overlay(initialEntries: [_entry]);
+}
+
 /// Settle async-driven UI in a widget test WITHOUT the two patterns that have
 /// repeatedly wedged this suite:
 ///

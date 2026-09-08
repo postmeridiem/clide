@@ -491,7 +491,7 @@ class _ChatInputField extends StatelessWidget {
         border: Border.all(color: tokens.panelBorder),
         borderRadius: BorderRadius.circular(3),
       ),
-      child: EditableText(
+      child: ClideEditable(
         controller: controller,
         focusNode: focusNode,
         style: TextStyle(fontFamily: 'JetBrains Mono', fontSize: clideFontSmall, color: tokens.globalForeground, height: 1.4),

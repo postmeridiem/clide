@@ -276,7 +276,7 @@ class _PathPresetControlState extends State<PathPresetControl> {
               border: Border.all(color: _focus.hasFocus ? tokens.panelActiveBorder : tokens.dividerColor),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: EditableText(
+            child: ClideEditable(
               controller: _entry,
               focusNode: _focus,
               style: TextStyle(fontFamily: ClideSettings.fonts.monoOf(context), fontSize: clideFontMono, color: tokens.globalForeground),

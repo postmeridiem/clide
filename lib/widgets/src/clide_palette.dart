@@ -1,5 +1,6 @@
 import 'package:clide/extension/src/contribution.dart' show CommandContribution;
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/widgets/src/clide_editable.dart';
 import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/typography.dart';
@@ -152,7 +153,7 @@ class _ClidePaletteState extends State<ClidePalette> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.all(8),
-                      child: EditableText(
+                      child: ClideEditable(
                         controller: _input,
                         focusNode: _focus,
                         style: TextStyle(fontFamily: ClideSettings.fonts.monoOf(context), fontSize: clideFontMono, color: tokens.dropdownForeground),

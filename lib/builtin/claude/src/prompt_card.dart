@@ -731,7 +731,7 @@ class _NoteFieldState extends State<_NoteField> {
             valueListenable: widget.controller,
             builder: (_, v, _) => v.text.isEmpty ? ClideText(widget.placeholder, muted: true, fontSize: clideFontSmall) : const SizedBox.shrink(),
           ),
-          EditableText(
+          ClideEditable(
             controller: widget.controller,
             focusNode: _focus,
             style: TextStyle(fontSize: clideFontSmall, color: tokens.globalForeground, height: 1.3),

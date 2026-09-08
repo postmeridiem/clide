@@ -504,7 +504,7 @@ class _EditControlState extends State<_EditControl> {
           border: Border.all(color: _focus.hasFocus ? tokens.panelActiveBorder : tokens.dividerColor),
           borderRadius: BorderRadius.circular(4),
         ),
-        child: EditableText(
+        child: ClideEditable(
           controller: _controller,
           focusNode: _focus,
           style: TextStyle(fontFamily: ClideSettings.fonts.monoOf(context), fontSize: clideFontMono, color: tokens.globalForeground),

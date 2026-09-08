@@ -1,4 +1,5 @@
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/widgets/src/clide_editable.dart';
 import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/typography.dart';
@@ -199,7 +200,7 @@ class _QuickOpenOverlayState extends State<QuickOpenOverlay> {
                     if (controller.prompt != null) _Hint(controller.prompt!, tokens),
                     Padding(
                       padding: const EdgeInsets.all(8),
-                      child: EditableText(
+                      child: ClideEditable(
                         controller: _input,
                         focusNode: _focus,
                         style: TextStyle(fontFamily: ClideSettings.fonts.monoOf(context), fontSize: clideFontMono, color: tokens.dropdownForeground),

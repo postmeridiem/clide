@@ -12,6 +12,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
+import '../../helpers/widget_harness.dart' show OverlayHost;
 
 void main() {
   late KernelFixture f;
@@ -52,7 +53,12 @@ void main() {
         controller: f.services.theme,
         child: MediaQuery(
           data: const MediaQueryData(),
-          child: Align(alignment: Alignment.topLeft, child: child),
+          // The dialog's path field needs an Overlay ancestor for its
+          // context menu, as it has in the app under WidgetsApp.
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: OverlayHost(child: child),
+          ),
         ),
       ),
     ),

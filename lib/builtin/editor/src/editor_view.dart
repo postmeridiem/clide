@@ -387,7 +387,7 @@ class _TextBody extends StatelessWidget {
       fontFamily: ClideSettings.fonts.monoOf(context),
       fontFamilyFallback: clideMonoFamilyFallback,
     );
-    final editable = EditableText(
+    final editable = ClideEditable(
       controller: controller,
       focusNode: focus,
       readOnly: readOnly,

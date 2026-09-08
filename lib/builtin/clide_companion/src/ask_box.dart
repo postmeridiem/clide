@@ -28,6 +28,7 @@
 /// the context column, attached to his face, in his green.
 library;
 
+import 'package:clide/widgets/src/clide_editable.dart';
 import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/typography.dart';
@@ -143,7 +144,7 @@ class _ClideAskBoxState extends State<ClideAskBox> {
               alignment: Alignment.centerLeft,
               children: [
                 if (_controller.text.isEmpty) ClideText(widget.hint, color: muted, fontSize: clideFontCaption),
-                EditableText(
+                ClideEditable(
                   controller: _controller,
                   focusNode: _focus,
                   readOnly: !widget.enabled,

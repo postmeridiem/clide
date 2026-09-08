@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
+import '../../helpers/widget_harness.dart' show OverlayHost;
 
 /// T-564 — the box you ask Clide things in, and the face acknowledging that you
 /// are talking *to* him rather than about him.
@@ -28,7 +29,11 @@ void main() {
             alignment: Alignment.topLeft,
             child: SizedBox(
               width: width,
-              child: ClideStrip(onAsk: onAsk, canAsk: canAsk, message: 'Those accumulate.'),
+              // Sized Overlay — the ask box's input needs one for its
+              // context menu, but must keep this tree's bounded width.
+              child: OverlayHost(
+                child: ClideStrip(onAsk: onAsk, canAsk: canAsk, message: 'Those accumulate.'),
+              ),
             ),
           ),
         ),

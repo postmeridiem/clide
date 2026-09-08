@@ -9,6 +9,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
+import '../../helpers/widget_harness.dart' show OverlayHost;
 
 /// T-566 — what the developer sees of Clide.
 ///
@@ -82,7 +83,11 @@ void main() {
       textDirection: TextDirection.ltr,
       child: ClideKernel(
         services: f.services,
-        child: ClideTheme(controller: f.services.theme, child: child),
+        // The popout's ask box needs an Overlay ancestor for its context menu.
+        child: ClideTheme(
+          controller: f.services.theme,
+          child: OverlayHost(child: child),
+        ),
       ),
     );
 

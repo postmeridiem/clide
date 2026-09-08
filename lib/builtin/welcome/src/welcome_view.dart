@@ -603,7 +603,7 @@ class _OpenProjectDialogState extends State<_OpenProjectDialog> {
               border: Border.all(color: tokens.globalBorder),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: EditableText(
+            child: ClideEditable(
               controller: _controller,
               focusNode: _focus,
               style: TextStyle(
@@ -876,7 +876,7 @@ class _NewProjectDialogState extends State<_NewProjectDialog> {
                   border: Border.all(color: f.hasFocus ? tokens.panelActiveBorder : tokens.globalBorder),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: EditableText(
+                child: ClideEditable(
                   controller: c,
                   focusNode: f,
                   style: TextStyle(

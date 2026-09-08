@@ -31,9 +31,14 @@ void main() {
       services: f.services,
       child: ClideTheme(
         controller: f.services.theme,
-        child: const MediaQuery(
-          data: MediaQueryData(size: Size(800, 600)),
-          child: SizedBox(width: 800, height: 600, child: Stack(children: [ExLineOverlay()])),
+        child: MediaQuery(
+          data: const MediaQueryData(size: Size(800, 600)),
+          // Sized Overlay — the ex-line's input needs one for its context menu.
+          child: const SizedBox(
+            width: 800,
+            height: 600,
+            child: OverlayHost(child: Stack(children: [ExLineOverlay()])),
+          ),
         ),
       ),
     ),

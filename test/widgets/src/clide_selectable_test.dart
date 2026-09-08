@@ -9,7 +9,6 @@
 library;
 
 import 'package:clide/widgets/src/clide_code_block.dart';
-import 'package:clide/widgets/src/clide_context_menu.dart';
 import 'package:clide/widgets/src/clide_markdown.dart';
 import 'package:clide/widgets/src/clide_menu.dart';
 import 'package:clide/widgets/src/clide_selection_area.dart';

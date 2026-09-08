@@ -142,7 +142,7 @@ class _OpenFolderDialogState extends State<OpenFolderDialog> {
               border: Border.all(color: tokens.globalBorder),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: EditableText(
+            child: ClideEditable(
               controller: _controller,
               focusNode: _focus,
               style: TextStyle(

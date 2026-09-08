@@ -24,7 +24,7 @@ class InjectTextField extends StatelessWidget {
         border: Border.all(color: tokens.panelBorder),
         borderRadius: BorderRadius.circular(3),
       ),
-      child: EditableText(
+      child: ClideEditable(
         controller: controller,
         focusNode: FocusNode(debugLabel: 'inject-${controller.hashCode}')..requestFocus(),
         style: TextStyle(fontFamily: 'JetBrains Mono', fontSize: clideFontSmall, color: tokens.globalForeground, height: 1.4),

@@ -520,7 +520,7 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
                           child: Stack(
                             children: [
                               if (!hasText) Positioned(left: 0, top: 0, right: 0, child: ClideText(hint, muted: true, fontSize: clideFontBody)),
-                              EditableText(
+                              ClideEditable(
                                 controller: _controller,
                                 focusNode: _focus,
                                 readOnly: !widget.enabled,

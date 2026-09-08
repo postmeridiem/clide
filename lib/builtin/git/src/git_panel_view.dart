@@ -226,7 +226,7 @@ class _CommitInput extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(border: Border.all(color: tokens.globalBorder)),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              child: EditableText(
+              child: ClideEditable(
                 controller: commitMsg,
                 focusNode: commitFocus,
                 style: TextStyle(fontFamily: clideUiFamily, fontWeight: clideUiDefaultWeight, fontSize: clideFontCaption, color: tokens.globalForeground),

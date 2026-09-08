@@ -14,7 +14,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
-import '../../helpers/widget_harness.dart' show pumpAsync;
+import '../../helpers/widget_harness.dart' show OverlayHost, pumpAsync;
 
 void main() {
   late KernelFixture fixture;
@@ -36,7 +36,11 @@ void main() {
               controller: fixture.services.theme,
               child: Align(
                 alignment: Alignment.topLeft,
-                child: SizedBox(width: 300, height: 60, child: child),
+                // The OverlayHost sits INSIDE the SizedBox so it inherits tight
+                // constraints — ClideEditable needs an Overlay ancestor for its
+                // context menu, but the shared harness's canSizeOverlay variant
+                // would hand this box unbounded width and break its Expanded.
+                child: SizedBox(width: 300, height: 60, child: OverlayHost(child: child)),
               ),
             ),
           ),
@@ -111,7 +115,11 @@ void main() {
             controller: fixture.services.theme,
             child: Align(
               alignment: Alignment.topLeft,
-              child: SizedBox(width: 300, height: 60, child: ClideFilterBox(onChanged: (v) => captured = v)),
+              child: SizedBox(
+                width: 300,
+                height: 60,
+                child: OverlayHost(child: ClideFilterBox(onChanged: (v) => captured = v)),
+              ),
             ),
           ),
         ),

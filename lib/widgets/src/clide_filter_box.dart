@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/kernel/src/facade.dart';
+import 'package:clide/widgets/src/clide_editable.dart';
 import 'package:clide/widgets/src/clide_icon.dart';
 import 'package:clide/widgets/src/icons/phosphor.dart';
 import 'package:clide/widgets/src/typography.dart';
@@ -153,7 +154,7 @@ class _ClideFilterBoxState extends State<ClideFilterBox> {
                           style: TextStyle(fontSize: clideFontCaption, color: tokens.globalTextMuted),
                         ),
                       ),
-                    EditableText(
+                    ClideEditable(
                       controller: _controller,
                       focusNode: _focus,
                       style: TextStyle(fontSize: clideFontCaption, color: tokens.globalForeground),

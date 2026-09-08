@@ -1,4 +1,5 @@
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/widgets/src/clide_editable.dart';
 import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/typography.dart';
@@ -164,7 +165,7 @@ class _ExLineOverlayState extends State<ExLineOverlay> {
                           ClideText(':', fontFamily: ClideSettings.fonts.monoOf(context), color: tokens.globalTextMuted),
                           const SizedBox(width: 4),
                           Expanded(
-                            child: EditableText(
+                            child: ClideEditable(
                               controller: _input,
                               focusNode: _focus,
                               style: TextStyle(fontFamily: ClideSettings.fonts.monoOf(context), fontSize: clideFontMono, color: tokens.dropdownForeground),
