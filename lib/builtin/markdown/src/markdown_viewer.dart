@@ -200,9 +200,11 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
           onEdit: (!_mirror && _path != null) ? _onEdit : null,
         ),
       ],
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
-        child: ClideMarkdown(_content!, onRecordTap: (id) => _navigateToRecord(context, id)),
+      child: ClideSelectionArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(12),
+          child: ClideMarkdown(_content!, onRecordTap: (id) => _navigateToRecord(context, id)),
+        ),
       ),
     );
   }

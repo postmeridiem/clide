@@ -31,6 +31,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   `EditableText` supplies neither. Mouse drag, double-click word and
   triple-click line selection now work everywhere.
 
+- **Markdown viewer, decision detail and ticket detail are selectable**
+  (T-583) — they rendered prose with no selection layer above it, so there was
+  nothing to select and nothing to copy.
+
 ## [2.12.1] — 2026-09-02
 
 ### Fixed

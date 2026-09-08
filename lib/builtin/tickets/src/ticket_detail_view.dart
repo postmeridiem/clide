@@ -97,37 +97,39 @@ class _TicketDetailViewState extends State<TicketDetailView> {
               onEdit: null, // tickets are pql records, not files
             ),
           ],
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _TicketHeader(detail: d, tokens: tokens, typeColors: typeColors),
-                const SizedBox(height: 12),
-                _StatusControls(detail: d, tokens: tokens, controller: c),
-                if (d.description != null && d.description!.isNotEmpty) ...[
+          child: ClideSelectionArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _TicketHeader(detail: d, tokens: tokens, typeColors: typeColors),
                   const SizedBox(height: 12),
-                  ClideMarkdown(d.description!, onRecordTap: (id) => _navigateToRecord(ctx, id)),
+                  _StatusControls(detail: d, tokens: tokens, controller: c),
+                  if (d.description != null && d.description!.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    ClideMarkdown(d.description!, onRecordTap: (id) => _navigateToRecord(ctx, id)),
+                  ],
+                  if (d.parents.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _SectionLabel(
+                      label: ClideSettings.i18n.string(ctx, 'detail.section.parents', namespace: 'builtin.tickets', placeholder: 'PARENT TREE'),
+                      tokens: tokens,
+                    ),
+                    const SizedBox(height: 6),
+                    for (var i = 0; i < d.parents.length; i++) _CompactCard(data: d.parents[i], tokens: tokens, typeColors: typeColors, indent: i),
+                  ],
+                  if (d.decisions.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _SectionLabel(
+                      label: ClideSettings.i18n.string(ctx, 'detail.section.decisions', namespace: 'builtin.tickets', placeholder: 'REFERENCED DECISIONS'),
+                      tokens: tokens,
+                    ),
+                    const SizedBox(height: 6),
+                    for (final dec in d.decisions) _DecisionRefCard(data: dec, tokens: tokens),
+                  ],
                 ],
-                if (d.parents.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  _SectionLabel(
-                    label: ClideSettings.i18n.string(ctx, 'detail.section.parents', namespace: 'builtin.tickets', placeholder: 'PARENT TREE'),
-                    tokens: tokens,
-                  ),
-                  const SizedBox(height: 6),
-                  for (var i = 0; i < d.parents.length; i++) _CompactCard(data: d.parents[i], tokens: tokens, typeColors: typeColors, indent: i),
-                ],
-                if (d.decisions.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  _SectionLabel(
-                    label: ClideSettings.i18n.string(ctx, 'detail.section.decisions', namespace: 'builtin.tickets', placeholder: 'REFERENCED DECISIONS'),
-                    tokens: tokens,
-                  ),
-                  const SizedBox(height: 6),
-                  for (final dec in d.decisions) _DecisionRefCard(data: dec, tokens: tokens),
-                ],
-              ],
+              ),
             ),
           ),
         );

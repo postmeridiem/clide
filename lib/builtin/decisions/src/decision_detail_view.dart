@@ -134,65 +134,67 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
           onEdit: filePath != null ? _onEdit : null,
         ),
       ],
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: tokens.panelBackground,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: tokens.panelBorder),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      ClideTooltip(
-                        message: type ?? 'confirmed',
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle),
+      child: ClideSelectionArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: tokens.panelBackground,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: tokens.panelBorder),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        ClideTooltip(
+                          message: type ?? 'confirmed',
+                          child: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      ClideText(id, fontSize: clideFontSmall, color: typeColor, fontFamily: ClideSettings.fonts.monoOf(context)),
-                      const Spacer(),
-                      if (domain != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: tokens.panelBorder, borderRadius: BorderRadius.circular(3)),
-                          child: ClideText(domain, fontSize: clideFontBadge, color: tokens.globalTextMuted, fontFamily: ClideSettings.fonts.monoOf(context)),
-                        ),
+                        const SizedBox(width: 8),
+                        ClideText(id, fontSize: clideFontSmall, color: typeColor, fontFamily: ClideSettings.fonts.monoOf(context)),
+                        const Spacer(),
+                        if (domain != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(color: tokens.panelBorder, borderRadius: BorderRadius.circular(3)),
+                            child: ClideText(domain, fontSize: clideFontBadge, color: tokens.globalTextMuted, fontFamily: ClideSettings.fonts.monoOf(context)),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ClideText(title, fontSize: 15, fontWeight: FontWeight.w500),
+                    if (date != null) ...[
+                      const SizedBox(height: 6),
+                      ClideText(date, muted: true, fontSize: clideFontSmall, fontFamily: ClideSettings.fonts.monoOf(context)),
                     ],
-                  ),
-                  const SizedBox(height: 8),
-                  ClideText(title, fontSize: 15, fontWeight: FontWeight.w500),
-                  if (date != null) ...[
-                    const SizedBox(height: 6),
-                    ClideText(date, muted: true, fontSize: clideFontSmall, fontFamily: ClideSettings.fonts.monoOf(context)),
+                    if (status != null && status != 'active') ...[const SizedBox(height: 8), _StatusBadge(status: status, tokens: tokens)],
                   ],
-                  if (status != null && status != 'active') ...[const SizedBox(height: 8), _StatusBadge(status: status, tokens: tokens)],
-                ],
+                ),
               ),
-            ),
-            if (body != null && body.isNotEmpty) ...[const SizedBox(height: 12), ClideMarkdown(body, onRecordTap: (id) => _navigateToRecord(context, id))],
-            if (refs.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              ClideText(
-                ClideSettings.i18n.string(context, 'detail.section.refs', namespace: 'builtin.decisions', placeholder: 'CROSS-REFERENCES'),
-                fontSize: clideFontSmall,
-                color: tokens.sidebarSectionHeader,
-                fontFamily: ClideSettings.fonts.monoOf(context),
-              ),
-              const SizedBox(height: 6),
-              for (final ref in refs) _RefCard(ref: ref, tokens: tokens),
+              if (body != null && body.isNotEmpty) ...[const SizedBox(height: 12), ClideMarkdown(body, onRecordTap: (id) => _navigateToRecord(context, id))],
+              if (refs.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                ClideText(
+                  ClideSettings.i18n.string(context, 'detail.section.refs', namespace: 'builtin.decisions', placeholder: 'CROSS-REFERENCES'),
+                  fontSize: clideFontSmall,
+                  color: tokens.sidebarSectionHeader,
+                  fontFamily: ClideSettings.fonts.monoOf(context),
+                ),
+                const SizedBox(height: 6),
+                for (final ref in refs) _RefCard(ref: ref, tokens: tokens),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
