@@ -23,5 +23,15 @@
   "resize.sidebar": { "translation": "Zijbalk {axis}" },
   "resize.contextPanel": { "translation": "Contextpaneel {axis}" },
   "resize.slot": { "translation": "{slot} {axis}" },
-  "resize.pixels": { "translation": "{n} pixels" }
+  "resize.pixels": { "translation": "{n} pixels" },
+  "contextMenu.cut": { "translation": "Knippen" },
+  "contextMenu.copy": { "translation": "Kopiëren" },
+  "contextMenu.paste": { "translation": "Plakken" },
+  "contextMenu.selectAll": { "translation": "Alles selecteren" },
+  "contextMenu.delete": { "translation": "Verwijderen" },
+  "contextMenu.lookUp": { "translation": "Opzoeken" },
+  "contextMenu.searchWeb": { "translation": "Zoeken op internet" },
+  "contextMenu.share": { "translation": "Delen" },
+  "contextMenu.liveTextInput": { "translation": "Tekst scannen" },
+  "contextMenu.custom": { "translation": "Actie" }
 }

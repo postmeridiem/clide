@@ -18,9 +18,18 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Right-click context menus** (T-579) — cut/copy/paste/select-all on text
+  inputs, copy/select-all over selectable prose, rendered as clide's own menu
+  and localised. Opens at the pointer and flips to stay on screen.
+
 ### Changed
 
 ### Fixed
+
+- **Text selection works in the app's text inputs** (T-580) — selection was
+  painted with no colour and could not be dragged at all, since a bare
+  `EditableText` supplies neither. Mouse drag, double-click word and
+  triple-click line selection now work everywhere.
 
 ## [2.12.1] — 2026-09-02
 

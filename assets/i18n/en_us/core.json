@@ -23,5 +23,15 @@
   "resize.sidebar": { "translation": "Sidebar {axis}" },
   "resize.contextPanel": { "translation": "Context panel {axis}" },
   "resize.slot": { "translation": "{slot} {axis}" },
-  "resize.pixels": { "translation": "{n} pixels" }
+  "resize.pixels": { "translation": "{n} pixels" },
+  "contextMenu.cut": { "translation": "Cut" },
+  "contextMenu.copy": { "translation": "Copy" },
+  "contextMenu.paste": { "translation": "Paste" },
+  "contextMenu.selectAll": { "translation": "Select all" },
+  "contextMenu.delete": { "translation": "Delete" },
+  "contextMenu.lookUp": { "translation": "Look up" },
+  "contextMenu.searchWeb": { "translation": "Search web" },
+  "contextMenu.share": { "translation": "Share" },
+  "contextMenu.liveTextInput": { "translation": "Scan text" },
+  "contextMenu.custom": { "translation": "Action" }
 }
