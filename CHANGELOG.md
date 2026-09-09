@@ -22,6 +22,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+## [2.14.1] — 2026-09-09
+
+### Fixed
+
 - **A hosted session is no longer told nine subsystems don't exist** (T-585) —
   the injected agent note hardcoded six subsystems under "respond today" while
   sixteen dispatched. It now points at `clide capabilities`, which is generated
