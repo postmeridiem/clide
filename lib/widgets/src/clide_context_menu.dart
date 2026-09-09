@@ -55,7 +55,15 @@ abstract final class ClideContextMenu {
 /// Public because `contextMenuBuilder` callbacks (on `EditableText` and
 /// `SelectableRegion`) are handed a builder slot rather than calling
 /// [ClideContextMenu.show], and need the same surface.
-class ClideContextMenuSurface extends StatelessWidget {
+///
+/// **The menu must not take focus.** A text context menu is hosted by the
+/// selection overlay of the field it was opened from, and that overlay is torn
+/// down the moment the field loses focus — so a menu that focused itself would
+/// destroy the very thing rendering it, vanishing mid-fade with no error. Keys
+/// are therefore read straight off [HardwareKeyboard] instead of through a
+/// focused node, which keeps arrow/enter/escape working while the caret stays
+/// where the user left it.
+class ClideContextMenuSurface extends StatefulWidget {
   const ClideContextMenuSurface({super.key, required this.globalPosition, required this.entries, required this.onClose, this.viewportPadding = 8});
 
   /// Where the pointer was, in global coordinates.
@@ -70,20 +78,71 @@ class ClideContextMenuSurface extends StatelessWidget {
   final double viewportPadding;
 
   @override
+  State<ClideContextMenuSurface> createState() => _ClideContextMenuSurfaceState();
+}
+
+class _ClideContextMenuSurfaceState extends State<ClideContextMenuSurface> {
+  late final ClideMenuListController _nav = ClideMenuListController(isSelectable: _selectable, length: widget.entries.length);
+
+  bool _selectable(int i) {
+    final entry = widget.entries[i];
+    return entry is ClideMenuItem && entry.enabled;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_onKey);
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKey);
+    _nav.dispose();
+    super.dispose();
+  }
+
+  /// Read globally rather than from a focus node — see the class doc. Returning
+  /// true keeps the keystroke from also reaching the field behind the menu,
+  /// which still holds focus.
+  bool _onKey(KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) return false;
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.escape:
+        widget.onClose();
+        return true;
+      case LogicalKeyboardKey.arrowDown:
+        _nav.moveNext();
+        return true;
+      case LogicalKeyboardKey.arrowUp:
+        _nav.movePrev();
+        return true;
+      case LogicalKeyboardKey.enter:
+      case LogicalKeyboardKey.numpadEnter:
+        final index = _nav.highlighted;
+        if (index < 0 || !_selectable(index)) return true;
+        (widget.entries[index] as ClideMenuItem).onSelect();
+        widget.onClose();
+        return true;
+    }
+    return false;
+  }
+
+  @override
   Widget build(BuildContext context) {
     // The overlay fills the window but is not guaranteed to start at its
     // origin, so map the pointer into the overlay's own coordinate space —
     // which is what the layout delegate below measures against.
     final overlayBox = Overlay.of(context).context.findRenderObject();
-    final anchor = overlayBox is RenderBox && overlayBox.hasSize ? overlayBox.globalToLocal(globalPosition) : globalPosition;
+    final anchor = overlayBox is RenderBox && overlayBox.hasSize ? overlayBox.globalToLocal(widget.globalPosition) : widget.globalPosition;
     return Stack(
       children: [
         Positioned.fill(
-          child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: onClose, onSecondaryTap: onClose),
+          child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: widget.onClose, onSecondaryTap: widget.onClose),
         ),
         CustomSingleChildLayout(
-          delegate: _PointerAnchorLayout(anchor: anchor, padding: viewportPadding),
-          child: ClideMenu(entries: entries, onClose: onClose),
+          delegate: _PointerAnchorLayout(anchor: anchor, padding: widget.viewportPadding),
+          child: ClideMenu(entries: widget.entries, onClose: widget.onClose, controller: _nav, autofocus: false),
         ),
       ],
     );

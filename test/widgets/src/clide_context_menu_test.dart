@@ -8,6 +8,7 @@
 library;
 
 import 'package:clide/widgets/widgets.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -100,6 +101,48 @@ void main() {
 
       expect(ClideContextMenu.isShown, isFalse);
       expect(copied, isFalse);
+    });
+
+    testWidgets('Escape dismisses it', (tester) async {
+      final ctx = await mount(tester);
+
+      ClideContextMenu.show(
+        ctx,
+        globalPosition: const Offset(400, 300),
+        entries: [ClideMenuItem(label: 'Copy', onSelect: () {})],
+      );
+      await tester.pump();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+
+      expect(ClideContextMenu.isShown, isFalse);
+    });
+
+    testWidgets('arrow keys and Enter pick a row without the menu holding focus', (tester) async {
+      // The menu deliberately never focuses itself, so this exercises the
+      // HardwareKeyboard path that replaces focus-based navigation.
+      final ctx = await mount(tester);
+      final picked = <String>[];
+
+      ClideContextMenu.show(
+        ctx,
+        globalPosition: const Offset(400, 300),
+        entries: [
+          ClideMenuItem(label: 'Cut', onSelect: () => picked.add('Cut')),
+          ClideMenuItem(label: 'Copy', onSelect: () => picked.add('Copy')),
+        ],
+      );
+      await tester.pump();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+
+      expect(picked, ['Copy']);
+      expect(ClideContextMenu.isShown, isFalse);
     });
 
     testWidgets('an empty entry list is a no-op', (tester) async {

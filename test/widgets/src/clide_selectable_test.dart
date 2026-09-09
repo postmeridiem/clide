@@ -229,6 +229,11 @@ void main() {
       await tester.pump();
 
       expect(find.byType(ClideMenu), findsOneWidget);
+
+      // Past the selection overlay's fade — a menu that took focus would have
+      // collapsed the selection hosting it and vanished by now.
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.byType(ClideMenu), findsOneWidget, reason: 'the menu dismissed itself before it finished fading in');
       expect(find.text('Copy'), findsOneWidget);
 
       await tester.tap(find.text('Copy'));

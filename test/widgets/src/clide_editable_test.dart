@@ -5,6 +5,7 @@
 /// paint a selection, select by mouse drag, and offer a right-click menu.
 library;
 
+import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
@@ -118,6 +119,75 @@ void main() {
     await tester.pump();
 
     expect(controller.selection.textInside(controller.text), 'world');
+  });
+
+  testWidgets('right-click opens the menu under a WidgetsApp root, as the app mounts it', (tester) async {
+    // The passing test below mounts a bare Overlay. The app's root is
+    // ClideKernel > ClideTheme > WidgetsApp, whose Navigator owns the overlay
+    // the context menu is inserted into — a different tree, and the one that
+    // actually ships.
+    setSurfaceSize(tester, 800, height: 600);
+    await tester.pumpWidget(
+      ClideKernel(
+        services: f.services,
+        child: ClideTheme(
+          controller: f.services.theme,
+          child: WidgetsApp(
+            color: const Color(0xFF000000),
+            pageRouteBuilder: <T>(RouteSettings settings, WidgetBuilder builder) =>
+                PageRouteBuilder<T>(settings: settings, pageBuilder: (ctx, _, _) => builder(ctx)),
+            home: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: 400,
+                child: ClideEditable(
+                  controller: controller,
+                  focusNode: focus,
+                  style: const TextStyle(fontSize: 14, height: 1),
+                  cursorColor: const Color(0xFFFFFFFF),
+                  backgroundCursorColor: const Color(0xFF888888),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final origin = tester.getTopLeft(find.byType(EditableText));
+    final drag = await tester.startGesture(origin + const Offset(1, 7), kind: PointerDeviceKind.mouse);
+    await tester.pump();
+    await drag.moveTo(origin + const Offset(5 * 14, 7));
+    await tester.pump();
+    await drag.up();
+    await tester.pump();
+
+    final rightClick = await tester.startGesture(origin + const Offset(3 * 14, 7), kind: PointerDeviceKind.mouse, buttons: kSecondaryButton);
+    await rightClick.up();
+    await tester.pump();
+
+    expect(find.byType(ClideMenu), findsOneWidget);
+
+    // Being in the tree for one frame is not being on screen. Flutter hosts the
+    // menu inside the field's selection overlay and fades it in over 150ms, and
+    // that overlay is torn down if the field loses focus — so a menu that took
+    // focus survived exactly this assertion and nothing more, which is how it
+    // shipped invisible. Pump past the fade and require it opaque and placed.
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(ClideMenu), findsOneWidget, reason: 'the menu dismissed itself before it finished fading in');
+
+    final fade = tester.widget<FadeTransition>(find.ancestor(of: find.byType(ClideMenu), matching: find.byType(FadeTransition)).first);
+    expect(fade.opacity.value, 1.0, reason: 'the menu never became opaque');
+
+    final rect = tester.getRect(find.byType(ClideMenu));
+    expect(rect.width, greaterThan(0));
+    expect(rect.height, greaterThan(0));
+    expect(const Rect.fromLTWH(0, 0, 800, 600).overlaps(rect), isTrue, reason: 'menu rendered outside the viewport at $rect');
+
+    // The caret must still be where the user left it — that is the whole
+    // reason the menu reads keys off HardwareKeyboard instead of taking focus.
+    expect(focus.hasFocus, isTrue, reason: 'the context menu stole focus from the field it belongs to');
   });
 
   testWidgets('right-click over a selection offers Copy, which copies it', (tester) async {
