@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **`clide clipboard set` / `clipboard history`** (T-584) — put text on the
+  paste buffer from the CLI, so an agent can hand over a runnable command
+  instead of making you retype it. A CLI write raises a toast; your own copy
+  does not. There is no read verb, by design.
+
 ### Changed
 
 ### Fixed

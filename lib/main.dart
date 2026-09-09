@@ -47,6 +47,7 @@ import 'package:clide/src/draw/compare_template.dart' show compareTemplateHandle
 import 'package:clide/src/draw/d2_template.dart' show d2TemplateHandler;
 import 'package:clide/src/draw/graph_template.dart' show graphTemplateHandler;
 import 'package:clide/src/daemon/canvas_commands.dart';
+import 'package:clide/src/daemon/clipboard_commands.dart';
 import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
 import 'package:clide/src/daemon/git_commands.dart';
@@ -175,6 +176,9 @@ Future<void> main() async {
   // The filter-state cache, captured post-boot so `ui.filter` can read a
   // box's current value back — the observe-half of D-6 (T-270).
   FilterStateCache? kernelFilterStates;
+  // The kernel clipboard, captured post-boot so `clipboard.set` can put text
+  // on the user's paste buffer from the CLI — the drive-half of D-6 (T-584).
+  ClideClipboard? kernelClipboard;
   // The canvas extension's open documents, captured post-activation so the
   // `canvas.*` verbs edit the same document the pane renders (T-570).
   CanvasDocuments? canvasDocuments;
@@ -392,6 +396,15 @@ Future<void> main() async {
     // (T-231, drive-half of D-6). Publishes a 'selection' to the kernel
     // MessageBus, captured post-boot; null in headless contexts.
     registerUiCommands(dispatcher, () => kernelMessages?.publish, filterValue: (address) => kernelFilterStates?.get(address));
+    // `clide clipboard set|history` — hand the user runnable text without
+    // making them retype it (T-584, drive-half of D-6). No read verb: see
+    // clipboard_commands.dart.
+    registerClipboardCommands(
+      dispatcher,
+      () => kernelClipboard?.writePlain,
+      () => kernelMessages?.publish,
+      history: () => kernelClipboard == null ? null : () => kernelClipboard!.historyOf<String>(),
+    );
     // `clide canvas add-text|move|resize|connect|delete|list` — the CLI half
     // of the canvas pane's edit actions (T-570, D-6). Drives the OPEN
     // document, not the file on disk, so the pane can't overwrite it.
@@ -601,6 +614,7 @@ Future<void> main() async {
   kernelReaderNav = services.readerNav;
   kernelMessages = services.messages;
   kernelFilterStates = services.filterStates;
+  kernelClipboard = services.clipboard;
   kernelSettings = services.settings;
   // T-479: the account registry is now resolvable (kernelSettings is set), so
   // re-sync the /ide discovery locks to pick up any account bound to this
