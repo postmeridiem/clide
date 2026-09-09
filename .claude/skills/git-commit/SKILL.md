@@ -126,13 +126,30 @@ Pass commit messages via a message file so multi-line formatting survives
 and the command stays inside the permission allowlist (command substitution
 defeats the `git commit` prefix match and triggers permission prompts):
 
-1. Write the full message to a file in `/tmp` (never inside `.git/` — that
-   directory is git's own state) using the Write tool.
+1. Write the full message to **`tmp/commit-msg.txt`** with the Write tool.
+   Repo-relative — `tmp/` is this repo's gitignored scratch dir (`.gitignore`
+   line 70), the same one `make run` puts its control FIFO in.
 2. Commit with it:
 
 ```bash
-git commit -F /tmp/commit-msg.txt
+git commit -F tmp/commit-msg.txt
 ```
+
+3. Delete it in the same turn. Nothing reads it back.
+
+**Watch the leading slash.** In `.gitignore`, `/tmp/` means *this repo's*
+`tmp/`. In a shell command, `/tmp/` is the **system** temp directory. Same five
+characters, two different places, and the wrong one is shared: more than one
+Claude session runs on this machine at a time across eleven repos, they all
+reach for the same obvious name, and a fixed `/tmp/commit-msg.txt` gets
+overwritten mid-turn by a session working somewhere else. The commit that lands
+then carries another repo's message. This has been observed. Write the path
+without the leading slash and the problem cannot happen.
+
+Every scratch file goes there, not just commit messages: long ticket bodies
+passed with `--file`, throwaway probe scripts. None of them is an artefact —
+nothing ever reads them back — so none needs a stable name, and never put one
+inside `.git/`, which is git's own state.
 
 Fallback only: the HEREDOC-in-substitution form
 (`git commit -m "$(cat <<'EOF' … EOF)"`) works but prompts for permission —
