@@ -18,11 +18,17 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [2.13.0] — 2026-09-09
+
+### Added
+
 - **Right-click context menus** (T-579) — cut/copy/paste/select-all on text
   inputs, copy/select-all over selectable prose, rendered as clide's own menu
   and localised. Opens at the pointer and flips to stay on screen.
-
-### Changed
 
 ### Fixed
 
