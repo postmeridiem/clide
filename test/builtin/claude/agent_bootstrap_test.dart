@@ -17,14 +17,34 @@ void main() {
       expect(note, contains('D-6'));
     });
 
-    test('lists only subsystems that dispatch today; not the unfinished status snapshot', () {
+    test('points at the live registry instead of copying it (T-585)', () {
       final note = clideContextNote('/repo');
-      expect(note, contains('git status'));
-      expect(note, contains('editor active'));
-      // `clide status` (T-221) and live pane reflection (Epic C) are not wired
-      // yet — the note must not point the agent at a command that returns
-      // nothing, mirroring the T-213 "never mislead an agent" guard.
-      expect(note, isNot(contains('clide status')));
+      // The note must send the agent to the generated listing...
+      expect(note, contains('clide capabilities'));
+      // ...and say so in a way that stops it reading silence as absence, which
+      // is how the old hand-maintained list misled: it advertised six
+      // subsystems out of sixteen under "subsystems that respond today".
+      expect(note, contains('never assume a verb is absent'));
+    });
+
+    test('carries no hand-maintained subsystem inventory to go stale (T-585)', () {
+      final note = clideContextNote('/repo');
+      expect(note, isNot(contains('respond today')), reason: 'a second copy of the command registry rots silently, in the direction of hiding features');
+      // A spot-check on the shape rather than the wording: an inventory reads
+      // as a run of comma-separated subsystem names. Naming one or two verbs in
+      // passing is fine; enumerating the surface is what must not come back.
+      const subsystems = ['canvas', 'clipboard', 'editor', 'env', 'files', 'git', 'icon', 'image', 'pane', 'panel', 'pql', 'search'];
+      final named = subsystems.where((s) => note.contains('`$s`')).length;
+      expect(named, lessThan(4), reason: 'the note names $named subsystems — that is an inventory, and inventories drift');
+    });
+
+    test('names the one occasion a capability listing cannot teach (T-585)', () {
+      // `capabilities` says what exists, never when to reach for it. The
+      // clipboard is the verb an agent never thinks to look up, because the
+      // goal "put this on their clipboard" does not arise on its own.
+      final note = clideContextNote('/repo');
+      expect(note, contains('clide clipboard set'));
+      expect(note, contains('shell command'));
     });
   });
 

@@ -6,7 +6,8 @@ description: >
   enumerate the live tool surface, then observe or drive the UI — panes,
   editor, files, git, readers, toasts, layout — via `clide <subsystem> <verb>`.
   Triggers: "what can clide do", "drive the clide UI", "open this in clide",
-  "show the user", "toast", or invoking /clide.
+  "show the user", "toast", "copy that", "put it on my clipboard", handing the
+  user a command to run, or invoking /clide.
 user-invocable: true
 allowed-tools: Bash
 ---
@@ -48,8 +49,19 @@ one). `clide <subsystem>` with no verb, or an unknown command, prints usage.
     with me." `diff <path>` reveals the diff tab and scrolls to that file.
   - `clide ui toast "message" [--severity success|warning|error|info]` — raise
     a toast on the user's screen: "tests green", "push failed".
+  - `clide clipboard set "<text>"` — put text on the user's paste buffer, so a
+    command you hand them is one paste rather than a retype. `clipboard
+    history` lists what you put there. **There is no read verb**: their
+    clipboard holds passwords and tokens, and writing to it is a service while
+    reading it is surveillance.
   - pane/editor/files/git verbs — see `clide capabilities` for the current set
     and their args.
+
+**`capabilities` tells you what exists, not when to use it.** Most verbs need
+no prompting — you already want to open the file, so you look up the spelling.
+`clipboard set` is the exception: nobody arrives at "put this on their
+clipboard" on their own, so it stays invisible however complete the listing is.
+Reach for it whenever you write out a command for the user to run.
 
 ## Conventions
 

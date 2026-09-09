@@ -42,19 +42,33 @@ const List<String> clideAllowedToolsArgs = ['--allowedTools', clideBashAllowRule
 
 /// The agent context note injected via `--append-system-prompt` (T-216).
 ///
-/// Tells a hosted session it is inside clide and how to drive the IDE
-/// through the `clide` CLI. Lists only subsystems that dispatch today;
-/// the orient-snapshot (`clide status`) and live pane/editor reflection
-/// arrive with Epic C (T-218..T-221) and are deliberately left out so the
-/// note never points the agent at a command that returns nothing yet.
+/// Tells a hosted session it is inside clide and how to drive the IDE through
+/// the `clide` CLI.
+///
+/// **It deliberately names no subsystem inventory.** It used to, and the list
+/// rotted: it advertised six subsystems while sixteen dispatched, under the
+/// heading "subsystems that respond today" — so an agent reading it concluded
+/// the other ten did not exist (T-585). A hand-maintained copy of the command
+/// registry is a second source of truth that nothing forces anyone to update,
+/// and it fails silently, in the direction of hiding features. `clide
+/// capabilities` is generated from the live registry, so the note points there
+/// and lets the CLI answer for itself.
+///
+/// The one exception is the clipboard, and it is not an inventory entry: a
+/// capability listing teaches *what* verbs exist, never *when* to reach for
+/// one. No agent spontaneously forms the goal "put this on their clipboard",
+/// so that verb is invisible however complete the listing is — it needs the
+/// occasion named, once.
 String clideContextNote(String workspaceRoot) =>
     'You are running inside clide, an IDE that is hosting this session. clide exposes its IDE '
     'surface as a `clide` command on your PATH; drive it with `clide <subsystem> <verb>`. '
-    'Subsystems that respond today: `files` (workspace tree — `clide files root`, `files list`), '
-    '`editor` (`clide editor open <path>`, `editor active`), `git` (`clide git status`), '
-    '`search` (`clide search grep <query>`), `pql` (planning/query), and `panel`/`pane` (layout). '
+    'Run `clide capabilities` to see what this build actually offers — it is generated from the '
+    'live command registry, so it is the only accurate list; never assume a verb is absent because '
+    'nothing here named it. '
     'Each command prints JSON to stdout; exit codes are 0=ok, 1=handled error, 3=unknown command. '
     'CLIDE_WORKSPACE holds the workspace root ($workspaceRoot) and CLIDE_SOCK the IPC socket. '
+    'When you hand the user a shell command to run, `clide clipboard set "<command>"` puts it on '
+    'their paste buffer so they do not have to retype it. '
     'Parity contract (D-6): every action the user takes in the UI has a `clide` verb, and `clide` '
     'is how you observe and drive the same workspace the user sees — prefer it for IDE actions so '
     'your work and the user\'s stay in one shared workspace.';
