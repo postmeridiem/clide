@@ -42,8 +42,16 @@ class EditorController extends ChangeNotifier {
   /// All open buffers, in daemon order, for the tab strip.
   List<OpenBuffer> _buffers = const [];
 
-  bool _suppressNextRemoteEdit = false;
+  /// One entry per local edit whose `editor.edited` echo hasn't come back,
+  /// matched by buffer id and resulting length. A single flag covered one
+  /// echo only, so a second quick edit's echo reloaded the buffer and a
+  /// remote edit arriving before our echo was swallowed as ours (T-637).
+  final List<({String id, int length})> _expectedEchoes = [];
   int _pendingLocalEdits = 0;
+
+  /// A remote edit to the active buffer landed while local edits were in
+  /// flight; reload once they settle rather than dropping it.
+  bool _reloadWhenSettled = false;
 
   String? get activeId => _activeId;
   String? get activePath => _activePath;
@@ -153,8 +161,34 @@ class EditorController extends ChangeNotifier {
     // tuning: diff + editor.insert / editor.replace-selection for
     // large buffers, so event broadcasts stay small.
     _pendingLocalEdits++;
-    _suppressNextRemoteEdit = true;
-    ipc.request('editor.set-content', args: {'id': id, 'text': newContent, 'selection': newSelection.toJson()}).whenComplete(() => _pendingLocalEdits--);
+    final echo = (id: id, length: newContent.length);
+    _expectedEchoes.add(echo);
+    ipc
+        .request('editor.set-content', args: {'id': id, 'text': newContent, 'selection': newSelection.toJson()})
+        .then<void>((resp) {
+          // A refused edit never echoes; don't let its entry swallow a later
+          // remote edit that happens to match.
+          if (!resp.ok) _expectedEchoes.remove(echo);
+        }, onError: (Object _) => _expectedEchoes.remove(echo))
+        .whenComplete(_onLocalEditSettled);
+  }
+
+  void _onLocalEditSettled() {
+    _pendingLocalEdits--;
+    // _eventSub is null once disposed — no reload into a dead notifier.
+    if (_pendingLocalEdits > 0 || !_reloadWhenSettled || _eventSub == null) return;
+    _reloadWhenSettled = false;
+    final id = _activeId;
+    if (id != null) _loadBuffer(id);
+  }
+
+  /// Whether [data] is the echo of our oldest outstanding local edit.
+  bool _consumeOwnEcho(Map<String, Object?> data) {
+    if (_expectedEchoes.isEmpty) return false;
+    final next = _expectedEchoes.first;
+    if (data['kind'] != 'replace' || data['id'] != next.id || data['length'] != next.length) return false;
+    _expectedEchoes.removeAt(0);
+    return true;
   }
 
   Future<void> save() async {
@@ -184,18 +218,20 @@ class EditorController extends ChangeNotifier {
           _loadBuffer(id);
         }
       case 'editor.edited':
-        // Our own set-content echoes back as editor.edited. Skip one
-        // bounce so we don't clobber the caret the user just moved.
-        if (_suppressNextRemoteEdit) {
-          _suppressNextRemoteEdit = false;
-          return;
-        }
+        // Our own set-content echoes back as editor.edited. Skip it so we
+        // don't clobber the caret the user just moved.
+        if (_consumeOwnEcho(e.data)) return;
         // Remote edit (another client, or the CLI inserting bytes).
-        // Reload the authoritative buffer.
+        // Reload the authoritative buffer — after our in-flight edits
+        // settle, so the reload doesn't race them.
         final id = e.data['id'] as String?;
         if (id != null) _markDirty(id, true);
-        if (id != null && id == _activeId && _pendingLocalEdits == 0) {
-          _loadBuffer(id);
+        if (id != null && id == _activeId) {
+          if (_pendingLocalEdits == 0) {
+            _loadBuffer(id);
+          } else {
+            _reloadWhenSettled = true;
+          }
         }
       case 'editor.saved':
         final id = e.data['id'] as String?;

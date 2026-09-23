@@ -3,6 +3,8 @@
 /// list, events keep it in sync, and activate/close route to IPC.
 library;
 
+import 'dart:async';
+
 import 'package:clide/builtin/editor/src/editor_controller.dart';
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/kernel.dart';
@@ -20,6 +22,14 @@ Map<String, Object?> _read(String id, String path, String content, {bool dirty =
   'content': content,
   'selection': {'start': 0, 'end': 0},
   'dirty': dirty,
+};
+
+/// The editor.edited payload the daemon emits for our own set-content.
+Map<String, Object?> _echo(String id, String content) => {
+  'id': id,
+  'kind': 'replace',
+  'length': content.length,
+  'selection': {'start': content.length, 'end': content.length},
 };
 
 void emitEditor(DaemonBus bus, String kind, Map<String, Object?> data) {
@@ -501,12 +511,65 @@ void main() {
         return _ok(_read('b_1', 'a.dart', 'reloaded'));
       });
       // The echo of our own set-content comes back as editor.edited.
-      emitEditor(bus, 'editor.edited', {'id': 'b_1'});
+      emitEditor(bus, 'editor.edited', _echo('b_1', 'local'));
       await pumpEventQueue();
 
       // Suppressed: no reload, local content preserved.
       expect(reads, 0);
       expect(c.content, 'local');
+    });
+
+    // T-637 (#19): suppression was one boolean, so it covered one echo only.
+    Future<int Function()> hydrated() async {
+      ipc.stub(
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', 'a.dart')],
+        }),
+      );
+      ipc.stub(
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
+      ipc.stub('editor.read', (_) async => _ok(_read('b_1', 'a.dart', 'original')));
+      await c.hydrate();
+      var reads = 0;
+      ipc.stub('editor.read', (_) async {
+        reads++;
+        return _ok(_read('b_1', 'a.dart', 'reloaded'));
+      });
+      return () => reads;
+    }
+
+    test('two quick local edits suppress both of their echoes', () async {
+      ipc.stub('editor.set-content', (_) async => _ok(const {}));
+      final reads = await hydrated();
+      c.pushLocalEdit(newContent: 'ab', newSelection: const Selection.collapsed(2));
+      c.pushLocalEdit(newContent: 'abc', newSelection: const Selection.collapsed(3));
+      await pumpEventQueue();
+      emitEditor(bus, 'editor.edited', _echo('b_1', 'ab'));
+      emitEditor(bus, 'editor.edited', _echo('b_1', 'abc'));
+      await pumpEventQueue();
+      expect(reads(), 0);
+      expect(c.content, 'abc');
+    });
+
+    test('a remote edit landing before our echo is reloaded once our edits settle', () async {
+      final reply = Completer<IpcResponse>();
+      ipc.stub('editor.set-content', (_) => reply.future);
+      final reads = await hydrated();
+      c.pushLocalEdit(newContent: 'local', newSelection: const Selection.collapsed(5));
+      // Someone else inserts while our set-content is still in flight...
+      emitEditor(bus, 'editor.edited', {'id': 'b_1', 'kind': 'insert', 'inserted': 'x', 'at': 0, 'replaced': 0, 'length': 1});
+      // ...then our echo arrives.
+      emitEditor(bus, 'editor.edited', _echo('b_1', 'local'));
+      await pumpEventQueue();
+      expect(reads(), 0, reason: 'no reload while a local edit is in flight');
+      reply.complete(_ok(const {}));
+      await pumpEventQueue();
+      expect(reads(), 1, reason: 'the remote edit was swallowed');
     });
   });
 
