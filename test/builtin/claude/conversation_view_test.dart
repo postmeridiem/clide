@@ -286,13 +286,47 @@ void main() {
       // and the workflow name as the summary (no description set → no duplicate).
       expect(find.bySemanticsLabel('workflow, 1/2 agents, collapsed'), findsOneWidget);
       expect(find.text('parallel-words'), findsOneWidget);
-      expect(find.text('do alpha'), findsNothing); // folded while collapsed
-
-      // Expand → the per-agent rows show.
-      await tester.tap(find.bySemanticsLabel('workflow, 1/2 agents, collapsed'));
-      await tester.pumpAndSettle();
+      // Agent rows stay visible while collapsed (T-419); the script is folded.
       expect(find.text('do alpha'), findsOneWidget);
       expect(find.text('do beta'), findsOneWidget);
+      expect(find.byType(ClideCodeBlock), findsNothing);
+
+      // Expand → the script shows; the agent rows are still there, once.
+      await tester.tap(find.bySemanticsLabel('workflow, 1/2 agents, collapsed'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ClideCodeBlock), findsOneWidget);
+      expect(find.text('script'), findsOneWidget);
+      expect(find.text('do alpha'), findsOneWidget);
+      expect(find.text('do beta'), findsOneWidget);
+    });
+
+    testWidgets('a collapsed workflow card keeps agent rows + usage visible (T-419)', (tester) async {
+      final finished = const WorkflowRun(toolUseId: 'x1', name: 'fan-out')
+          .foldEvent({
+            'subtype': 'task_progress',
+            'tool_use_id': 'x1',
+            'workflow_progress': [
+              {'type': 'workflow_agent', 'index': 1, 'label': 'agent one', 'model': 'claude-haiku-4-5', 'state': 'done'},
+            ],
+          })
+          .foldEvent({
+            'subtype': 'task_notification',
+            'tool_use_id': 'x1',
+            'status': 'completed',
+            'usage': {'total_tokens': 104725, 'duration_ms': 57302},
+          });
+
+      await pumpWith(
+        tester,
+        [
+          _tool('Workflow', const {'script': 'await parallel([])'}),
+        ],
+        workflows: {'x1': finished},
+      );
+      expect(find.bySemanticsLabel('workflow, 1/1 agents, collapsed'), findsOneWidget);
+      expect(find.text('agent one'), findsOneWidget);
+      expect(find.text('usage'), findsOneWidget);
+      expect(find.text('104725 tokens · 57302 ms'), findsOneWidget);
     });
 
     testWidgets('a Workflow tool-use with no run yet falls back to the generic tool card (T-416)', (tester) async {

@@ -905,9 +905,11 @@ class _ConversationTurn extends StatelessWidget {
 
   /// A dedicated card for a Workflow run (T-416): the harness's multi-agent
   /// orchestration. The collapser header carries the run's live status (spinner
-  /// while running, check when done) and a `done/total agents` counter; the body
-  /// lists each fanned-out agent — grouped under phase headers when the workflow
-  /// declared phases — plus the run's usage and the orchestration script.
+  /// while running, check when done) and a `done/total agents` counter. Beneath
+  /// it an always-visible panel lists each fanned-out agent — grouped under
+  /// phase headers when the workflow declared phases — plus the run's usage, so
+  /// progress is glanceable without expanding (T-419). The collapser itself
+  /// only folds the heavy part: the orchestration script.
   Widget _workflowCard(BuildContext context, AssistantToolUse t, WorkflowRun run) {
     final title = run.name ?? ClideSettings.i18n.string(context, 'conversation.label.workflow', namespace: 'builtin.claude', placeholder: 'workflow');
     final color = run.done ? tokens.statusSuccess : tokens.globalFocus;
@@ -925,17 +927,38 @@ class _ConversationTurn extends StatelessWidget {
           );
     final detail = run.done ? (run.summary ?? run.description) : run.description;
     final collapsedSummary = (detail == null || detail == title) ? title : '$title · $detail';
-    return ClideCollapserCard(
-      label: ClideSettings.i18n.string(context, 'conversation.label.workflow', namespace: 'builtin.claude', placeholder: 'workflow'),
-      color: color,
-      collapsedSummary: collapsedSummary,
-      counter: counter,
-      status: run.done ? ClideRunStatus.success : ClideRunStatus.running,
-      children: [_workflowBody(context, t, run)],
+    // The collapser and the details panel are siblings, so each gets its own
+    // semantics container — otherwise the agent rows merge into the header's
+    // summarized button label (and its tap target) instead of reading apart.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Semantics(
+          container: true,
+          child: ClideCollapserCard(
+            label: ClideSettings.i18n.string(context, 'conversation.label.workflow', namespace: 'builtin.claude', placeholder: 'workflow'),
+            color: color,
+            collapsedSummary: collapsedSummary,
+            counter: counter,
+            status: run.done ? ClideRunStatus.success : ClideRunStatus.running,
+            children: [_workflowScript(context, t, run)],
+          ),
+        ),
+        // Nested under the header like an Agent card's run (T-264), outside the
+        // collapser so it stays visible — and live-updating — while collapsed.
+        Semantics(
+          container: true,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 12, bottom: kClideCardGap),
+            child: _workflowDetails(context, run),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _workflowBody(BuildContext context, AssistantToolUse t, WorkflowRun run) {
+  /// The always-visible run details (T-419): the agent rows and the usage line.
+  Widget _workflowDetails(BuildContext context, WorkflowRun run) {
     final agents = run.orderedAgents;
     final phases = run.orderedPhases;
     final rows = <Widget>[];
@@ -965,25 +988,57 @@ class _ConversationTurn extends StatelessWidget {
       );
     }
 
+    if (run.totalTokens != null && run.totalTokens! > 0) {
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Row(
+            children: [
+              ClideText(
+                ClideSettings.i18n.string(context, 'conversation.segment.usage', namespace: 'builtin.claude', placeholder: 'usage'),
+                fontSize: clideFontMeta,
+                color: tokens.globalTextMuted,
+                fontFamily: mono,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ClideText(
+                  '${run.totalTokens} tokens${run.durationMs != null ? ' · ${run.durationMs} ms' : ''}',
+                  muted: true,
+                  fontSize: clideFontMeta,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.fromLTRB(kClideCardHeaderPadH, kClideCardHeaderPadV, kClideCardHeaderPadH, kClideCardHeaderPadV),
+      decoration: BoxDecoration(
+        color: tokens.globalBackground,
+        border: Border.all(color: tokens.panelBorder),
+        borderRadius: BorderRadius.circular(kClideCardRadius),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: rows),
+    );
+  }
+
+  /// The collapser's folded content (T-419): the orchestration script (or the
+  /// raw tool input when there is none), with copy.
+  Widget _workflowScript(BuildContext context, AssistantToolUse t, WorkflowRun run) {
     final script = t.input['script'];
+    final source = script is String ? script : const JsonEncoder.withIndent('  ').convert(t.input);
     return ConversationCard(
       variant: ConversationCardVariant.bordered,
       accent: run.done ? tokens.statusSuccess : tokens.globalFocus,
-      label: run.name ?? ClideSettings.i18n.string(context, 'conversation.label.workflow', namespace: 'builtin.claude', placeholder: 'workflow'),
-      copyText: script is String ? script : const JsonEncoder.withIndent('  ').convert(t.input),
-      body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: rows),
-      extraSegments: [
-        if (run.totalTokens != null && run.totalTokens! > 0)
-          CardSegment(
-            label: ClideSettings.i18n.string(context, 'conversation.segment.usage', namespace: 'builtin.claude', placeholder: 'usage'),
-            child: ClideText('${run.totalTokens} tokens${run.durationMs != null ? ' · ${run.durationMs} ms' : ''}', muted: true, fontSize: clideFontMeta),
-          ),
-        if (script is String)
-          CardSegment(
-            label: ClideSettings.i18n.string(context, 'conversation.segment.script', namespace: 'builtin.claude', placeholder: 'script'),
-            child: ClideCodeBlock(source: script, language: 'javascript'),
-          ),
-      ],
+      label: script is String
+          ? ClideSettings.i18n.string(context, 'conversation.segment.script', namespace: 'builtin.claude', placeholder: 'script')
+          : ClideSettings.i18n.string(context, 'conversation.label.workflow', namespace: 'builtin.claude', placeholder: 'workflow'),
+      copyText: source,
+      body: ClideCodeBlock(source: source, language: script is String ? 'javascript' : 'json'),
       margin: const EdgeInsets.only(bottom: kClideCardHeaderPadH),
     );
   }
