@@ -50,12 +50,18 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
     super.dispose();
   }
 
+  /// Bumped per [_load]; a reply for an older request is dropped (T-634).
+  int _loadSeq = 0;
+
   /// Fetch + display [id]. History lives in [ReaderNav]; this never pushes.
+  /// Only the latest request's reply is shown: a slow one for an earlier
+  /// selection must not overwrite what the user has moved on to.
   Future<void> _load(String id) async {
+    final seq = ++_loadSeq;
     setState(() => _loading = true);
     final kernel = ClideKernel.of(context);
     final resp = await kernel.ipc.request('pql.decisions.read', args: {'id': id});
-    if (!mounted) return;
+    if (!mounted || seq != _loadSeq) return;
     if (resp.ok) {
       kernel.messages.publish('builtin.decisions', 'focus', {'id': id});
     }

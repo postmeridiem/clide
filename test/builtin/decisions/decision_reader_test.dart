@@ -11,6 +11,8 @@
 /// and assert IPC-stub + message-bus wiring.
 library;
 
+import 'dart:async';
+
 import 'package:clide/builtin/decisions/src/decision_detail_view.dart';
 import 'package:clide/builtin/decisions/src/extension.dart';
 import 'package:clide/extension/extension.dart' show LayoutPresetContribution, LayoutSlot;
@@ -277,6 +279,28 @@ void main() {
       // each load completes before the next, but all 5 fire in order).
       // Title appears in pane header subtitle + body card.
       expect(find.text('Decision D-5'), findsWidgets);
+    });
+
+    testWidgets('a slow reply for an earlier selection never overwrites the latest (T-634)', (tester) async {
+      // Deferred replies, answered out of order: D-1 is asked first but
+      // answers last. The synchronous stub above can't produce this race.
+      final pending = <String, Completer<IpcResponse>>{};
+      f.ipc.stub('pql.decisions.read', (args) => (pending[args['id']! as String] = Completer<IpcResponse>()).future);
+      await pumpView(tester);
+
+      f.services.messages.publish('builtin.decisions', 'load', {'id': 'D-1'});
+      await pumpAsync(tester);
+      f.services.messages.publish('builtin.decisions', 'load', {'id': 'D-5'});
+      await pumpAsync(tester);
+
+      pending['D-5']!.complete(_decisionResponse('D-5'));
+      await pumpAsync(tester);
+      expect(find.text('Decision D-5'), findsWidgets);
+
+      pending['D-1']!.complete(_decisionResponse('D-1'));
+      await pumpAsync(tester);
+      expect(find.text('Decision D-5'), findsWidgets, reason: 'still showing the latest selection');
+      expect(find.text('Decision D-1'), findsNothing, reason: "the stale reply for D-1 must be dropped");
     });
 
     testWidgets('cross-reference tap publishes a new selection', (tester) async {

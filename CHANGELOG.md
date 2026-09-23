@@ -48,6 +48,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - **Programs that turn line wrap off keep their text on one line** (T-631)
   — text past the right edge wrapped anyway, which broke full-screen
   programs that draw their own status line.
+- **Staging a hunk can no longer hang** (T-636) — when git reported a long
+  error, the stage/unstage call waited forever; a missing git now fails with
+  a clear error too.
+- **The decision reader shows the decision you picked last** (T-634) — a
+  slow answer for an earlier click could replace it.
 - **Bright white is bright** (T-630) — terminal text in color 15 (SGR
   97/107) rendered as plain white.
 
