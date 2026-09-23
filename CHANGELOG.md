@@ -45,6 +45,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   vim, less and others that ask for application cursor keys now get them.
 - **Terminal tab stops set by programs take effect** (T-627) — the
   "set tab stop here" sequence did nothing.
+- **Programs that turn line wrap off keep their text on one line** (T-631)
+  — text past the right edge wrapped anyway, which broke full-screen
+  programs that draw their own status line.
 - **Bright white is bright** (T-630) — terminal text in color 15 (SGR
   97/107) rendered as plain white.
 

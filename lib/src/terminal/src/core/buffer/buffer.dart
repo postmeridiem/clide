@@ -108,10 +108,14 @@ class Buffer {
 
     final cellWidth = unicodeV11.wcwidth(codePoint);
     if (_cursorX >= terminal.viewWidth) {
-      index();
-      setCursorX(0);
       if (terminal.autoWrapMode) {
+        index();
+        setCursorX(0);
         currentLine.isWrapped = true;
+      } else {
+        // DECAWM off (CSI ?7l): no wrap — the character overwrites the last
+        // column (or the last two for a wide one) on the same row (T-631).
+        _cursorX = (terminal.viewWidth - cellWidth).clamp(0, terminal.viewWidth - 1);
       }
     }
 

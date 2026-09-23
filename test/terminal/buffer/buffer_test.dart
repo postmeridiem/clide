@@ -209,13 +209,14 @@ void main() {
       expect(b.currentLine.isWrapped, isTrue);
     });
 
-    test('autoWrap=false leaves the cursor saturated past the end (no wrap)', () {
-      final b = _newBuffer(viewWidth: 3, autoWrapMode: false);
-      b.write('abc');
-      // After three writes the cursor is at viewWidth (3). The next write
-      // triggers index() but autoWrapMode is off — the line shouldn't be
-      // marked wrapped.
-      b.write('d');
+    test('autoWrap=false overwrites the last column instead of wrapping (DECAWM, T-631)', () {
+      final b = _newBuffer(viewWidth: 3, viewHeight: 4, autoWrapMode: false);
+      b.write('abcde');
+      // xterm with ?7l: once the cursor reaches the right margin, every further
+      // character lands in the last column, and the cursor never leaves row 0.
+      expect(b.cursorY, 0);
+      expect(b.lines[0].getText(), 'abe');
+      expect(b.lines[1].getText(), '', reason: 'nothing spilled onto the next line');
       expect(b.currentLine.isWrapped, isFalse);
     });
 
