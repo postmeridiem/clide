@@ -22,7 +22,8 @@ class PqlException implements Exception {
 }
 
 class PqlClient {
-  PqlClient({required this.workDir, required this.toolchain, this.timeout = defaultTimeout});
+  PqlClient({required this.workDir, required this.toolchain, this.timeout = defaultTimeout, Map<String, String>? environment})
+    : _environment = childEnvironment(environment ?? Platform.environment);
 
   final Directory workDir;
   final ToolchainView toolchain;
@@ -33,6 +34,17 @@ class PqlClient {
   final Duration timeout;
 
   static const Duration defaultTimeout = Duration(seconds: 60);
+
+  /// The environment every pql child runs with; see [childEnvironment].
+  final Map<String, String> _environment;
+
+  /// [parent] without its `PQL_*` variables. pql reads `PQL_VAULT`, `PQL_DB`
+  /// and `PQL_CONFIG` as overrides of the vault, database and config it would
+  /// otherwise find from [workDir]. An inherited one, such as a `PQL_VAULT`
+  /// exported for other work, sent every call to that vault, reads and writes
+  /// alike (T-693). Every `PQL_*` name goes, not only today's three, so a new
+  /// override cannot reopen the hole. Matched case-insensitively for Windows.
+  static Map<String, String> childEnvironment(Map<String, String> parent) => Map.of(parent)..removeWhere((name, _) => name.toUpperCase().startsWith('PQL_'));
 
   Future<List<Map<String, Object?>>> files({String? glob, int? limit}) async {
     final args = ['files'];
@@ -190,7 +202,7 @@ class PqlClient {
   Future<({int exitCode, String stdout, String stderr})> _runOnce(List<String> args) async {
     final Process p;
     try {
-      p = await Process.start(toolchain.pql, args, workingDirectory: workDir.path);
+      p = await Process.start(toolchain.pql, args, workingDirectory: workDir.path, environment: _environment, includeParentEnvironment: false);
     } on ProcessException catch (e) {
       throw PqlException('pql ${args.first}: ${e.message}', exitCode: e.errorCode, stderr: e.toString());
     }

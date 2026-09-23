@@ -22,6 +22,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- pql calls ignore `PQL_*` variables inherited from the environment. An exported `PQL_VAULT` used to send clide's queries and plan edits to that vault instead of the workspace's (T-693).
+
 ## [2.19.0] — 2026-09-23
 
 ### Added

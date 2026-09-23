@@ -2220,3 +2220,59 @@ INSERT INTO tickets (record_id, type, parent_record_id, title, description, stat
 INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXB9YN619N7J0REH8S4XJ7R', 'story', '06GCXAZB3A0XQW4HT6XCT1GEVW', 'Syntax highlighting and Lua on web, as Q-52(f) decides', 'Server-side or wasm; settles T-26 either way.
 
 Refinement (2026-09-23): the web bundle carries about 44 MB of tree-sitter grammars that web never loads today (T-661). If highlighting runs on the host, drop them from the web build; if it runs as wasm in the browser, load them lazily per language.', 'backlog', 'medium', NULL, NULL, 'Q-52', '2026-09-23 14:30:55.402', '2026-09-23 14:49:08.839', NULL, 'cf94371c22bcf09fa9a639039997f0b5', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXBABKEB9RR65ZVQQJVJG0G', 'bug', '06GCVS5HZ69QKQB198ZR1Y3YB4', 'pql tests run against an inherited PQL_VAULT and write into it', 'When `PQL_VAULT` is set in the environment, the pql tests run `pql` against that vault instead of their fixture. This affects `test/pql/client_test.dart` and `test/daemon/pql_commands_test.dart`.
+
+- 18 tests fail: 14 in the client test and 4 in the daemon commands test.
+- **The ticket tests also write into the named vault.** They create "Fixture epic" / "Fixture child" tickets there, and change the status of whatever ticket carries the fixture''s id.
+
+With the variable unset, both files pass (57 tests). A developer who exports `PQL_VAULT` for their own work therefore gets a red suite and a modified vault from `make test`.
+
+**Fix:**
+- Scrub `PQL_VAULT`, `PQL_DB` and `PQL_CONFIG` from the environment of every `pql` process the tests spawn.
+- Add a hermetic test that fails if any `PQL_*` variable reaches one.
+
+**Done when:**
+- `PQL_VAULT=/some/other/vault make test` passes.
+- It leaves that vault untouched.
+
+**Fixed (2026-09-23).**
+
+`PqlClient.childEnvironment` strips every `PQL_*` variable, matched case-insensitively. Both spawn sites use it with `includeParentEnvironment: false`: the client, and the test fixture helper (`test/helpers/pql_vault.dart`). The helper was the path that built its "Fixture epic" / "Fixture child" tickets inside an inherited vault.
+
+**Verified with `PQL_VAULT` pointed at a scratch vault:**
+- Before the fix, the pql tests failed and two fixture epics landed in that vault.
+- After the fix, 59 pql tests pass and the vault is byte-identical.
+- The full fast suite (`make test`) leaves the vault untouched, with 4,968 tests passing. The one failure is T-694, the glibc floor of the vendored `libtree-sitter.so`, on a glibc 2.31 host.
+
+**Mutation-checked:**
+- With the filter removed, both new tests fail.
+- If the spawn ignores the injected environment, the spawn test fails on its sentinel. That is what catches it in CI, where no `PQL_VAULT` is set.
+- With the helper unscrubbed, it leaks into the scratch vault again.', 'backlog', 'high', NULL, NULL, NULL, '2026-09-23 14:30:58.715', '2026-09-23 15:36:38.227', NULL, '32b0db1740b65d2d200cb3dc6c54b62e', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXBABKEB9RR65ZVQQJVJG0G', 'bug', '06GCVS5HZ69QKQB198ZR1Y3YB4', 'pql tests run against an inherited PQL_VAULT and write into it', 'When `PQL_VAULT` is set in the environment, the pql tests run `pql` against that vault instead of their fixture. This affects `test/pql/client_test.dart` and `test/daemon/pql_commands_test.dart`.
+
+- 18 tests fail: 14 in the client test and 4 in the daemon commands test.
+- **The ticket tests also write into the named vault.** They create "Fixture epic" / "Fixture child" tickets there, and change the status of whatever ticket carries the fixture''s id.
+
+With the variable unset, both files pass (57 tests). A developer who exports `PQL_VAULT` for their own work therefore gets a red suite and a modified vault from `make test`.
+
+**Fix:**
+- Scrub `PQL_VAULT`, `PQL_DB` and `PQL_CONFIG` from the environment of every `pql` process the tests spawn.
+- Add a hermetic test that fails if any `PQL_*` variable reaches one.
+
+**Done when:**
+- `PQL_VAULT=/some/other/vault make test` passes.
+- It leaves that vault untouched.
+
+**Fixed (2026-09-23).**
+
+`PqlClient.childEnvironment` strips every `PQL_*` variable, matched case-insensitively. Both spawn sites use it with `includeParentEnvironment: false`: the client, and the test fixture helper (`test/helpers/pql_vault.dart`). The helper was the path that built its "Fixture epic" / "Fixture child" tickets inside an inherited vault.
+
+**Verified with `PQL_VAULT` pointed at a scratch vault:**
+- Before the fix, the pql tests failed and two fixture epics landed in that vault.
+- After the fix, 59 pql tests pass and the vault is byte-identical.
+- The full fast suite (`make test`) leaves the vault untouched, with 4,968 tests passing. The one failure is T-694, the glibc floor of the vendored `libtree-sitter.so`, on a glibc 2.31 host.
+
+**Mutation-checked:**
+- With the filter removed, both new tests fail.
+- If the spawn ignores the injected environment, the spawn test fails on its sentinel. That is what catches it in CI, where no `PQL_VAULT` is set.
+- With the helper unscrubbed, it leaks into the scratch vault again.', 'done', 'high', NULL, NULL, NULL, '2026-09-23 14:30:58.715', '2026-09-23 15:36:38.424', NULL, 'f9591fe927901c167cd629eb4274fc70', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

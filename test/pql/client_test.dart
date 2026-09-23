@@ -237,4 +237,40 @@ void main() {
       expect(await p.files(), isEmpty);
     });
   });
+
+  // An exported PQL_VAULT sent every call, and this suite's fixture setup,
+  // to that vault instead of the workspace's (T-693).
+  group('PqlClient — child environment (T-693)', () {
+    test('childEnvironment drops every PQL_ variable and keeps the rest', () {
+      final env = PqlClient.childEnvironment({
+        'PQL_VAULT': '/elsewhere',
+        'PQL_DB': '/elsewhere/.pql/pql.db',
+        'PQL_CONFIG': '/elsewhere/.pql/config.yaml',
+        'pql_future_override': 'x',
+        'PATH': '/usr/bin',
+        'HOME': '/home/someone',
+      });
+      expect(env, {'PATH': '/usr/bin', 'HOME': '/home/someone'});
+    });
+
+    test('an inherited PQL_VAULT never reaches the pql process', () async {
+      final tmp = await Directory.systemTemp.createTemp('clide_pqlenv_');
+      addTearDown(() => tmp.delete(recursive: true));
+      final seen = File('${tmp.path}/env');
+      final fake = File('${tmp.path}/pql');
+      await fake.writeAsString('#!/bin/sh\nenv > "${seen.path}"\necho "[]"\n');
+      await Process.run('chmod', ['+x', fake.path]);
+      final client = PqlClient(
+        workDir: tmp,
+        toolchain: ToolchainView.resolved(ResolvedPaths(pql: fake.path)),
+        environment: {...Platform.environment, 'PQL_VAULT': '/elsewhere', 'PQL_DB': '/elsewhere/.pql/pql.db', 'CLIDE_T693_SENTINEL': '1'},
+      );
+      expect(await client.files(), isEmpty);
+      final vars = seen.readAsLinesSync();
+      // The sentinel proves pql got the injected environment, not this process's…
+      expect(vars, contains('CLIDE_T693_SENTINEL=1'));
+      // …and that none of its PQL_ overrides survived the trip.
+      expect(vars.where((line) => line.startsWith('PQL_')), isEmpty);
+    });
+  });
 }

@@ -19,6 +19,7 @@ library;
 import 'dart:io';
 
 import 'package:clide/kernel/src/toolchain_paths.dart';
+import 'package:clide/src/pql/client.dart';
 
 import 'git_sandbox.dart';
 
@@ -63,7 +64,15 @@ class PqlFixtureVault {
   }
 
   Future<void> _run(List<String> args) async {
-    final r = await Process.run(pql, args, workingDirectory: dir.path);
+    // The client's scrubbed environment. An inherited PQL_VAULT would build
+    // this fixture inside that vault instead of [dir] (T-693).
+    final r = await Process.run(
+      pql,
+      args,
+      workingDirectory: dir.path,
+      environment: PqlClient.childEnvironment(Platform.environment),
+      includeParentEnvironment: false,
+    );
     if (r.exitCode != 0) {
       throw StateError('pql ${args.join(' ')} failed (${r.exitCode}): ${r.stderr}');
     }

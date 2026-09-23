@@ -2129,3 +2129,45 @@ Mind the licences: the fonts are OFL, and each one needs its `licenses.yaml` ent
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXB9YN619N7J0REH8S4XJ7R', 'description', 'Server-side or wasm; settles T-26 either way.', 'Server-side or wasm; settles T-26 either way.
 
 Refinement (2026-09-23): the web bundle carries about 44 MB of tree-sitter grammars that web never loads today (T-661). If highlighting runs on the host, drop them from the web build; if it runs as wasm in the browser, load them lazily per language.', NULL, '2026-09-23 14:49:08', '2026-09-23 14:49:08.839', '2026-09-23 14:49:08.839', NULL, '1339be55cd9cb11a0ec466433fbf6d55', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXBABKEB9RR65ZVQQJVJG0G', 'description', 'When `PQL_VAULT` is set in the environment, the pql tests run `pql` against that vault instead of their fixture. This affects `test/pql/client_test.dart` and `test/daemon/pql_commands_test.dart`.
+
+- 18 tests fail: 14 in the client test and 4 in the daemon commands test.
+- **The ticket tests also write into the named vault.** They create "Fixture epic" / "Fixture child" tickets there, and change the status of whatever ticket carries the fixture''s id.
+
+With the variable unset, both files pass (57 tests). A developer who exports `PQL_VAULT` for their own work therefore gets a red suite and a modified vault from `make test`.
+
+**Fix:**
+- Scrub `PQL_VAULT`, `PQL_DB` and `PQL_CONFIG` from the environment of every `pql` process the tests spawn.
+- Add a hermetic test that fails if any `PQL_*` variable reaches one.
+
+**Done when:**
+- `PQL_VAULT=/some/other/vault make test` passes.
+- It leaves that vault untouched.', 'When `PQL_VAULT` is set in the environment, the pql tests run `pql` against that vault instead of their fixture. This affects `test/pql/client_test.dart` and `test/daemon/pql_commands_test.dart`.
+
+- 18 tests fail: 14 in the client test and 4 in the daemon commands test.
+- **The ticket tests also write into the named vault.** They create "Fixture epic" / "Fixture child" tickets there, and change the status of whatever ticket carries the fixture''s id.
+
+With the variable unset, both files pass (57 tests). A developer who exports `PQL_VAULT` for their own work therefore gets a red suite and a modified vault from `make test`.
+
+**Fix:**
+- Scrub `PQL_VAULT`, `PQL_DB` and `PQL_CONFIG` from the environment of every `pql` process the tests spawn.
+- Add a hermetic test that fails if any `PQL_*` variable reaches one.
+
+**Done when:**
+- `PQL_VAULT=/some/other/vault make test` passes.
+- It leaves that vault untouched.
+
+**Fixed (2026-09-23).**
+
+`PqlClient.childEnvironment` strips every `PQL_*` variable, matched case-insensitively. Both spawn sites use it with `includeParentEnvironment: false`: the client, and the test fixture helper (`test/helpers/pql_vault.dart`). The helper was the path that built its "Fixture epic" / "Fixture child" tickets inside an inherited vault.
+
+**Verified with `PQL_VAULT` pointed at a scratch vault:**
+- Before the fix, the pql tests failed and two fixture epics landed in that vault.
+- After the fix, 59 pql tests pass and the vault is byte-identical.
+- The full fast suite (`make test`) leaves the vault untouched, with 4,968 tests passing. The one failure is T-694, the glibc floor of the vendored `libtree-sitter.so`, on a glibc 2.31 host.
+
+**Mutation-checked:**
+- With the filter removed, both new tests fail.
+- If the spawn ignores the injected environment, the spawn test fails on its sentinel. That is what catches it in CI, where no `PQL_VAULT` is set.
+- With the helper unscrubbed, it leaks into the scratch vault again.', NULL, '2026-09-23 15:36:38', '2026-09-23 15:36:38.227', '2026-09-23 15:36:38.227', NULL, 'e029030991a41662da5443009f07ef89', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXBABKEB9RR65ZVQQJVJG0G', 'status', 'backlog', 'done', NULL, '2026-09-23 15:36:38', '2026-09-23 15:36:38.424', '2026-09-23 15:36:38.424', NULL, '77605a4b1af8905d81ab60d8958abe20', 2) ON CONFLICT(hash) DO NOTHING;
