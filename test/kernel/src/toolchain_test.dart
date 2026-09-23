@@ -102,17 +102,26 @@ void main() {
       expect(paths.git, isNot(plantedGit.path));
     });
 
-    test('CLIDE_DUGITE_DIR env var is honored as an install-dir override', () {
-      // We can't mutate Platform.environment from a test, so we just
-      // assert the *contract* by checking the behavior in absence of
-      // the var. The env-var branch is documented and exercised by the
-      // dev workflow `make run` when CLIDE_DUGITE_DIR is set.
-      // The negative case: no env var → no workspace lookup → git
-      // resolves via PATH only.
-      final paths = resolveToolchainPaths();
-      if (paths.git != null) {
-        expect(paths.gitEnv, isNull, reason: 'gitEnv must be null unless dugite is found in a trusted location');
-      }
+    // T-639: this used to read the host's real CLIDE_DUGITE_DIR (and any
+    // dugite beside the test runner), so it asserted nothing about the
+    // override and broke on a machine with a trusted dugite install.
+    test('CLIDE_DUGITE_DIR env var is honored as an install-dir override', () async {
+      final root = await Directory.systemTemp.createTemp('clide_dugite_');
+      addTearDown(() => root.delete(recursive: true));
+      final git = File('${root.path}/bin/git')..createSync(recursive: true);
+      await Process.run('chmod', ['+x', git.path]);
+
+      final paths = resolveToolchainPaths(environment: {'CLIDE_DUGITE_DIR': root.path});
+      expect(paths.git, git.path);
+      expect(paths.gitEnv, {'GIT_EXEC_PATH': '${root.path}/libexec/git-core', 'GIT_TEMPLATE_DIR': '${root.path}/share/git-core/templates'});
+    }, testOn: '!windows');
+
+    test('without CLIDE_DUGITE_DIR the override dir is never consulted', () async {
+      final root = await Directory.systemTemp.createTemp('clide_dugite_');
+      addTearDown(() => root.delete(recursive: true));
+      File('${root.path}/bin/git').createSync(recursive: true);
+      final paths = resolveToolchainPaths(environment: const {});
+      expect(paths.git, isNot(startsWith(root.path)));
     });
   });
 }

@@ -3,18 +3,20 @@ import 'dart:io';
 import 'package:clide/src/git/status.dart';
 import 'package:test/test.dart';
 
+import '../helpers/git_sandbox.dart';
+
 void main() {
   late Directory sandbox;
 
   setUp(() async {
     sandbox = await Directory.systemTemp.createTemp('clide-git-status-test-');
-    await Process.run('git', ['init'], workingDirectory: sandbox.path);
-    await Process.run('git', ['config', 'user.email', 'test@test.com'], workingDirectory: sandbox.path);
-    await Process.run('git', ['config', 'user.name', 'Test'], workingDirectory: sandbox.path);
+    await sandboxGit(sandbox, ['init']);
+    await sandboxGit(sandbox, ['config', 'user.email', 'test@test.com']);
+    await sandboxGit(sandbox, ['config', 'user.name', 'Test']);
     // Initial commit so HEAD exists.
     await File('${sandbox.path}/.gitkeep').writeAsString('');
-    await Process.run('git', ['add', '.'], workingDirectory: sandbox.path);
-    await Process.run('git', ['commit', '-m', 'init'], workingDirectory: sandbox.path);
+    await sandboxGit(sandbox, ['add', '.']);
+    await sandboxGit(sandbox, ['commit', '-m', 'init']);
   });
 
   tearDown(() async {
@@ -36,7 +38,7 @@ void main() {
 
   test('staged file appears in staged', () async {
     await File('${sandbox.path}/staged.txt').writeAsString('x');
-    await Process.run('git', ['add', 'staged.txt'], workingDirectory: sandbox.path);
+    await sandboxGit(sandbox, ['add', 'staged.txt']);
     final status = await gitStatus(sandbox);
     expect(status.staged, hasLength(1));
     expect(status.staged.first.path, 'staged.txt');
@@ -59,7 +61,7 @@ void main() {
 
   test('file staged and then modified appears in both', () async {
     await File('${sandbox.path}/both.txt').writeAsString('v1');
-    await Process.run('git', ['add', 'both.txt'], workingDirectory: sandbox.path);
+    await sandboxGit(sandbox, ['add', 'both.txt']);
     await File('${sandbox.path}/both.txt').writeAsString('v2');
     final status = await gitStatus(sandbox);
     expect(status.staged.any((e) => e.path == 'both.txt'), isTrue);
@@ -76,13 +78,13 @@ void main() {
   test('branch.upstream + branch.ab populate upstream/ahead/behind', () async {
     final remote = await Directory.systemTemp.createTemp('clide-status-remote-');
     addTearDown(() => remote.deleteSync(recursive: true));
-    await Process.run('git', ['init', '--bare'], workingDirectory: remote.path);
-    await Process.run('git', ['remote', 'add', 'origin', remote.path], workingDirectory: sandbox.path);
-    await Process.run('git', ['push', '-u', 'origin', 'HEAD'], workingDirectory: sandbox.path);
+    await sandboxGit(remote, ['init', '--bare']);
+    await sandboxGit(sandbox, ['remote', 'add', 'origin', remote.path]);
+    await sandboxGit(sandbox, ['push', '-u', 'origin', 'HEAD']);
     // Add a commit so we have ahead > 0.
     await File('${sandbox.path}/ahead.txt').writeAsString('x');
-    await Process.run('git', ['add', '.'], workingDirectory: sandbox.path);
-    await Process.run('git', ['commit', '-m', 'ahead'], workingDirectory: sandbox.path);
+    await sandboxGit(sandbox, ['add', '.']);
+    await sandboxGit(sandbox, ['commit', '-m', 'ahead']);
     final s = await gitStatus(sandbox);
     expect(s.upstream, contains('origin/'));
     expect(s.ahead, 1);
@@ -98,9 +100,9 @@ void main() {
 
   test('rename in porcelain output captures the original path', () async {
     await File('${sandbox.path}/a.txt').writeAsString('content\n');
-    await Process.run('git', ['add', '.'], workingDirectory: sandbox.path);
-    await Process.run('git', ['commit', '-m', 'add a'], workingDirectory: sandbox.path);
-    await Process.run('git', ['mv', 'a.txt', 'renamed.txt'], workingDirectory: sandbox.path);
+    await sandboxGit(sandbox, ['add', '.']);
+    await sandboxGit(sandbox, ['commit', '-m', 'add a']);
+    await sandboxGit(sandbox, ['mv', 'a.txt', 'renamed.txt']);
     final s = await gitStatus(sandbox);
     final renamed = s.entries.firstWhere((e) => e.path == 'renamed.txt');
     expect(renamed.origPath, 'a.txt');

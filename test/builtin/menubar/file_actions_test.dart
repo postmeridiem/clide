@@ -11,6 +11,7 @@ import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/git_sandbox.dart';
 import '../../helpers/kernel_fixture.dart';
 import '../../helpers/widget_harness.dart' show OverlayHost;
 
@@ -24,8 +25,16 @@ void main() {
   });
   tearDown(() => f.dispose());
 
+  // A throwaway repo, never the clide checkout itself: opening a project
+  // can write into it (T-639).
+  Future<Directory> repo() async {
+    final dir = await newSandboxRepo(prefix: 'clide-fa-repo-', files: const {'README.md': '# fixture\n'});
+    addTearDown(() => dir.delete(recursive: true));
+    return dir;
+  }
+
   test('openPath opens a git repo and activates the landing tab', () async {
-    final ok = await FileActions(f.services).openPath(Directory.current.path);
+    final ok = await FileActions(f.services).openPath((await repo()).path);
     expect(ok, isTrue);
     expect(f.services.project.isOpen, isTrue);
     expect(f.services.panels.activeTabIn(Slots.workspace), 'claude.primary');
@@ -39,7 +48,7 @@ void main() {
 
   test('closeWorkspace closes the active project', () async {
     final fa = FileActions(f.services);
-    await fa.openPath(Directory.current.path);
+    await fa.openPath((await repo()).path);
     expect(f.services.project.isOpen, isTrue);
     fa.closeWorkspace();
     expect(f.services.project.isOpen, isFalse);

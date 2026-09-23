@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:clide/src/git/diff.dart';
 import 'package:test/test.dart';
 
+import '../helpers/git_sandbox.dart';
+
 void main() {
   group('parseDiffOutput', () {
     test('parses a simple modification', () {
@@ -160,12 +162,12 @@ index abc..def 100644
 
     setUp(() async {
       sandbox = await Directory.systemTemp.createTemp('clide-git-diff-test-');
-      await Process.run('git', ['init'], workingDirectory: sandbox.path);
-      await Process.run('git', ['config', 'user.email', 'test@test.com'], workingDirectory: sandbox.path);
-      await Process.run('git', ['config', 'user.name', 'Test'], workingDirectory: sandbox.path);
+      await sandboxGit(sandbox, ['init']);
+      await sandboxGit(sandbox, ['config', 'user.email', 'test@test.com']);
+      await sandboxGit(sandbox, ['config', 'user.name', 'Test']);
       await File('${sandbox.path}/file.txt').writeAsString('line1\nline2\n');
-      await Process.run('git', ['add', '.'], workingDirectory: sandbox.path);
-      await Process.run('git', ['commit', '-m', 'init'], workingDirectory: sandbox.path);
+      await sandboxGit(sandbox, ['add', '.']);
+      await sandboxGit(sandbox, ['commit', '-m', 'init']);
     });
 
     tearDown(() async {
@@ -182,7 +184,7 @@ index abc..def 100644
 
     test('returns staged diff with staged: true', () async {
       await File('${sandbox.path}/file.txt').writeAsString('line1\nmodified\n');
-      await Process.run('git', ['add', 'file.txt'], workingDirectory: sandbox.path);
+      await sandboxGit(sandbox, ['add', 'file.txt']);
       final diffs = await gitDiff(sandbox, staged: true);
       expect(diffs, hasLength(1));
     });

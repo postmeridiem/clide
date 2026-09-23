@@ -10,16 +10,19 @@ import 'package:clide/src/git/client.dart';
 import 'package:clide/src/git/operations.dart' show GitException;
 import 'package:test/test.dart';
 
-ToolchainView _toolchain() => ToolchainView.resolved(resolveToolchainPaths());
+import '../helpers/git_sandbox.dart';
+
+/// Real git, but with no global/system config (T-639).
+ToolchainView _toolchain() => sandboxToolchain();
 
 Future<Directory> _newRepo({String filename = 'file.txt', String contents = 'hello\n'}) async {
   final dir = await Directory.systemTemp.createTemp('clide-git-client-');
-  await Process.run('git', ['init', '-b', 'main'], workingDirectory: dir.path);
-  await Process.run('git', ['config', 'user.email', 'test@test.com'], workingDirectory: dir.path);
-  await Process.run('git', ['config', 'user.name', 'Test'], workingDirectory: dir.path);
+  await sandboxGit(dir, ['init', '-b', 'main']);
+  await sandboxGit(dir, ['config', 'user.email', 'test@test.com']);
+  await sandboxGit(dir, ['config', 'user.name', 'Test']);
   await File('${dir.path}/$filename').writeAsString(contents);
-  await Process.run('git', ['add', '.'], workingDirectory: dir.path);
-  await Process.run('git', ['commit', '-m', 'init'], workingDirectory: dir.path);
+  await sandboxGit(dir, ['add', '.']);
+  await sandboxGit(dir, ['commit', '-m', 'init']);
   return dir;
 }
 
@@ -65,13 +68,13 @@ void main() {
       // Set up a bare repo as a remote and track it.
       final remote = await Directory.systemTemp.createTemp('clide-git-remote-');
       addTearDown(() => remote.deleteSync(recursive: true));
-      await Process.run('git', ['init', '--bare'], workingDirectory: remote.path);
-      await Process.run('git', ['remote', 'add', 'origin', remote.path], workingDirectory: sandbox.path);
-      await Process.run('git', ['push', '-u', 'origin', 'main'], workingDirectory: sandbox.path);
+      await sandboxGit(remote, ['init', '--bare']);
+      await sandboxGit(sandbox, ['remote', 'add', 'origin', remote.path]);
+      await sandboxGit(sandbox, ['push', '-u', 'origin', 'main']);
       // Add an uncommitted divergence to make ahead/behind interesting.
       await File('${sandbox.path}/extra.txt').writeAsString('x');
-      await Process.run('git', ['add', '.'], workingDirectory: sandbox.path);
-      await Process.run('git', ['commit', '-m', 'second'], workingDirectory: sandbox.path);
+      await sandboxGit(sandbox, ['add', '.']);
+      await sandboxGit(sandbox, ['commit', '-m', 'second']);
       final s = await git.status();
       expect(s.branch, 'main');
       expect(s.upstream, contains('origin/main'));
@@ -98,7 +101,7 @@ void main() {
     });
 
     test('branches lists local branches and marks the current one', () async {
-      await Process.run('git', ['branch', 'feature/a'], workingDirectory: sandbox.path);
+      await sandboxGit(sandbox, ['branch', 'feature/a']);
       final all = await git.branches();
       final names = all.map((b) => b.name).toList();
       expect(names, containsAll(['main', 'feature/a']));
@@ -137,7 +140,7 @@ void main() {
       await File('${sandbox.path}/new.txt').writeAsString('x');
       await git.stage(['new.txt']);
       await git.unstage(['new.txt']);
-      final r = await Process.run('git', ['diff', '--cached', '--name-only'], workingDirectory: sandbox.path);
+      final r = await sandboxGit(sandbox, ['diff', '--cached', '--name-only']);
       expect((r.stdout as String).trim(), isEmpty);
     });
 
@@ -169,7 +172,7 @@ void main() {
     });
 
     test('checkout switches to an existing branch', () async {
-      await Process.run('git', ['branch', 'feature/x'], workingDirectory: sandbox.path);
+      await sandboxGit(sandbox, ['branch', 'feature/x']);
       await git.checkout('feature/x');
       expect(await git.currentBranch(), 'feature/x');
     });
@@ -177,15 +180,15 @@ void main() {
     test('stageHunk applies a patch to the index; unstageHunk reverses it', () async {
       // Modify file.txt and produce a patch for the change.
       await File('${sandbox.path}/file.txt').writeAsString('hello\nworld\n');
-      final patchProc = await Process.run('git', ['diff', '-U0'], workingDirectory: sandbox.path);
+      final patchProc = await sandboxGit(sandbox, ['diff', '-U0']);
       final patch = patchProc.stdout as String;
       await git.stageHunk(patch);
       // After stageHunk, the change is in the index.
-      final cached = await Process.run('git', ['diff', '--cached', '--name-only'], workingDirectory: sandbox.path);
+      final cached = await sandboxGit(sandbox, ['diff', '--cached', '--name-only']);
       expect((cached.stdout as String).trim(), 'file.txt');
       await git.unstageHunk(patch);
       // After unstageHunk, the index is clean again.
-      final cleared = await Process.run('git', ['diff', '--cached', '--name-only'], workingDirectory: sandbox.path);
+      final cleared = await sandboxGit(sandbox, ['diff', '--cached', '--name-only']);
       expect((cleared.stdout as String).trim(), isEmpty);
     });
 

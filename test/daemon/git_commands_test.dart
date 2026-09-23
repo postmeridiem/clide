@@ -1,9 +1,10 @@
 import 'dart:io';
 
 import 'package:clide/clide.dart';
-import 'package:clide/kernel/src/toolchain_paths.dart';
 import 'package:clide/src/daemon/git_commands.dart';
 import 'package:test/test.dart';
+
+import '../helpers/git_sandbox.dart';
 
 void main() {
   late Directory sandbox;
@@ -12,16 +13,16 @@ void main() {
 
   setUp(() async {
     sandbox = await Directory.systemTemp.createTemp('clide-git-cmd-test-');
-    await Process.run('git', ['init'], workingDirectory: sandbox.path);
-    await Process.run('git', ['config', 'user.email', 'test@test.com'], workingDirectory: sandbox.path);
-    await Process.run('git', ['config', 'user.name', 'Test'], workingDirectory: sandbox.path);
+    await sandboxGit(sandbox, ['init']);
+    await sandboxGit(sandbox, ['config', 'user.email', 'test@test.com']);
+    await sandboxGit(sandbox, ['config', 'user.name', 'Test']);
     await File('${sandbox.path}/file.txt').writeAsString('hello\n');
-    await Process.run('git', ['add', '.'], workingDirectory: sandbox.path);
-    await Process.run('git', ['commit', '-m', 'init'], workingDirectory: sandbox.path);
+    await sandboxGit(sandbox, ['add', '.']);
+    await sandboxGit(sandbox, ['commit', '-m', 'init']);
 
     sink = RecordingEventSink();
     dispatcher = DaemonDispatcher();
-    final toolchain = ToolchainView.resolved(resolveToolchainPaths());
+    final toolchain = sandboxToolchain(); // no global/system git config (T-639)
     final gitClient = GitClient(toolchain: toolchain, workDir: sandbox);
     registerGitCommands(dispatcher, gitClient, sink);
   });
@@ -200,7 +201,7 @@ void main() {
 
   test('git.stage-hunk + git.unstage-hunk round-trip a real patch', () async {
     await File('${sandbox.path}/file.txt').writeAsString('hello\nworld\n');
-    final p = await Process.run('git', ['diff', '-U0'], workingDirectory: sandbox.path);
+    final p = await sandboxGit(sandbox, ['diff', '-U0']);
     final patch = p.stdout as String;
     final staged = await call('git.stage-hunk', {'patch': patch});
     expect(staged.ok, isTrue);
@@ -215,7 +216,7 @@ void main() {
   });
 
   test('git.branches lists the local branches', () async {
-    await Process.run('git', ['branch', 'feature/a'], workingDirectory: sandbox.path);
+    await sandboxGit(sandbox, ['branch', 'feature/a']);
     final r = await call('git.branches');
     expect(r.ok, isTrue);
     final branches = r.data['branches'] as List;
@@ -231,7 +232,7 @@ void main() {
   });
 
   test('git.checkout switches branches', () async {
-    await Process.run('git', ['branch', 'next'], workingDirectory: sandbox.path);
+    await sandboxGit(sandbox, ['branch', 'next']);
     final r = await call('git.checkout', {'branch': 'next'});
     expect(r.ok, isTrue);
     expect(r.data['branch'], 'next');
@@ -240,7 +241,7 @@ void main() {
   test('git.checkout via argv positional reaches the handler (D-74)', () async {
     // `clide git checkout next` → {positional: ['next']}; the schema's
     // positional ordering maps it to `branch` at the dispatcher.
-    await Process.run('git', ['branch', 'next'], workingDirectory: sandbox.path);
+    await sandboxGit(sandbox, ['branch', 'next']);
     final r = await call('git.checkout', {
       'positional': ['next'],
     });
@@ -276,8 +277,8 @@ void main() {
   test('git.push + git.pull against a local bare remote return output', () async {
     final remote = await Directory.systemTemp.createTemp('clide-git-cmd-remote-');
     addTearDown(() => remote.deleteSync(recursive: true));
-    await Process.run('git', ['init', '--bare'], workingDirectory: remote.path);
-    await Process.run('git', ['remote', 'add', 'origin', remote.path], workingDirectory: sandbox.path);
+    await sandboxGit(remote, ['init', '--bare']);
+    await sandboxGit(sandbox, ['remote', 'add', 'origin', remote.path]);
     final pushed = await call('git.push', {'remote': 'origin', 'branch': 'HEAD', 'setUpstream': true});
     expect(pushed.ok, isTrue);
     final pulled = await call('git.pull');

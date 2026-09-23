@@ -32,7 +32,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'helpers/git_sandbox.dart';
 import 'helpers/kernel_fixture.dart';
+
+/// A throwaway git repo to open as the project — never the clide checkout,
+/// which opening can write into (T-639). Real I/O, so built in runAsync.
+Future<String> _sandboxRepo(WidgetTester tester) async {
+  final dir = (await tester.runAsync(() => newSandboxRepo(prefix: 'clide-app-repo-', files: const {'README.md': '# fixture\n'})))!;
+  addTearDown(() => dir.deleteSync(recursive: true));
+  return dir.path;
+}
 
 void main() {
   late KernelFixture f;
@@ -329,7 +338,7 @@ void main() {
   // real git repo, so project.open succeeds and lands a recent.
 
   testWidgets('project switcher opens, lists the recent, filters, and Esc-closes', (tester) async {
-    final repo = Directory.current.path;
+    final repo = await _sandboxRepo(tester);
     final name = repo.split('/').last;
     await tester.runAsync(() async {
       await f.services.project.open(repo);
@@ -371,7 +380,7 @@ void main() {
     });
     addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('clide/window'), null));
 
-    final repo = Directory.current.path;
+    final repo = await _sandboxRepo(tester);
     final name = repo.split('/').last;
     await tester.runAsync(() async {
       await f.services.project.open(repo);
@@ -475,7 +484,7 @@ void main() {
   });
 
   testWidgets('file.closeWorkspace command closes the active project', (tester) async {
-    final repo = Directory.current.path;
+    final repo = await _sandboxRepo(tester);
     await tester.runAsync(() async => f.services.project.open(repo));
     expect(f.services.project.isOpen, isTrue);
     await pumpApp(tester);

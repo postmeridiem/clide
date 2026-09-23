@@ -71,10 +71,13 @@ class _StaticToolchain implements ToolchainView {
 /// vector (a malicious repo could plant `native/dugite/bin/git`).
 /// Dugite is resolved against the install directory + an explicit env
 /// override; everything else comes from PATH.
-ResolvedPaths resolveToolchainPaths() {
+///
+/// [environment] replaces [Platform.environment] for the `CLIDE_DUGITE_DIR`
+/// lookup, so tests can exercise the override without the host's value.
+ResolvedPaths resolveToolchainPaths({Map<String, String>? environment}) {
   String? git;
   Map<String, String>? gitEnv;
-  final dugiteGit = _resolveDugiteGit();
+  final dugiteGit = _resolveDugiteGit(environment ?? Platform.environment);
   if (dugiteGit != null) {
     git = dugiteGit;
     final dugiteRoot = File(dugiteGit).parent.parent.path;
@@ -107,13 +110,13 @@ String? _resolveShell() {
 ///      (mirrors Linux's INSTALL_BUNDLE_LIB_DIR convention).
 ///
 /// Returns null if no dugite is found; caller falls back to PATH git.
-String? _resolveDugiteGit() {
+String? _resolveDugiteGit(Map<String, String> env) {
   // dugite-native's Windows layout differs (cmd\git.exe, mingw64
   // libexec) and isn't wired up yet — PATH git serves Windows until
   // the bundle work lands.
   if (Platform.isWindows) return null;
   final candidates = <String>[];
-  final envDir = Platform.environment['CLIDE_DUGITE_DIR'];
+  final envDir = env['CLIDE_DUGITE_DIR'];
   if (envDir != null && envDir.isNotEmpty) {
     candidates.add('$envDir/bin/git');
   }

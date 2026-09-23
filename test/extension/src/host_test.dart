@@ -59,12 +59,24 @@ void main() {
       expect(scanner.defaultRoot().path, '$home/.clide/extensions');
     });
 
+    // T-639: this used to scan the developer's real ~/.clide/extensions.
     test('discover() with no root falls back to defaultRoot', () async {
-      // Exercises the `root ?? defaultRoot()` fallback. The install
-      // root rarely exists in CI, so this returns a (possibly empty)
-      // list rather than throwing.
-      final out = await const ExtensionScanner().discover();
-      expect(out, isA<List<ExtensionManifest>>());
+      final root = await Directory.systemTemp.createTemp('clide-ext-default-');
+      addTearDown(() => root.delete(recursive: true));
+      final ext = Directory('${root.path}/ext.fallback')..createSync();
+      await File('${ext.path}/manifest.yaml').writeAsString('id: ext.fallback');
+      final out = await _RootedScanner(root).discover();
+      expect(out.map((m) => m.id).toList(), ['ext.fallback']);
     });
   });
+}
+
+/// A scanner whose default root is a temp dir, so the fallback is
+/// exercised without touching the real install root.
+class _RootedScanner extends ExtensionScanner {
+  const _RootedScanner(this.root);
+  final Directory root;
+
+  @override
+  Directory defaultRoot() => root;
 }
