@@ -588,3 +588,32 @@ Core, rendering, IPC, kernel, panel manager.
 - **Raised by:** 2026-09-23 — T-55 pickup, after verifying its premise ("tmux sessions stay alive in background regardless") no longer held. User chose own SNI over GDBus; close hides with an opt-out, and "make sure the trayicon has a right click to close the app entirely, to kill all windows at once"; Linux + macOS + Windows — "put in the plumbing, testing and refining can be done there"; one shared icon. The loader came from the user — "the clide processes may need to be spawned under a unifying invisible app loader for the purposes of t-47 anyways" — scoped thin once they confirmed `--resume` "works well", and chosen over an election with "build it now".
 
 ---
+
+### D-111: One window process per workspace; in-place switching is retired
+- **Date:** 2026-09-23
+- **Status:** accepted
+- **Decision:** A workspace and a window process are one-to-one: `workspace root ⇒ window process ⇒ socket ⇒ bus ⇒ session id`, with no shared state between them. Resolves [Q-51](../questions/architecture.md#q-51-unify-workspace-lifecycle-on-a-single-fenced-open-primitive).
+  1. **One open primitive.** `WorkspaceService.open(root, {target})` is the only code that turns a root into a running workspace. Every entry point goes through it: File menu, project switcher, recents, `clide://` deep links and the CLI.
+  2. **New windows get an explicit root.** A new window is `Process.start(exe, ['--workspace', root])` with a scrubbed environment: no inherited `CLIDE_SOCK` / `CLIDE_WORKSPACE`. The [D-110](#d-110-a-headless-loader-owns-one-shared-tray-icon-closing-a-window-hides-it) loader spawns it when one is running.
+  3. **"Open here" replaces the process.** Opening a repo in the current window starts a new window process on that root, then closes the old one. This works like a VS Code window reload, and the in-process switch (`project.open` rebuilding services on the shared bus) goes away. The existing close path guards a busy Claude turn or terminal job, so replacing the window can't drop running work silently.
+  4. **Only the open primitive derives IPC identity from a root** ([D-70](#d-70-ipc-socket-path-is-per-workspace-deterministic)).
+- **Rationale:** Every fencing bug so far came from the two half-primitives disagreeing: T-367 (the previous service set leaked), T-269 (the previous repo's Claude session was kept) and T-421 (the branch bled across windows). Abolishing in-place switching deletes the teardown code those bugs lived in instead of patching it again. With the D-110 loader already spawning and supervising window processes, one process per repo costs almost nothing.
+- **Cost / risk:** "Open here" pays a process start plus a Flutter engine boot, where the in-place switch reused a warm engine. Window position and size must be handed across so the new window appears where the old one was. Anything that kept state across a switch in memory has to persist it or lose it.
+- **Cross-reference:** [D-56](#d-56-dissolve-daemon-process-flutter-app-hosts-ipc-server), [D-70](#d-70-ipc-socket-path-is-per-workspace-deterministic), [D-72](#d-72-ipc-server-is-multi-connection-with-serial-dispatch-on-the-main-isolate), [D-110](#d-110-a-headless-loader-owns-one-shared-tray-icon-closing-a-window-hides-it). Implemented by T-423 under epic T-422.
+- **Raised by:** 2026-09-23 backlog decision pass. The user chose "one process per repo" over keeping and fencing the in-place switch, and over removing "open in this window" altogether.
+
+---
+
+### D-112: IPC handlers do async file I/O; large operations offload to an isolate and report progress
+- **Date:** 2026-09-23
+- **Status:** accepted
+- **Decision:** clide runs on one UI isolate, so an IPC handler that blocks freezes the whole window.
+  1. **Async by default.** IPC handlers use the async `File` / `Directory` APIs. Synchronous I/O (`readAsStringSync`, `writeAsStringSync`, `lengthSync`, …) is allowed only in pure-Dart test seams, and in tiny fixed-size reads such as config files and markers.
+  2. **Large work runs in an isolate.** Past a size threshold (one named constant per subsystem, default 1 MiB of file content), or for work that walks many files, the handler hands the work to a background isolate. It follows the same pattern as the [D-79](#d-79-workspace-content-search-is-a-pure-dart-in-process-engine-outside-pql) grep pool.
+  3. **Long operations show a sign of life.** An operation that may run longer than about a second emits progress events on the bus: files or bytes done out of total, throttled to a few per second. The UI can then show that it is working, and the CLI caller sees it is not hung. Operations that already stream results, like `search.grep`, count as progress.
+- **Rationale:** Until now there was no rule, so each new handler guessed. `files.read` reads up to 10 MB synchronously, and the replace engine rewrites files synchronously right beside a grep that uses isolates. Writing the rule down makes the grep behaviour the norm. The progress requirement follows from the user's request for "occasional progress information as a sign of life": a long operation that shows no progress looks exactly like a hang.
+- **Cost / risk:** An isolate hop copies data across the boundary, so small reads stay on the main isolate, which is why a threshold exists. Progress events add surface to [D-6](#d-6-cli-and-event-surface-contract) parity and must stay throttled.
+- **Cross-reference:** [D-6](#d-6-cli-and-event-surface-contract), [D-56](#d-56-dissolve-daemon-process-flutter-app-hosts-ipc-server), [D-79](#d-79-workspace-content-search-is-a-pure-dart-in-process-engine-outside-pql). Applied by T-388, starting with `files.read` and search-and-replace.
+- **Raised by:** 2026-09-23 backlog decision pass. The user chose async with isolate offload above a threshold, adding "when hitting large operations, send occasional progress information as a sign of life".
+
+---

@@ -152,6 +152,8 @@ You might also want, project-permitting:
 - [D-108: Fail-unless-proven — choose the default that makes an omission safe](decisions/testing.md#d-108-fail-unless-proven--choose-the-default-that-makes-an-omission-safe) — _testing_
 - [D-109: clide owns the text selection + clipboard layer](decisions/design.md#d-109-clide-owns-the-text-selection--clipboard-layer) — _design_
 - [D-110: A headless loader owns one shared tray icon; closing a window hides it](decisions/architecture.md#d-110-a-headless-loader-owns-one-shared-tray-icon-closing-a-window-hides-it) — _architecture_
+- [D-111: One window process per workspace; in-place switching is retired](decisions/architecture.md#d-111-one-window-process-per-workspace-in-place-switching-is-retired) — _architecture_
+- [D-112: IPC handlers do async file I/O; large operations offload to an isolate and report progress](decisions/architecture.md#d-112-ipc-handlers-do-async-file-io-large-operations-offload-to-an-isolate-and-report-progress) — _architecture_
 
 ## Open questions
 
@@ -193,7 +195,6 @@ You might also want, project-permitting:
 - [Q-47: Live mixed documents — implement?](questions/design.md#q-47-live-mixed-documents--implement) — _design_
 - [Q-48: Sealed-workspace mode — implement?](questions/design.md#q-48-sealed-workspace-mode--implement) — _design_
 - [Q-49: Review honorable mentions — which, if any, get promoted?](questions/design.md#q-49-review-honorable-mentions--which-if-any-get-promoted) — _design_
-- [Q-51: Unify workspace lifecycle on a single fenced open primitive](questions/architecture.md#q-51-unify-workspace-lifecycle-on-a-single-fenced-open-primitive) — _architecture_
 
 ## Resolved questions
 
@@ -208,6 +209,7 @@ You might also want, project-permitting:
 - [Q-32: MCP tool surface — minimum slash-ide or extended clide tools?](questions/architecture.md#q-32-mcp-tool-surface--minimum-slash-ide-or-extended-clide-tools) — _architecture_
 - [Q-33: MCP transport — SSE, WebSocket, stdio, or all?](questions/architecture.md#q-33-mcp-transport--sse-websocket-stdio-or-all) — _architecture_
 - [Q-50: Web/WASM target after the dart:ffi pivot — fence, fix, or drop?](questions/architecture.md#q-50-webwasm-target-after-the-dartffi-pivot--fence-fix-or-drop) — _architecture_
+- [Q-51: Unify workspace lifecycle on a single fenced open primitive](questions/architecture.md#q-51-unify-workspace-lifecycle-on-a-single-fenced-open-primitive) — _architecture_
 
 ## Rejected
 
