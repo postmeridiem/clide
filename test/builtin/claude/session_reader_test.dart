@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/session_reader.dart';
@@ -7,43 +6,16 @@ import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/claude/src/turn_signals.dart';
 import 'package:test/test.dart';
 
-/// A fake that can actually **exit**, because the alternative was inventing a
-/// `debugEnd` setter on `StreamJsonSession` — and a fake able to force the end
-/// state would stop proving the reader reacts to a real one. The session watches
-/// `exitCode`, so completing it drives `_onExit` down the production path.
-class _FakeProc extends StreamJsonProcess {
-  final _ctl = StreamController<String>.broadcast();
-  final _exit = Completer<int>();
-  final List<String> writes = [];
+import '../../helpers/fake_stream_json_process.dart';
 
-  @override
-  Stream<String> get lines => _ctl.stream;
-
-  @override
-  void writeLine(String line) => writes.add(line);
-
-  @override
-  Future<void> kill() async {}
-
-  @override
-  Future<int>? get exitCode => _exit.future;
-
-  @override
-  List<String> get stderrTail => const ['boom'];
-
-  void emit(Map<String, Object?> event) => _ctl.add(jsonEncode(event));
-
-  /// Die, as the real process does.
-  void die([int code = 1]) {
-    if (!_exit.isCompleted) _exit.complete(code);
-  }
-}
+// The shared fake can actually exit: the session watches its exitCode, so an
+// exit drives `_onExit` down the production path rather than a debug setter.
 
 void main() {
-  late _FakeProc proc;
+  late FakeStreamJsonProcess proc;
 
   ClaudeSessionOrchestrator orchestrator() =>
-      ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => proc = _FakeProc());
+      ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => proc = FakeStreamJsonProcess(stderrTail: const ['boom']));
 
   Future<ManagedSession> spawn(ClaudeSessionOrchestrator orch, String id) => orch.spawn(SpawnSpec(id: id, role: id, sessionId: '$id-uuid', cwd: '/repo'));
 
@@ -168,7 +140,7 @@ void main() {
       // hand.
       final orch = orchestrator();
       await spawn(orch, 'primary');
-      proc.die();
+      proc.exit(1);
       await settle();
 
       final reader = SessionReader.primary(orchestrator: orch);

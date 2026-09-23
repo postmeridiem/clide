@@ -1,26 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/claude/src/turn_signals.dart';
 import 'package:test/test.dart';
 
-/// Fake process so the session can be driven line by line.
-class _FakeProc extends StreamJsonProcess {
-  final _ctl = StreamController<String>.broadcast();
-  final List<String> writes = [];
-
-  @override
-  Stream<String> get lines => _ctl.stream;
-
-  @override
-  void writeLine(String line) => writes.add(line);
-
-  @override
-  Future<void> kill() async {}
-
-  void emit(Map<String, Object?> event) => _ctl.add(jsonEncode(event));
-}
+import '../../helpers/fake_stream_json_process.dart';
 
 /// Envelopes as the CLI actually emits them, copied from a real 2.1.226 capture
 /// (`docs/spikes/cc-stream-json-2.1.226.md`). Hand-invented shapes are how the
@@ -50,11 +34,11 @@ Map<String, Object?> _result({bool isError = false, String? stop = 'end_turn', S
 };
 
 void main() {
-  late _FakeProc proc;
+  late FakeStreamJsonProcess proc;
   late StreamJsonSession session;
 
   setUp(() {
-    proc = _FakeProc();
+    proc = FakeStreamJsonProcess();
     session = StreamJsonSession(proc)..start();
   });
 

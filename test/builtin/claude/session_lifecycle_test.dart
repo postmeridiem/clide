@@ -11,56 +11,18 @@ import 'dart:io';
 
 import 'package:clide/builtin/claude/src/session_naming.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
-import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:test/test.dart';
 
-// ---------------------------------------------------------------------------
-// Minimal fake process — same as session_orchestrator_test.dart.
-// ---------------------------------------------------------------------------
-
-class _FakeProc extends StreamJsonProcess {
-  final _ctl = StreamController<String>.broadcast();
-  final List<String> writes = [];
-  bool killed = false;
-
-  @override
-  Stream<String> get lines => _ctl.stream;
-
-  @override
-  void writeLine(String line) => writes.add(line);
-
-  @override
-  Future<void> kill() async => killed = true;
-}
-
-/// A fake whose [kill] blocks until [gate] completes — models a real `claude`
-/// that hasn't actually exited yet, so a test can prove `close()` waits for the
-/// process's real death before returning (T-437).
-class _GatedProc extends StreamJsonProcess {
-  _GatedProc(this._gate);
-  final Completer<void> _gate;
-  final _ctl = StreamController<String>.broadcast();
-  int killCount = 0;
-
-  @override
-  Stream<String> get lines => _ctl.stream;
-  @override
-  void writeLine(String line) {}
-  @override
-  Future<void> kill() async {
-    killCount++;
-    await _gate.future;
-  }
-}
+import '../../helpers/fake_stream_json_process.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-ClaudeSessionOrchestrator _orch(List<_FakeProc> created) {
+ClaudeSessionOrchestrator _orch(List<FakeStreamJsonProcess> created) {
   return ClaudeSessionOrchestrator(
     processFactory: ({required sessionArgs, required cwd, env}) async {
-      final p = _FakeProc();
+      final p = FakeStreamJsonProcess();
       created.add(p);
       return p;
     },
@@ -121,7 +83,7 @@ void main() {
   // ---- /clear — spawn a fresh session via orchestrator --------------------
 
   group('/clear — fresh session via orchestrator', () {
-    late List<_FakeProc> created;
+    late List<FakeStreamJsonProcess> created;
     late ClaudeSessionOrchestrator orch;
 
     setUp(() {
@@ -157,7 +119,7 @@ void main() {
   // ---- in-place workspace switch (T-269) ---------------------------------
 
   group('spawn — cwd-aware idempotency (T-269)', () {
-    late List<_FakeProc> created;
+    late List<FakeStreamJsonProcess> created;
     late ClaudeSessionOrchestrator orch;
 
     setUp(() {
@@ -191,7 +153,7 @@ void main() {
   // ---- /resume — bind to an existing session via orchestrator -------------
 
   group('/resume — resume an existing session via orchestrator', () {
-    late List<_FakeProc> created;
+    late List<FakeStreamJsonProcess> created;
     late ClaudeSessionOrchestrator orch;
 
     setUp(() {
@@ -232,10 +194,10 @@ void main() {
   group('close — awaits real process death before returning (T-437)', () {
     test('close() does not complete until the process exit resolves', () async {
       final gate = Completer<void>();
-      final created = <_GatedProc>[];
+      final created = <FakeStreamJsonProcess>[];
       final orch = ClaudeSessionOrchestrator(
         processFactory: ({required sessionArgs, required cwd, env}) async {
-          final p = _GatedProc(gate);
+          final p = FakeStreamJsonProcess(killGate: gate.future);
           created.add(p);
           return p;
         },
@@ -261,7 +223,7 @@ void main() {
   // ---- claude.kill-all-sessions via orchestrator --------------------------
 
   group('claude.kill-all-sessions via orchestrator (T-167)', () {
-    late List<_FakeProc> created;
+    late List<FakeStreamJsonProcess> created;
     late ClaudeSessionOrchestrator orch;
 
     setUp(() {

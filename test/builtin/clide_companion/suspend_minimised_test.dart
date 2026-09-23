@@ -1,29 +1,14 @@
-import 'dart:async';
-
 import 'package:clide/builtin/clide_companion/src/clide_strip.dart';
 import 'package:clide/builtin/clide_companion/src/companion_settings.dart';
 import 'package:clide/builtin/clide_companion/src/strip_host.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
-import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/fake_stream_json_process.dart';
 import '../../helpers/kernel_fixture.dart';
-
-class _FakeProc extends StreamJsonProcess {
-  final _ctl = StreamController<String>.broadcast();
-
-  @override
-  Stream<String> get lines => _ctl.stream;
-
-  @override
-  void writeLine(String line) {}
-
-  @override
-  Future<void> kill() async {}
-}
 
 /// The `night` rung for a minimised window (T-541, D-107 commitment 4). The one
 /// case collapse and hide do not already cover, because a minimised window keeps
@@ -33,7 +18,7 @@ void main() {
 
   setUp(() async {
     f = await KernelFixture.create();
-    activeSessionOrchestrator = ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => _FakeProc());
+    activeSessionOrchestrator = ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => FakeStreamJsonProcess());
   });
 
   tearDown(() async {

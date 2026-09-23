@@ -1,11 +1,9 @@
-import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
 import 'package:clide/src/ipc/envelope.dart';
 
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
-import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/clide_companion/src/companion_channel.dart';
 import 'package:clide/builtin/clide_companion/src/companion_session.dart';
 import 'package:clide/builtin/clide_companion/src/companion_settings.dart';
@@ -13,22 +11,8 @@ import 'package:clide/builtin/clide_companion/src/extension.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/fake_stream_json_process.dart';
 import '../../helpers/kernel_fixture.dart';
-
-class _FakeProc extends StreamJsonProcess {
-  final _ctl = StreamController<String>.broadcast();
-
-  @override
-  Stream<String> get lines => _ctl.stream;
-
-  @override
-  void writeLine(String line) {}
-
-  @override
-  Future<void> kill() async {
-    if (!_ctl.isClosed) await _ctl.close();
-  }
-}
 
 /// Plain `test`, not `testWidgets`: these persist settings, which is real file
 /// I/O, and awaiting that inside a widget test's fake-async clock hangs.
@@ -135,7 +119,7 @@ void main() {
     }
 
     setUp(() async {
-      activeSessionOrchestrator = ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => _FakeProc());
+      activeSessionOrchestrator = ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => FakeStreamJsonProcess());
       await openWorkspace();
     });
 

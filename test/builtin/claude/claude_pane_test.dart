@@ -23,7 +23,6 @@ import 'package:clide/builtin/claude/src/session_defaults.dart' show kDeliverMid
 import 'package:clide/builtin/claude/src/session_naming.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/session_picker.dart';
-import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart' show ClidePane;
@@ -31,35 +30,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/fake_stream_json_process.dart';
 import '../../helpers/kernel_fixture.dart';
-
-class _FakeProc extends StreamJsonProcess {
-  final _ctl = StreamController<String>.broadcast();
-  final List<String> writes = [];
-  bool killed = false;
-
-  @override
-  Stream<String> get lines => _ctl.stream;
-
-  @override
-  void writeLine(String line) => writes.add(line);
-
-  @override
-  Future<void> kill() async {
-    killed = true;
-    if (!_ctl.isClosed) await _ctl.close();
-  }
-
-  void feed(Map<String, Object?> event) {
-    if (!_ctl.isClosed) _ctl.add(jsonEncode(event));
-  }
-}
 
 void main() {
   late KernelFixture f;
   late ClaudeSessionOrchestrator orch;
   late String root;
-  final created = <_FakeProc>[];
+  final created = <FakeStreamJsonProcess>[];
   final spawnArgs = <List<String>>[];
 
   setUp(() async {
@@ -69,7 +47,7 @@ void main() {
     root = '/repo-a';
     orch = ClaudeSessionOrchestrator(
       processFactory: ({required sessionArgs, required cwd, env}) async {
-        final p = _FakeProc();
+        final p = FakeStreamJsonProcess();
         created.add(p);
         spawnArgs.add(sessionArgs);
         return p;
@@ -179,7 +157,7 @@ void main() {
     final semantics = tester.ensureSemantics();
 
     await act(tester, () {
-      proc.feed({
+      proc.emit({
         'type': 'assistant',
         'uuid': 'a-wf',
         'message': {
@@ -194,7 +172,7 @@ void main() {
           ],
         },
       });
-      proc.feed({
+      proc.emit({
         'type': 'system',
         'subtype': 'task_progress',
         'tool_use_id': 'toolu_wf',
@@ -222,6 +200,23 @@ void main() {
     expect(created, hasLength(2));
     // Re-bound to the SAME deterministic id (cleared in place, not a random id).
     expect(orch.byId('primary')!.sessionId, id);
+  });
+
+  // T-638: the old fakes never exited, so `_onSessionEnd` was unreachable.
+  testWidgets('claude exiting under the pane says so, with the CLI\'s own reason (T-361, T-437)', (tester) async {
+    await mount(tester, const ClaudePane());
+    final proc = created.single;
+    proc.stderr.addAll(['warming up', 'Session ID abc is already in use']);
+    await act(tester, () => proc.exit(1));
+    // Shown in the chrome subtitle and in the empty conversation's banner.
+    expect(find.text('claude exited (code 1) — Session ID abc is already in use · /clear to restart'), findsWidgets);
+  });
+
+  testWidgets('a deliberate /clear kill is not reported as claude exiting', (tester) async {
+    await mount(tester, const ClaudePane());
+    await act(tester, () => composer(tester).onSubmit('/clear'));
+    expect(created.first.exited, isTrue, reason: 'the fake now really exits on kill');
+    expect(find.textContaining('claude exited'), findsNothing, reason: 'the pane killed it on purpose');
   });
 
   testWidgets('/clear in a fork pane clears instead of re-forking (T-375)', (tester) async {
@@ -315,7 +310,7 @@ void main() {
     final proc = created.single;
     await act(
       tester,
-      () => proc.feed({'type': 'system', 'subtype': 'init', 'model': 'claude-opus-4-8', 'permissionMode': 'plan', 'session_id': primarySessionId('/repo-a')}),
+      () => proc.emit({'type': 'system', 'subtype': 'init', 'model': 'claude-opus-4-8', 'permissionMode': 'plan', 'session_id': primarySessionId('/repo-a')}),
     );
     // The init event flows through the session into the pane's status path
     // (the rendered slot lives in the status bar, absent from this harness).
@@ -331,14 +326,14 @@ void main() {
     expect(strip().active, isFalse);
     expect(slot(), isNull, reason: 'nothing to show before init');
 
-    await act(tester, () => proc.feed({'type': 'system', 'subtype': 'status', 'status': 'compacting', 'session_id': primarySessionId('/repo-a')}));
+    await act(tester, () => proc.emit({'type': 'system', 'subtype': 'status', 'status': 'compacting', 'session_id': primarySessionId('/repo-a')}));
     expect(strip().active, isTrue);
     expect(find.text('Compacting context…'), findsOneWidget);
     expect(slot(), isNotNull, reason: 'the status bar shows compaction progress');
 
     await act(tester, () {
-      proc.feed({'type': 'system', 'subtype': 'status', 'status': null, 'compact_result': 'success'});
-      proc.feed({
+      proc.emit({'type': 'system', 'subtype': 'status', 'status': null, 'compact_result': 'success'});
+      proc.emit({
         'type': 'system',
         'subtype': 'compact_boundary',
         'compact_metadata': {'trigger': 'manual', 'pre_tokens': 1000},
@@ -353,7 +348,7 @@ void main() {
     await mount(tester, const ClaudePane(showChrome: false));
     await act(
       tester,
-      () => created.single.feed({
+      () => created.single.emit({
         'type': 'system',
         'subtype': 'init',
         'model': 'claude-opus-4-8',
@@ -373,7 +368,7 @@ void main() {
     // and the composer's mode control went blank for the rest of the pane's life.
     await act(
       tester,
-      () => created.last.feed({
+      () => created.last.emit({
         'type': 'system',
         'subtype': 'init',
         'model': 'claude-opus-4-8',
@@ -391,7 +386,7 @@ void main() {
     final proc = created.single;
     await act(
       tester,
-      () => proc.feed({
+      () => proc.emit({
         'type': 'control_request',
         'request_id': 'req-1',
         'request': {
@@ -482,7 +477,7 @@ void main() {
     await tester.pump();
     expect(find.text('drop this one'), findsNothing);
 
-    await act(tester, () => proc.feed({'type': 'result', 'subtype': 'success'}));
+    await act(tester, () => proc.emit({'type': 'result', 'subtype': 'success'}));
     expect(sent(), ['start a turn', 'send this one']);
     expect(find.text('queued'), findsNothing, reason: 'queue drained');
     expect(find.text('send this one'), findsOneWidget, reason: 'now a normal user turn');

@@ -6,24 +6,13 @@ library;
 import 'dart:async';
 
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
-import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/claude/src/ticket_pick_up.dart';
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/fake_ipc.dart';
-
-class _FakeProc extends StreamJsonProcess {
-  final _ctl = StreamController<String>.broadcast();
-  final List<String> writes = [];
-  @override
-  Stream<String> get lines => _ctl.stream;
-  @override
-  void writeLine(String line) => writes.add(line);
-  @override
-  Future<void> kill() async {}
-}
+import '../../helpers/fake_stream_json_process.dart';
 
 void main() {
   late ClaudeSessionOrchestrator orch;
@@ -32,13 +21,13 @@ void main() {
   late List<Map<String, Object?>> statusCalls;
   late List<Message> changed;
   late StreamSubscription<Message> changedSub;
-  late List<_FakeProc> procs;
+  late List<FakeStreamJsonProcess> procs;
 
   setUp(() {
     procs = [];
     orch = ClaudeSessionOrchestrator(
       processFactory: ({required sessionArgs, required cwd, env}) async {
-        final p = _FakeProc();
+        final p = FakeStreamJsonProcess();
         procs.add(p);
         return p;
       },

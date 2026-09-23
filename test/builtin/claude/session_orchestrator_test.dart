@@ -3,25 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
-import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakeProc extends StreamJsonProcess {
-  final _ctl = StreamController<String>.broadcast();
-  final List<String> writes = [];
-  bool killed = false;
-  @override
-  Stream<String> get lines => _ctl.stream;
-  void emit(String line) => _ctl.add(line);
-  @override
-  void writeLine(String line) => writes.add(line);
-  @override
-  Future<void> kill() async => killed = true;
-}
+import '../../helpers/fake_stream_json_process.dart';
 
 void main() {
-  late List<_FakeProc> created;
+  late List<FakeStreamJsonProcess> created;
   late List<List<String>> spawnedArgs;
   late ClaudeSessionOrchestrator orch;
 
@@ -30,7 +18,7 @@ void main() {
     spawnedArgs = [];
     orch = ClaudeSessionOrchestrator(
       processFactory: ({required sessionArgs, required cwd, env}) async {
-        final p = _FakeProc();
+        final p = FakeStreamJsonProcess();
         created.add(p);
         spawnedArgs.add(sessionArgs);
         return p;
@@ -75,7 +63,7 @@ void main() {
     final preset = ClaudeSessionOrchestrator(
       processFactory: ({required sessionArgs, required cwd, env}) async {
         envs.add(env);
-        return _FakeProc();
+        return FakeStreamJsonProcess();
       },
       pathPresetFor: (cwd) => cwd == '/repo' ? const ['/opt/go/bin'] : const [],
     );
@@ -110,7 +98,9 @@ void main() {
   test('folds the real claude session id from the init event into the session (T-185)', () async {
     final m = await orch.spawn(SpawnSpec(id: 'fork-x', role: 'teammate', sessionId: 'placeholder-uuid', cwd: '/repo', forkSourceSessionId: 'source-uuid'));
     expect(m.sessionId, 'placeholder-uuid'); // starts as the placeholder
-    created.last.emit(jsonEncode({'type': 'system', 'subtype': 'init', 'session_id': 'real-fork-id', 'model': 'claude-opus-4-8', 'permissionMode': 'default'}));
+    created.last.emitLine(
+      jsonEncode({'type': 'system', 'subtype': 'init', 'session_id': 'real-fork-id', 'model': 'claude-opus-4-8', 'permissionMode': 'default'}),
+    );
     await pumpEventQueue();
     expect(m.sessionId, 'real-fork-id'); // updated to the branch's real id
   });
@@ -151,7 +141,7 @@ void main() {
       processFactory: ({required sessionArgs, required cwd, env}) async {
         calls++;
         if (calls == 1) throw StateError('spawn blew up');
-        final p = _FakeProc();
+        final p = FakeStreamJsonProcess();
         created.add(p);
         return p;
       },
@@ -297,7 +287,7 @@ void main() {
       orch = ClaudeSessionOrchestrator(
         processFactory: ({required sessionArgs, required cwd, env}) async {
           capturedArgs = sessionArgs;
-          return _FakeProc();
+          return FakeStreamJsonProcess();
         },
       );
     });

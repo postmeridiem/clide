@@ -1,28 +1,17 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/session_reader.dart';
-import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/clide_companion/src/prompt/companion_digest.dart';
 import 'package:test/test.dart';
+
+import '../../helpers/fake_stream_json_process.dart';
 
 /// Drives the digest through a REAL session parser rather than hand-built items,
 /// so what is asserted is what the wire actually produces — including the
 /// `partial-` rewrite, which is the one behaviour a hand-rolled fixture would
 /// have got wrong.
-class _Proc extends StreamJsonProcess {
-  final _ctl = StreamController<String>.broadcast();
-
-  @override
-  Stream<String> get lines => _ctl.stream;
-  @override
-  void writeLine(String line) {}
-  @override
-  Future<void> kill() async {}
-
-  void emit(Map<String, Object?> ev) => _ctl.add(jsonEncode(ev));
-
+extension on FakeStreamJsonProcess {
   /// Assistant prose, as the CLI sends it.
   void prose(String text, {String id = 'a1', bool synthetic = false}) => emit({
     'type': 'assistant',
@@ -74,7 +63,7 @@ class _Proc extends StreamJsonProcess {
 }
 
 void main() {
-  late _Proc proc;
+  late FakeStreamJsonProcess proc;
   late ClaudeSessionOrchestrator orch;
   late SessionReader reader;
   late CompanionDigest digest;
@@ -86,7 +75,7 @@ void main() {
     ingesting = true;
     sent = [];
     turns = [];
-    proc = _Proc();
+    proc = FakeStreamJsonProcess();
     orch = ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => proc);
     await orch.spawn(const SpawnSpec(id: kPrimarySessionId, role: 'primary', sessionId: 'p', cwd: '/repo'));
     reader = SessionReader.primary(orchestrator: orch)..start();

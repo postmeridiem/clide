@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:clide/builtin/clide_companion/src/companion_channel.dart';
 import 'package:clide/builtin/clide_companion/src/companion_session.dart';
@@ -8,43 +7,21 @@ import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/claude/src/turn_signals.dart';
 import 'package:test/test.dart';
 
-/// A fake that can exit, so the death path runs through `_onExit` rather than
-/// being forced by a test-only setter on the session (see T-551).
-class _FakeProc extends StreamJsonProcess {
-  final _ctl = StreamController<String>.broadcast();
-  final _exit = Completer<int>();
+import '../../helpers/fake_stream_json_process.dart';
 
-  @override
-  Stream<String> get lines => _ctl.stream;
-
-  @override
-  void writeLine(String line) {}
-
-  @override
-  Future<void> kill() async {}
-
-  @override
-  Future<int>? get exitCode => _exit.future;
-
-  @override
-  List<String> get stderrTail => const ['companion died'];
-
-  void emit(Map<String, Object?> event) => _ctl.add(jsonEncode(event));
-
-  void die([int code = 1]) {
-    if (!_exit.isCompleted) _exit.complete(code);
-  }
-}
+// The shared fake can exit, so the death path runs through `_onExit` rather
+// than being forced by a test-only setter on the session (see T-551).
 
 /// The binding contract Epic D depends on. Nothing here is about *what* the
 /// companion says — the digest is T-546's and the reply seam is T-548's — only
 /// that a reader can follow a session that is not the primary one, through the
 /// whole life of a process.
 void main() {
-  late _FakeProc proc;
+  late FakeStreamJsonProcess proc;
 
-  ClaudeSessionOrchestrator orchestrator() =>
-      ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => proc = _FakeProc());
+  ClaudeSessionOrchestrator orchestrator() => ClaudeSessionOrchestrator(
+    processFactory: ({required sessionArgs, required cwd, env}) async => proc = FakeStreamJsonProcess(stderrTail: const ['companion died']),
+  );
 
   Future<ManagedSession> spawn(ClaudeSessionOrchestrator orch, String id) => orch.spawn(SpawnSpec(id: id, role: id, sessionId: '$id-uuid', cwd: '/repo'));
 
@@ -112,7 +89,7 @@ void main() {
 
       // Death. The companion crashing is the case that drives the face's
       // `error` state (D-107 commitment 5), so it has to arrive.
-      proc.die();
+      proc.exit(1);
       await settle();
       expect(ends, hasLength(1), reason: 'the companion died and nothing was told');
       expect(ends.single.reason, 'companion died');
@@ -139,7 +116,7 @@ void main() {
       // binding late is ordinary rather than exotic.
       final orch = orchestrator();
       await spawn(orch, kCompanionSessionId);
-      proc.die();
+      proc.exit(1);
       await settle();
 
       final reader = companionSessionReader(orchestrator: orch);

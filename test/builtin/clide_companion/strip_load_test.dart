@@ -1,32 +1,18 @@
-import 'dart:async';
-import 'dart:convert';
-
 import 'package:clide/builtin/clide_companion/src/clide_face.dart';
 import 'package:clide/builtin/clide_companion/src/session_load.dart';
 import 'package:clide/builtin/clide_companion/src/strip_host.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
-import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/fake_stream_json_process.dart';
 import '../../helpers/kernel_fixture.dart';
 
-class _FakeProc extends StreamJsonProcess {
-  final _ctl = StreamController<String>.broadcast();
-
-  @override
-  Stream<String> get lines => _ctl.stream;
-
-  @override
-  void writeLine(String line) {}
-
-  @override
-  Future<void> kill() async {}
-
+extension on FakeStreamJsonProcess {
   /// End the turn the way the CLI does. Nothing here forces session state
   /// directly — the `result` event runs the same path production takes.
-  void endTurn() => _ctl.add(jsonEncode({'type': 'result', 'is_error': false, 'stop_reason': 'end_turn'}));
+  void endTurn() => emit({'type': 'result', 'is_error': false, 'stop_reason': 'end_turn'});
 }
 
 /// The strip reads the primary session directly now (T-561) — no bus channel,
@@ -35,10 +21,10 @@ class _FakeProc extends StreamJsonProcess {
 /// and which had to survive the collapse.
 void main() {
   late KernelFixture f;
-  late _FakeProc proc;
+  late FakeStreamJsonProcess proc;
 
   ClaudeSessionOrchestrator orchestrator() =>
-      ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => proc = _FakeProc());
+      ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => proc = FakeStreamJsonProcess());
 
   setUp(() async {
     f = await KernelFixture.create();

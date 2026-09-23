@@ -1,18 +1,9 @@
 import 'dart:async';
 
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
-import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:test/test.dart';
 
-class _Proc extends StreamJsonProcess {
-  final _ctl = StreamController<String>.broadcast();
-  @override
-  Stream<String> get lines => _ctl.stream;
-  @override
-  void writeLine(String line) {}
-  @override
-  Future<void> kill() async {}
-}
+import '../../helpers/fake_stream_json_process.dart';
 
 /// T-532/T-546 — [SessionProfile] decides the argv, and the companion's shape is
 /// a set of measured decisions rather than preferences. These pin each one,
@@ -27,7 +18,7 @@ void main() {
     orch = ClaudeSessionOrchestrator(
       processFactory: ({required sessionArgs, required cwd, env}) async {
         args = sessionArgs;
-        return _Proc();
+        return FakeStreamJsonProcess();
       },
     );
   });

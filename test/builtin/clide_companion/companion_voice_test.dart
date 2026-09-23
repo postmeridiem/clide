@@ -1,29 +1,13 @@
-import 'dart:async';
-import 'dart:convert';
-
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/session_reader.dart';
-import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/clide_companion/src/companion_session.dart';
 import 'package:clide/builtin/clide_companion/src/companion_voice.dart';
 import 'package:clide/builtin/clide_companion/src/face_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _Proc extends StreamJsonProcess {
-  final _ctl = StreamController<String>.broadcast();
-  final _exit = Completer<int>();
+import '../../helpers/fake_stream_json_process.dart';
 
-  @override
-  Stream<String> get lines => _ctl.stream;
-  @override
-  void writeLine(String line) {}
-  @override
-  Future<void> kill() async {}
-  @override
-  Future<int> get exitCode => _exit.future;
-
-  void emit(Map<String, Object?> ev) => _ctl.add(jsonEncode(ev));
-
+extension on FakeStreamJsonProcess {
   /// Clide replying, in the shipped format: a face line then prose.
   void says(String raw, {String id = 'r1', bool synthetic = false}) => emit({
     'type': 'assistant',
@@ -43,7 +27,7 @@ class _Proc extends StreamJsonProcess {
     'message': {'role': 'user', 'content': text},
   });
 
-  void die() => _exit.complete(1);
+  void die() => exit(1);
 
   /// The turn boundary, which is the only point his text can be trusted at.
   void endTurn() => emit({'type': 'result', 'is_error': false, 'stop_reason': 'end_turn'});
@@ -53,14 +37,14 @@ class _Proc extends StreamJsonProcess {
 /// them wins is the whole design: a declared mood that contradicted a fact would
 /// be a lie the user can see.
 void main() {
-  late _Proc proc;
+  late FakeStreamJsonProcess proc;
   late ClaudeSessionOrchestrator orch;
   late CompanionVoice voice;
   var moodEnabled = true;
 
   Future<void> boot() async {
     moodEnabled = true;
-    proc = _Proc();
+    proc = FakeStreamJsonProcess();
     orch = ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => proc);
     await orch.spawn(
       SpawnSpec(

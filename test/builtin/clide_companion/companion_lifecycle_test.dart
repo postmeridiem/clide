@@ -1,43 +1,22 @@
-import 'dart:async';
-import 'dart:convert';
-
 import 'package:clide/builtin/claude/src/session_naming.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/session_reader.dart';
-import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/clide_companion/src/companion_lifecycle.dart';
 import 'package:clide/builtin/clide_companion/src/companion_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakeProc extends StreamJsonProcess {
-  final _ctl = StreamController<String>.broadcast();
-  final written = <String>[];
-  var killed = false;
+import '../../helpers/fake_stream_json_process.dart';
 
-  @override
-  Stream<String> get lines => _ctl.stream;
-
-  @override
-  void writeLine(String line) => written.add(line);
-
-  @override
-  Future<void> kill() async {
-    killed = true;
-    if (!_ctl.isClosed) await _ctl.close();
-  }
-
+extension on FakeStreamJsonProcess {
   /// Ask to use a tool, the way the CLI does over the control channel.
-  void askToUseTool({String promptId = 'req-1'}) => _ctl.add(
-    jsonEncode({
-      'type': 'control_request',
-      'request_id': promptId,
-      'request': {'subtype': 'can_use_tool', 'tool_name': 'Bash', 'tool_use_id': 'tu-1', 'input': <String, Object?>{}},
-    }),
-  );
+  void askToUseTool({String promptId = 'req-1'}) => emit({
+    'type': 'control_request',
+    'request_id': promptId,
+    'request': {'subtype': 'can_use_tool', 'tool_name': 'Bash', 'tool_use_id': 'tu-1', 'input': <String, Object?>{}},
+  });
 
   /// Everything written on the control channel, decoded.
-  Iterable<Map<String, Object?>> get control =>
-      written.map((l) => jsonDecode(l) as Map<String, Object?>).where((m) => (m['type'] as String?)?.startsWith('control_') ?? false);
+  Iterable<Map<String, Object?>> get control => writtenMessages.where((m) => (m['type'] as String?)?.startsWith('control_') ?? false);
 }
 
 /// T-545 — the companion's process lifecycle. The kill switch is the load-
@@ -50,7 +29,7 @@ const _brief = 'You are Clide.';
 
 void main() {
   late ClaudeSessionOrchestrator orch;
-  final procs = <_FakeProc>[];
+  final procs = <FakeStreamJsonProcess>[];
   final ids = <String>[];
   var spawnArgs = <String>[];
 
@@ -60,7 +39,7 @@ void main() {
     orch = ClaudeSessionOrchestrator(
       processFactory: ({required sessionArgs, required cwd, env}) async {
         spawnArgs = sessionArgs;
-        final p = _FakeProc();
+        final p = FakeStreamJsonProcess();
         procs.add(p);
         return p;
       },
@@ -321,7 +300,7 @@ void main() {
       final broken = ClaudeSessionOrchestrator(
         processFactory: ({required sessionArgs, required cwd, env}) async {
           if (fail) throw StateError('claude: not found');
-          final p = _FakeProc();
+          final p = FakeStreamJsonProcess();
           procs.add(p);
           return p;
         },

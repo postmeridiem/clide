@@ -1,29 +1,12 @@
-import 'dart:async';
-import 'dart:convert';
-
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/session_reader.dart';
-import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/clide_companion/src/companion_ledger.dart';
 import 'package:clide/builtin/clide_companion/src/companion_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _Proc extends StreamJsonProcess {
-  final _ctl = StreamController<String>.broadcast();
+import '../../helpers/fake_stream_json_process.dart';
 
-  @override
-  Stream<String> get lines => _ctl.stream;
-  @override
-  void writeLine(String line) {}
-  @override
-  Future<void> kill() async {
-    if (!_ctl.isClosed) await _ctl.close();
-  }
-
-  void emit(Map<String, Object?> ev) {
-    if (!_ctl.isClosed) _ctl.add(jsonEncode(ev));
-  }
-
+extension on FakeStreamJsonProcess {
   /// A completed turn. [cumulativeCost] is what the wire reports — a session
   /// running total, not this turn's cost.
   void turn({int input = 10, int output = 100, int cacheWrite = 0, int cacheRead = 1000, int thinking = 0, required double cumulativeCost}) {
@@ -58,9 +41,9 @@ class _Proc extends StreamJsonProcess {
 void main() {
   late ClaudeSessionOrchestrator orch;
   late CompanionLedger ledger;
-  final procs = <_Proc>[];
+  final procs = <FakeStreamJsonProcess>[];
 
-  Future<_Proc> spawnCompanion({String sessionId = 'c1'}) async {
+  Future<FakeStreamJsonProcess> spawnCompanion({String sessionId = 'c1'}) async {
     await orch.spawn(
       SpawnSpec(
         id: kCompanionSessionId,
@@ -79,7 +62,7 @@ void main() {
     procs.clear();
     orch = ClaudeSessionOrchestrator(
       processFactory: ({required sessionArgs, required cwd, env}) async {
-        final p = _Proc();
+        final p = FakeStreamJsonProcess();
         procs.add(p);
         return p;
       },

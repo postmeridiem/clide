@@ -6,7 +6,6 @@ import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/claude_meta_sidebar.dart';
 import 'package:clide/builtin/claude/src/claude_stats.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
-import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/claude/src/transcript_publisher.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/kernel/kernel.dart';
@@ -15,36 +14,12 @@ import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter/widgets.dart' show ActivateIntent, Actions, EditableText, SizedBox, Semantics;
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/fake_stream_json_process.dart';
 import '../../helpers/kernel_fixture.dart';
 import '../../helpers/widget_harness.dart';
 
-// ---------------------------------------------------------------------------
-// Minimal fake process so orchestrator tests don't need a real `claude` binary.
-// ---------------------------------------------------------------------------
-class _FakeProc extends StreamJsonProcess {
-  final _ctl = StreamController<String>.broadcast();
-  final List<String> writes = [];
-  bool killed = false;
-
-  /// Optional callback fired on every [writeLine] — used by T-181 tests to
-  /// mirror writes into a shared list across sessions.
-  void Function(String)? onWrite;
-
-  @override
-  Stream<String> get lines => _ctl.stream;
-
-  @override
-  void writeLine(String line) {
-    writes.add(line);
-    onWrite?.call(line);
-  }
-
-  @override
-  Future<void> kill() async => killed = true;
-}
-
 ClaudeSessionOrchestrator _fakeOrchestrator() {
-  return ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => _FakeProc());
+  return ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => FakeStreamJsonProcess());
 }
 
 void main() {
@@ -391,7 +366,7 @@ void main() {
 
       semantics.dispose();
       orch.dispose();
-      // Note: we cannot assert on _FakeProc.writes here because the process
+      // Note: we cannot assert on FakeStreamJsonProcess.writes here because the process
       // factory closed over the outer list; the session's injectMessage call
       // is verified by the orchestrator unit test in session_orchestrator_test.
     });
@@ -477,7 +452,7 @@ void main() {
       final writes = <String>[];
       final orch = ClaudeSessionOrchestrator(
         processFactory: ({required sessionArgs, required cwd, env}) async {
-          final p = _FakeProc();
+          final p = FakeStreamJsonProcess();
           p.onWrite = writes.add;
           return p;
         },
@@ -1241,14 +1216,14 @@ void main() {
 
   group('T-416 workflow runs in the Activity tab', () {
     testWidgets('a primary workflow run surfaces as a WORKFLOWS row', (tester) async {
-      _FakeProc? proc;
-      final orch = ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => proc = _FakeProc());
+      FakeStreamJsonProcess? proc;
+      final orch = ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => proc = FakeStreamJsonProcess());
       await orch.spawn(const SpawnSpec(id: 'primary', role: 'primary', sessionId: 'p-uuid', cwd: '/repo'));
       await tester.pumpWidget(harness(f, sidebar(orchestrator: orch, initialTab: SidebarTab.activity)));
       await tester.pump();
 
       // The harness emits the workflow progress on the primary session's wire.
-      proc!._ctl.add(
+      proc!.emitLine(
         jsonEncode({
           'type': 'system',
           'subtype': 'task_progress',
