@@ -117,3 +117,119 @@ Open: whether several queued messages flush one per turn or all at once (the CLI
 Acceptance: sending during a running turn shows the message as queued; dismissing it removes it and nothing reaches the session; an undismissed message sends when the turn ends and then renders as a normal user turn; covered by stream_json_session + pane tests.
 
 Done: clide-side queue on StreamJsonSession (submit/editQueued/dismissQueued/holdQueue/releaseQueue), flushed one per turn on result; QueuedMessagesDock above the composer with edit (holds the queue while editing) and dismiss. CLI verb split out to T-588.', 'done', 'medium', NULL, NULL, 'D-78', '2026-09-23 06:28:21.544', '2026-09-23 06:34:14.140', NULL, '5c0f3fc7c278ed1d166798c665e8bf57', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM66FTCTWHH9AQTNFKR', 'story', NULL, 'system tray and dock persistence', 'Minimize to system tray on Linux (AppIndicator) or Dock on macOS. Reopening from tray restores the window without cold boot. tmux sessions stay alive in background regardless.
+
+Scope split (2026-06-10 sweep): the session-persistence half is effectively done - tmux keeps Claude/terminal sessions alive across restart (D-41). The OS-tray/AppIndicator + dock half is a stub only (lib/kernel/src/tray.dart - TrayRegistry has no platform-channel wiring) and is Tier-6+. Remaining work = the tray integration.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-04-23 20:32:06', '2026-09-23 06:34:48.880', NULL, 'e18378de17d92ebd0f64abb164653e17', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCSZV180Z4QKE0971S4MW8SC', 'story', NULL, 'Restore secondary Claude panes (and their conversations) after relaunch', NULL, 'backlog', 'medium', NULL, NULL, 'D-41', '2026-09-23 06:41:23.776', '2026-09-23 06:41:23.776', NULL, '7581b07441a6375f3b439b340ef6bdff', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCSZV180Z4QKE0971S4MW8SC', 'story', NULL, 'Restore secondary Claude panes (and their conversations) after relaunch', 'After an app reload the primary Claude pane continues its conversation (`--resume`, D-77), but secondary panes disappear. By design today: D-41 made secondaries ephemeral — each spawn gets a random id (`freshSessionId()`, claude_pane.dart) and the open secondary tabs are not persisted. The transcripts survive on disk (reachable via `/resume`), so nothing is lost; the tabs just don''t come back.
+
+User report 2026-09-23: resume "works well … the main conversation seems to reliably continue after an app reload. Only thing is that conversations in secondary panels disappear."
+
+Want: on relaunch, restore the workspace''s open secondary panes, each resuming its own session, in their previous order.
+
+Shape: persist the ordered list of secondary session ids per workspace in user-scope state (D-93/D-53 — not in the repo); on boot, spawn a secondary per entry with `resume: true` when its transcript exists (skip entries whose transcript is gone). Closing a secondary removes it from the list. Forks (`--fork-session`) persist their resolved claude session id, not the fork source.
+
+Needs a D-41 amendment: "secondaries are ephemeral" → "secondaries persist until closed".
+
+Acceptance: open two secondaries, talk in each, restart clide → both tabs return with their conversations; a closed secondary does not come back; a secondary whose transcript was deleted is dropped silently.', 'backlog', 'medium', NULL, NULL, 'D-41', '2026-09-23 06:41:23.776', '2026-09-23 06:41:25.788', NULL, '60fecc847110acd1119c96d0724e4765', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7CEKQCMZAV751402G', 'story', '06FB0TNQM79H4MPEWW2TWQ89D0', 'clide self-update mechanism', 'Check for new versions on startup (or on demand via command palette). Show a non-intrusive notification when an update is available. Support in-place update without losing running Claude sessions (tmux sessions survive). Respect POLICY.md: no silent network calls on default launch path — the check should be opt-in or gated behind a setting. Consider delta updates for bandwidth efficiency.
+
+─────────────────────────────────────────────
+REFINED 2026-06-11
+
+## Current state (grounding)
+- Version is surfaced at runtime via `lib/src/build_info.g.dart` (`clideVersion`,
+  `clideCommit`, `clideDate`, `clideRepository` = github.com/postmeridiem/clide),
+  generated from pubspec by `make gen-build-info`. This is the "installed version".
+- Install layout (`make install`): Linux → bundle at `~/.local/lib/clide/`, C client
+  at `~/.local/bin/clide`, desktop file + icons. macOS → `~/Applications/clide.app`
+  + `~/.local/bin/clide`. Windows: not yet shipped.
+- clide currently makes NO outbound HTTP calls anywhere in `lib/`. Self-update would
+  be the FIRST one — so this is a policy-sensitive feature, not just plumbing.
+- tmux owns Claude session persistence (D-41); the app re-attaches on restart. An
+  in-place update that restarts the app does NOT lose sessions — they live in tmux,
+  outside the bundle.
+
+## HARD CONSTRAINTS (non-negotiable)
+- **D-64 (no telemetry / no phone-home):** "No auto-update checks without user
+  action." This is STRICTER than this ticket''s original "opt-in or gated behind a
+  setting" wording. A background/startup check — even one a setting enabled — runs
+  "without user action" at that launch and conflicts with D-64. RESOLUTION: the
+  version check must be **explicitly user-initiated every time** (a command-palette
+  "Check for updates…" action / an About-screen button). If we ever want a
+  startup/periodic check, that needs a deliberate D-64 amendment first — flag, don''t
+  assume.
+- **POLICY.md §"no network on the default launch path":** opening the app, a file,
+  or typing must never trigger the fetch. The update check + download are explicit
+  user actions, so they''re allowed — but must meet the §"grudging allowance"
+  criteria: clear error on failure (not silent), cached result, app fully functional
+  if the fetch fails.
+
+## BLOCKING PREREQUISITE (likely its own ticket under T-46)
+There is no release channel to update FROM today: only 2 git tags (v2.0.0, v2.1.0)
+despite being at 2.3.3, no CI (`.github/workflows` is empty), and no published binary
+artifacts. Self-update is meaningless without:
+  1. Consistent, automated release tagging (every `release vX.Y.Z` commit → a tag).
+  2. CI that builds the per-platform bundles and publishes them as GitHub Releases.
+  3. Each artifact accompanied by a checksum AND a signature (POLICY.md: "behavior is
+     determined by the SIGNED release artifact"). An unsigned/unverified download
+     would break the trust model the update is supposed to preserve.
+  4. A machine-readable "latest version" source — the GitHub Releases API
+     (`/repos/postmeridiem/clide/releases/latest`) is the zero-infra option; a
+     committed `latest.json` manifest is the alternative.
+RECOMMENDATION: split this prerequisite into a sibling story "Release channel: CI
+build + signed GitHub Releases + version manifest" and make T-47 depend on it.
+
+## DECISIONS TO MAKE (surface before building)
+1. Check source: GitHub Releases API vs a hosted `latest.json`. (Lean: Releases API —
+   no extra infra, origin is already GitHub.)
+2. Signature scheme + verification: minisign/age/cosign? Where does the public key
+   live (vendored in-repo, per POLICY.md provenance)?
+3. Delivery: full bundle replacement vs delta/binary-patch (original ask). Lean full
+   for v1 — deltas are a bandwidth optimization, not correctness; revisit if size hurts.
+4. Apply strategy per platform: Linux is easy (swap `~/.local/lib/clide/` + the
+   `~/.local/bin/clide` client atomically, then relaunch). macOS `.app` replacement +
+   notarization/quarantine handling is harder. Windows out of scope until it ships.
+5. Privilege: user-local installs (`~/.local`, `~/Applications`) need no sudo — good.
+   A system-wide install would; declare user-local only for v1.
+
+## PROPOSED SCOPE / PHASES (each independently shippable)
+P0 (prereq, separate ticket): release channel — tags + CI + signed GitHub Releases.
+P1: "Check for updates…" command (palette + About-screen button). Explicit fetch of
+    the latest release, semver-compare against `clideVersion`, non-intrusive ToastService
+    notification ("clide X.Y.Z is available") with a "What''s changed" link to the release
+    notes. No download yet. Clear error toast on network failure. Fully covers the D-64 /
+    POLICY-compliant "notify" half of the story.
+P2: download + signature/checksum verify into a staging dir; show progress; verify before
+    touching the install.
+P3: apply + relaunch (Linux first): atomic swap of bundle + client, restart the app;
+    tmux sessions survive (D-41). Confirm-before-apply.
+P4 (optional): macOS apply path (.app swap + quarantine), delta updates.
+
+## ACCEPTANCE (for the full story; refine per-phase ticket)
+- No network call on any default launch path (verified — grep + a test that boot makes
+  no outbound connection).
+- "Check for updates" only runs on explicit user action; failure surfaces a clear
+  toast, never a silent hang or degraded launch.
+- A downloaded update is signature+checksum verified before it can replace the install;
+  verification failure aborts with the old version intact.
+- Applying an update and relaunching preserves running Claude/tmux sessions.
+- Version comparison is correct semver (2.3.10 > 2.3.9, pre-release handling defined).
+
+## REFERENCES
+POLICY.md (network rule + grudging-allowance criteria); D-64 (no phone-home);
+D-41 (tmux session persistence); `lib/src/build_info.g.dart` (version source);
+`lib/kernel/src/toast.dart` (ToastService — the notification); settings bool pattern
+(`app.*.enabled`, `lib/kernel/src/extensions_manager.dart`); `Makefile` install target
+(per-platform layout); parent epic T-46 (cross-platform installer).
+
+DECISION (user, 2026-06-28): MANUAL-ONLY. The update check is a ''Check for updates'' button inside the About-screen box — explicitly user-initiated every time, so NO D-64 amendment is needed (manual checks already comply). A ''check on startup'' checkbox (the opt-in poll) is DEFERRED, not rejected: it would sit next to the button later, and only THEN would it need the narrow, default-off D-64 amendment we discussed (a data-free version fetch; telemetry stays banned full stop). This supersedes any background/periodic-poll framing in the original scope. Build-order caveat: P1 (the About button) still needs the release channel (P0: CI + signed GitHub Releases + a version manifest) to have something to check against — /releases/latest 404s when no Releases are published (the repo has 2 tags, which are NOT Releases). So either P0 lands first, or P1 ships with graceful ''up to date / couldn''t reach GitHub'' handling that no-ops until Releases exist.
+
+P0 release-channel prerequisite is now T-491 (CI builds + signed package artifacts on Releases). P1 (this About button) is independent of it — Releases already exist to check against; P2/P3 (download+verify+apply) depend on T-491.
+
+CORRECTION 2026-09-23: the tmux premise above is stale — D-77 replaced tmux with --resume; nothing in clide uses tmux (D-41 annotated). A relaunch kills the claude processes and terminal PTYs; the conversation continues via --resume (user confirmed this works reliably for the primary pane). So the acceptance ''applying an update and relaunching preserves running Claude/tmux sessions'' now means: conversations resume, in-flight turns and shells do not survive. User raised (during T-55) that clide processes may be spawned under a unifying invisible loader for this ticket''s purposes; since --resume is judged sufficient, such a loader would be thin (tray + window lifecycle), not session-owning — the session-owning variant would rebuild the daemon D-56 dissolved.', 'backlog', 'medium', NULL, NULL, NULL, '2026-04-23 20:28:43', '2026-09-23 06:41:42.493', NULL, 'fe387c1c08d7cb3263cbb85558134f00', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM66FTCTWHH9AQTNFKR', 'story', NULL, 'system tray and dock persistence', 'Minimize to system tray on Linux (AppIndicator) or Dock on macOS. Reopening from tray restores the window without cold boot. tmux sessions stay alive in background regardless.
+
+Scope split (2026-06-10 sweep): the session-persistence half is effectively done - tmux keeps Claude/terminal sessions alive across restart (D-41). The OS-tray/AppIndicator + dock half is a stub only (lib/kernel/src/tray.dart - TrayRegistry has no platform-channel wiring) and is Tier-6+. Remaining work = the tray integration.
+
+CORRECTION 2026-09-23: the ''session-persistence half is done (tmux)'' premise is stale — nothing in clide uses tmux since D-77. Quitting clide kills every claude child and terminal PTY; only conversations survive (--resume). So the tray/dock is now what keeps sessions alive while the window is closed. Decided with user: Linux tray = own StatusNotifierItem + minimal DBusMenu over GDBus (no new dep); close hides to tray behind an opt-out setting, quits when no tray host exists; tray right-click must offer Quit all (all clide windows); platforms Linux + macOS (Dock) + Windows (notification area), macOS/Windows as plumbing to be tested on those machines; ONE shared tray icon across all clide processes (each window is its own process). Open: which process owns the icon — elected among windows vs a thin loader process that also serves T-47.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-04-23 20:32:06', '2026-09-23 06:41:45.769', NULL, '38cc4efece98b592de1cd69ddbee2f61', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
