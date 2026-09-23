@@ -231,6 +231,13 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
   /// Null in tests / when no registry is wired → no injection.
   final AccountRegistry? accountRegistry;
 
+  /// The `CLAUDE_CONFIG_DIR` a session in [cwd] spawns under — the same
+  /// resolution [spawn] applies — or null for the default `~/.claude` login.
+  /// `/login` signs in against this dir so the credentials land where the
+  /// session will look for them.
+  String? configDirFor(String cwd) =>
+      claudeConfigDirForWorkspace(cwd: cwd, boundConfigDir: (c) => accountRegistry?.accountForWorkspace(c)?.dir, env: Platform.environment);
+
   /// Per-workspace PATH preset lookup (D-106): dirs prepended to a hosted
   /// session's PATH at spawn, wired by the extension over the settings store.
   /// Null in tests / when not wired → no injection.

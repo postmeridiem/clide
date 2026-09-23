@@ -145,7 +145,7 @@ Future<IpcResponse> _dispatch(IpcRequest req, AccountStore? store, MessagePublis
       if (name == null || name.isEmpty) return _err(req.id, 'account login requires a <name>');
       final acct = _byName(store, name);
       if (acct == null) return _err(req.id, 'no such account: "$name"', hint: 'clide claude account add $name');
-      // The extension spawns `CLAUDE_CONFIG_DIR=<dir> claude login` in a pane.
+      // The extension spawns `CLAUDE_CONFIG_DIR=<dir> claude auth login` in a pane.
       publish?.call('cli', accountActionChannel, {'action': 'login', 'name': name, 'dir': acct.dir});
       return _ok(req.id, {'login': name, 'dir': acct.dir});
 

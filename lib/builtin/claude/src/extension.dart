@@ -582,7 +582,7 @@ class ClaudeExtension extends ClideExtension {
         final name = m.data['name'] as String?;
         final dir = m.data['dir'] as String?;
         final ctx = _ctx;
-        // Host `CLAUDE_CONFIG_DIR=<dir> claude login` in a modal terminal pane
+        // Host `CLAUDE_CONFIG_DIR=<dir> claude auth login` in a modal terminal pane
         // (T-485); the CLI owns the OAuth browser flow.
         if (name != null && dir != null && ctx != null) {
           ctx.dialog.show<Object>((c, dismiss) => ClaudeLoginDialog(name: name, dir: dir, cwd: _projectRoot, onClose: dismiss));

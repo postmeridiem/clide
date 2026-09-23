@@ -38,7 +38,10 @@ bool isKnownSlashCommand(String text, Iterable<String> known) {
 /// set_permission_mode; the rest navigate to clide surfaces (T-413):
 /// /status//config//mcp//agents//hooks → the Claude sidebar tabs,
 /// /memory → CLAUDE.md in the editor, /help → a local command summary.
+/// `/login` hosts `claude auth login` in a terminal dialog, then respawns the
+/// session so it picks up the fresh credentials.
 const Set<String> kClideOwnedCommands = {
+  'login',
   'clear',
   'resume',
   'fork',
@@ -97,8 +100,8 @@ const Map<String, String> kTuiOnlyCommands = {
   'todos': "Claude's task list docks above the composer",
   'model': '', // owned (T-408) — only routes here if ever removed from owned
   'doctor': 'run `claude doctor` in a terminal',
-  'login': 'run `claude` in a terminal and use /login there',
-  'logout': 'run `claude` in a terminal and use /logout there',
+  'login': '', // owned
+  'logout': 'run `claude auth logout` in a terminal',
   'exit': 'close the pane or switch sessions instead',
   'vim': 'clide ships its own editor vim mode',
   'add-dir': '',

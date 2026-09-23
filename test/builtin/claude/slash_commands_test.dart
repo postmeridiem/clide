@@ -165,6 +165,7 @@ void main() {
         '/hooks',
         '/memory',
         '/help',
+        '/login',
       ]) {
         expect(routeSlashCommand(t, advertised: advertised), SlashRoute.owned, reason: t);
       }
@@ -177,7 +178,7 @@ void main() {
     });
 
     test('a known TUI-only builtin routes unavailable', () {
-      for (final t in ['/cost', '/doctor', '/login', '/rewind', '/output-style']) {
+      for (final t in ['/cost', '/doctor', '/logout', '/rewind', '/output-style']) {
         expect(routeSlashCommand(t, advertised: advertised), SlashRoute.unavailable, reason: t);
       }
     });

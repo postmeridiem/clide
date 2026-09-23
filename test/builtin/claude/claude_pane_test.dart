@@ -11,6 +11,7 @@ library;
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:clide/builtin/claude/src/account_login_dialog.dart';
 import 'package:clide/builtin/claude/src/claude_composer.dart';
 import 'package:clide/builtin/claude/src/claude_pane.dart';
 import 'package:clide/builtin/claude/src/conversation_view.dart';
@@ -414,6 +415,24 @@ void main() {
     expect(find.byType(SessionPickerDialog), findsNothing);
     expect(created, hasLength(1));
     expect(proc.killed, isFalse);
+  });
+
+  testWidgets('/login hosts claude auth login, then respawns so the session picks up the credentials', (tester) async {
+    f.ipc.stub('pane.spawn', (_) async => IpcResponse.ok(id: '', data: {'id': 'p1', 'pid': 1}));
+    f.ipc.stub('pane.close', (_) async => IpcResponse.ok(id: ''));
+    await mount(tester, const ClaudePane(showChrome: false));
+    final proc = created.single;
+    final before = proc.writes.length;
+
+    await act(tester, () => composer(tester).onSubmit('/login'));
+    expect(find.byType(ClaudeLoginDialog), findsOneWidget);
+    expect(tester.widget<ClaudeLoginDialog>(find.byType(ClaudeLoginDialog)).name, 'default');
+    expect(proc.writes.length, before, reason: 'never forwarded to the session');
+
+    await act(tester, () => f.services.dialog.dismiss());
+    expect(find.byType(ClaudeLoginDialog), findsNothing);
+    expect(proc.killed, isTrue);
+    expect(created, hasLength(2), reason: 'respawned after sign-in');
   });
 
   // ---- T-410 epic: bus-driven owned commands (T-412/T-413/T-414) ----------

@@ -25,6 +25,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - **The status bar shows the model and mode before you've talked to Claude**
   (T-586) — seeded from the session handshake instead of waiting for the
   first turn.
+- **`/login` works in the Claude pane** (T-586) — it opens a sign-in terminal
+  and restarts the session on the new credentials. Account sign-in ran
+  `claude login`, which the CLI treats as a prompt; it now runs
+  `claude auth login`.
 
 ## [2.14.1] — 2026-09-09
 

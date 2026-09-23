@@ -5,6 +5,7 @@ import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
+import 'account_login_dialog.dart';
 import 'account_settings_control.dart';
 import 'claude_banner.dart';
 import 'claude_composer.dart';
@@ -485,6 +486,9 @@ class _ClaudePaneState extends State<ClaudePane> {
       case 'help':
         _helpCommand();
         return;
+      case 'login':
+        unawaited(_loginFlow());
+        return;
     }
     // Route the rest (T-411): a known TUI-only builtin never reaches the
     // session — forwarded it would error (or, un-advertised, bracket-paste to
@@ -605,6 +609,24 @@ class _ClaudePaneState extends State<ClaudePane> {
       'clide commands: ${(kClideOwnedCommands.toList()..sort()).map((c) => '/$c').join(' ')}\n'
       'claude commands & skills: ${advertised.map((c) => '/$c').join(' ')}',
     );
+  }
+
+  /// clide-owned `/login`: the CLI's own `/login` is TUI-only, so host
+  /// `claude auth login` in a terminal dialog against the config dir this
+  /// session runs under, then respawn (resuming) so the running process —
+  /// which read its credentials at startup — picks up the new ones.
+  Future<void> _loginFlow() async {
+    final root = _repoRoot;
+    final dialog = _kernel?.dialog;
+    final orch = activeSessionOrchestrator;
+    if (root == null || dialog == null || orch == null) return;
+    final dir = orch.configDirFor(root);
+    final name = orch.accountRegistry?.accountForWorkspace(root)?.name ?? 'default';
+    await dialog.show<Object>((c, dismiss) => ClaudeLoginDialog(name: name, dir: dir, cwd: root, onClose: dismiss));
+    final sid = _sessionId;
+    if (!mounted || sid == null) return;
+    setState(() => _statusLine = 'restarting after sign-in…');
+    await _respawnWithSession(sid);
   }
 
   /// Record a submitted prompt in the active session's history (T-163),
