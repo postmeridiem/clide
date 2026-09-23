@@ -144,7 +144,7 @@ class KeymapService extends ChangeNotifier {
   void _rebuildActive() {
     final layers = <KeymapLayer>[?_preset, KeymapLayer(name: 'contributions', bindings: List.unmodifiable(_contributions)), ?_userFile, ?_settingsOverlay];
     _active = Keymap(layers);
-    notifyListeners();
+    _safeNotify();
   }
 
   /// Resolve a [KeyEvent] against the active keymap and current scope.

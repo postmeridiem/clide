@@ -168,6 +168,25 @@ bindings:
       expect(km.resolve(KeyChord.parse('ctrl+shift+p'), const {}), isA<ActivateIntent>());
     });
 
+    test('a later binding whose when is false falls through to the earlier layer', () {
+      final preset = KeymapLayer.fromYaml('''
+name: preset
+bindings:
+  - intent: palette.open
+    keys: ctrl+shift+p
+''');
+      final user = KeymapLayer.fromYaml('''
+name: user
+bindings:
+  - intent: activate
+    keys: ctrl+shift+p
+    when: editorFocus
+''');
+      final km = Keymap([preset, user]);
+      expect(km.resolve(KeyChord.parse('ctrl+shift+p'), const {'editorFocus': true}), isA<ActivateIntent>());
+      expect(km.resolve(KeyChord.parse('ctrl+shift+p'), const {'editorFocus': false}), isA<PaletteOpenIntent>());
+    });
+
     test('preset binding survives when no later layer overrides it', () {
       final preset = KeymapLayer.fromYaml('''
 name: preset

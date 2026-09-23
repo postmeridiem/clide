@@ -149,6 +149,17 @@ void main() {
       await svc.load();
       svc.unregisterCommandBindings('nothing-registered'); // doesn't throw
     });
+
+    // T-637 (#13): extension teardown can unregister after the kernel has
+    // disposed this service; the rebuild must not notify a disposed notifier.
+    test('binding changes after dispose do not throw', () async {
+      final svc = KeymapService(settings: settings, appDir: appDir, bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings: []\n'}));
+      await svc.load();
+      svc.registerCommandBinding('ctrl+k', 'late.cmd');
+      svc.dispose();
+      svc.unregisterCommandBindings('late.cmd');
+      svc.registerCommandBinding('ctrl+j', 'later.cmd');
+    });
   });
 
   group('scope flags', () {

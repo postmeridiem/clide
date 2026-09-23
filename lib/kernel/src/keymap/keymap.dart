@@ -194,11 +194,13 @@ class Keymap {
   /// debug surfaces (keybindings UI, palette hints).
   List<KeymapBinding> get effectiveBindings => List.unmodifiable(_effective);
 
-  /// Concatenate layers in REVERSE order (last layer first). Later
-  /// layers fully shadow earlier (chord, when) collisions: when we walk
-  /// the list, the first matching entry wins, so highest-precedence
-  /// must come first. We don't dedupe — a no-op match in a later layer
-  /// just earns the first slot.
+  /// Concatenate layers in REVERSE order (last layer first). When we
+  /// walk the list the first entry whose chord matches AND whose when-
+  /// clause holds wins, so highest-precedence must come first. A later
+  /// layer shadows an earlier binding only while its own when-clause is
+  /// true; when it is false, resolution falls through to the earlier
+  /// layer (VS Code semantics — a `ctrl+s when editorFocus` override
+  /// leaves the preset's `ctrl+s` working elsewhere). We don't dedupe.
   static List<KeymapBinding> _flatten(List<KeymapLayer> layers) {
     return [for (final l in layers.reversed) ...l.bindings];
   }
