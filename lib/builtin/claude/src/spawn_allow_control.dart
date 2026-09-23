@@ -3,7 +3,7 @@
 ///
 /// Stored at [kSpawnAllowKey], an app-scope key — a repo's settings can never
 /// supply or extend it. Entries are matched word for word against the argv
-/// an agent asks to run ([spawnAllowlisted]); a trailing `*` allows further
+/// an agent asks to run (`spawnAllowlisted` in the daemon); a trailing `*` allows further
 /// arguments.
 library;
 
