@@ -55,6 +55,23 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   slow answer for an earlier click could replace it.
 - **Bright white is bright** (T-630) — terminal text in color 15 (SGR
   97/107) rendered as plain white.
+- **Terminal output can't freeze or flood the app** (T-612, T-637) — image
+  and passthrough sequences (sixel, tmux) no longer print as garbage text;
+  huge counts, endless sequences and oversized titles are capped; and
+  programs can no longer resize the terminal grid.
+- **Insert mode and focus reporting work in terminals** (T-637) — typing in
+  insert mode shifts the line instead of overwriting it, and vim/neovim now
+  hear when the terminal gains or loses focus.
+- **Team chat no longer breaks on a broadcast** (T-637) — one agent's
+  message to the whole team could crash the sidebar's message list.
+- **pql lookups can't hang forever** (T-637) — a stuck pql is stopped after
+  a minute, and unrelated errors are no longer retried as if the database
+  were busy.
+- **Editing no longer reloads the buffer under your cursor** (T-637) — two
+  quick edits could trigger a spurious reload, and an edit from elsewhere
+  arriving mid-typing could be lost from view.
+- **Background programs started from a terminal are cleaned up** (T-637) —
+  one that outlived its terminal was left as a zombie process.
 
 ## [2.18.1] — 2026-09-23
 
