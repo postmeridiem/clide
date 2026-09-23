@@ -221,4 +221,16 @@ void main() {
       expect(() => resolveUnderRootsFollowingSymlinks(root, [extra], '${extra.absolute.path}/leak'), throwsA(isA<PathOutsideRoot>()));
     });
   });
+
+  group('isProtectedWritePath (D-115)', () {
+    test('only the top-level .git and .claude dirs are protected', () {
+      final r = root.absolute.path;
+      expect(isProtectedWritePath(root, '$r/.git/config'), isTrue);
+      expect(isProtectedWritePath(root, '$r/.claude/settings.json'), isTrue);
+      expect(isProtectedWritePath(root, '$r/.GIT/hooks/x'), isTrue);
+      expect(isProtectedWritePath(root, '$r/src/.git/config'), isFalse, reason: 'nested dirs are ordinary files');
+      expect(isProtectedWritePath(root, '$r/.gitignore'), isFalse);
+      expect(isProtectedWritePath(root, '/elsewhere/.git/config'), isFalse, reason: 'outside the root is not this check\'s call');
+    });
+  });
 }

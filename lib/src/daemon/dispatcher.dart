@@ -1,4 +1,5 @@
 import 'package:clide/clide.dart' show clideCommit, clideDate, clideVersion;
+import 'package:clide/src/daemon/risk_tiers.dart';
 import 'package:clide/src/ipc/command_schema.dart';
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/schema_v1.dart';
@@ -25,10 +26,22 @@ class DaemonDispatcher {
   /// unaffected; only [mcpTools] skips these.
   final Set<String> _mcpHidden = {};
 
+  /// Each command's risk tier (D-115).
+  final Map<String, CommandRisk> _risk = {};
+
   /// Register [handler] for [cmd]. Pass [schema] to have the dispatcher
   /// normalise + validate `req.args` before the handler runs (D-74). Pass
   /// `mcpExpose: false` to keep the command off the MCP tool surface (D-86).
-  void register(String cmd, CommandHandler handler, {CommandSchema? schema, bool mcpExpose = true}) {
+  ///
+  /// Every command needs a risk tier (D-115): [risk], or else its entry in
+  /// [commandRiskTiers]. A command with neither is refused with a
+  /// [StateError], so no verb ships unclassified.
+  void register(String cmd, CommandHandler handler, {CommandSchema? schema, bool mcpExpose = true, CommandRisk? risk}) {
+    final tier = risk ?? commandRiskTiers[cmd];
+    if (tier == null) {
+      throw StateError('command "$cmd" has no risk tier: add it to commandRiskTiers (lib/src/daemon/risk_tiers.dart) or pass risk:');
+    }
+    _risk[cmd] = tier;
     _handlers[cmd] = handler;
     if (schema != null) {
       _schemas[cmd] = schema;
@@ -49,11 +62,15 @@ class DaemonDispatcher {
   /// Remove all registered handlers except the built-ins.
   void clear() {
     _handlers.removeWhere((k, _) => !_builtins.contains(k));
+    _risk.removeWhere((k, _) => !_builtins.contains(k));
     _schemas.removeWhere((k, _) => !_builtins.contains(k));
     _mcpHidden.removeWhere((k) => !_builtins.contains(k));
   }
 
   bool get isEmpty => _handlers.length <= _builtins.length;
+
+  /// [cmd]'s risk tier, or null when no such command is registered.
+  CommandRisk? riskOf(String cmd) => _risk[cmd];
 
   Future<IpcResponse> dispatch(IpcRequest req) async {
     final h = _handlers[req.cmd];
@@ -97,9 +114,12 @@ class DaemonDispatcher {
     for (final cmd in names) {
       final dot = cmd.indexOf('.');
       final schema = _schemas[cmd];
+      final risk = _risk[cmd]!;
       commands[cmd] = {
         'subsystem': dot >= 0 ? cmd.substring(0, dot) : '',
         'verb': dot >= 0 ? cmd.substring(dot + 1) : cmd,
+        'risk': risk.tier.wireName,
+        if (risk.byAction.isNotEmpty) 'riskByAction': {for (final e in risk.byAction.entries) e.key: e.value.wireName},
         if (schema != null) 'positional': schema.positional,
         if (schema != null) 'args': {for (final e in schema.args.entries) e.key: _argSpecJson(e.value)},
       };

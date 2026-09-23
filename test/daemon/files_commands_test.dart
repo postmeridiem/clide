@@ -132,6 +132,41 @@ void main() {
     expect(r.data['content'], '# peon');
   });
 
+  // D-115: files read is pre-approved for agents, so the Claude home it may
+  // reach is only the skill / agent / command dirs — never credentials or
+  // settings at its top.
+  test('the Claude read roots are skills, agents and commands only', () async {
+    final home = await Directory.systemTemp.createTemp('clide-home-');
+    addTearDown(() => home.deleteSync(recursive: true));
+    for (final d in ['skills', 'agents', 'commands']) {
+      Directory('${home.path}/.claude/$d').createSync(recursive: true);
+    }
+    File('${home.path}/.claude/.credentials.json').writeAsStringSync('{"token":"secret"}');
+    File('${home.path}/.claude/skills/SKILL.md').writeAsStringSync('# skill');
+
+    final roots = claudeConfigReadRoots(home.path);
+    expect(roots.map((r) => r.path.split('/').last).toSet(), {'skills', 'agents', 'commands'});
+
+    final svc = FilesService(root: sandbox, events: RecordingEventSink(), ignore: IgnoreSet.builtin(), extraReadRoots: roots);
+    final d = DaemonDispatcher();
+    registerFilesCommands(d, svc);
+    addTearDown(svc.shutdown);
+    Future<IpcResponse> read(String p) => d.dispatch(IpcRequest(id: '1', cmd: 'files.read', args: {'path': p}));
+
+    expect((await read('${home.path}/.claude/skills/SKILL.md')).ok, isTrue);
+    final creds = await read('${home.path}/.claude/.credentials.json');
+    expect(creds.ok, isFalse);
+    expect(creds.data['content'], isNull);
+  });
+
+  test('the Claude read roots skip missing dirs and a missing HOME', () async {
+    final home = await Directory.systemTemp.createTemp('clide-home-');
+    addTearDown(() => home.deleteSync(recursive: true));
+    Directory('${home.path}/.claude/agents').createSync(recursive: true);
+    expect(claudeConfigReadRoots(home.path).map((r) => r.path.split('/').last), ['agents']);
+    expect(claudeConfigReadRoots(null), isEmpty);
+  });
+
   test('files.read still rejects an absolute path outside all roots', () async {
     final r = await call('files.read', const {'path': '/etc/passwd'});
     expect(r.ok, isFalse);
@@ -278,6 +313,37 @@ void main() {
       final r = await call('files.write', {'path': abs, 'text': 'ok'});
       expect(r.ok, isTrue, reason: r.error?.message);
       expect(File(abs).readAsStringSync(), 'ok');
+    });
+
+    // D-115: git hooks/config and Claude settings run code or grant trust,
+    // so no caller may write them through files.write.
+    test('refuses paths under .git/ and .claude/, however they are spelled', () async {
+      Directory('${sandbox.path}/.git/hooks').createSync(recursive: true);
+      Directory('${sandbox.path}/.claude').createSync(recursive: true);
+      Link('${sandbox.path}/hooks-link').createSync('${sandbox.path}/.git/hooks');
+      for (final p in [
+        '.git/hooks/pre-commit',
+        '.git/config',
+        '.claude/settings.json',
+        './.git/config',
+        'sub/../.git/config',
+        'hooks-link/post-checkout',
+        '.Git/config',
+      ]) {
+        final r = await call('files.write', {'path': p, 'text': 'x'});
+        expect(r.ok, isFalse, reason: p);
+        expect(r.error!.message, contains('protected'), reason: p);
+      }
+      expect(File('${sandbox.path}/.git/hooks/pre-commit').existsSync(), isFalse);
+      expect(File('${sandbox.path}/.git/hooks/post-checkout').existsSync(), isFalse);
+      expect(File('${sandbox.path}/.claude/settings.json').existsSync(), isFalse);
+    });
+
+    test('a file merely named like a protected dir is still writable', () async {
+      Directory('${sandbox.path}/docs/.github').createSync(recursive: true);
+      final r = await call('files.write', const {'path': 'docs/.github/notes.md', 'text': 'ok'});
+      expect(r.ok, isTrue, reason: r.error?.message);
+      expect((await call('files.write', const {'path': '.gitignore', 'text': 'build/'})).ok, isTrue);
     });
 
     test('does NOT accept the extra read roots that files.read allows (D-80)', () async {

@@ -13,6 +13,7 @@ library;
 // they're pure data types referenced throughout the app.
 
 export 'src/daemon/dispatcher.dart';
+export 'src/daemon/risk_tiers.dart';
 export 'src/editor/buffer.dart';
 export 'src/files/ignore.dart';
 export 'src/files/listing.dart' show FileEntry, listDir;

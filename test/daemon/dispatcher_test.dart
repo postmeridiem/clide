@@ -37,7 +37,7 @@ void main() {
 
     test('register routes a new handler', () async {
       final d = DaemonDispatcher();
-      d.register('echo', (req) async {
+      d.register('echo', risk: const CommandRisk(RiskTier.observe), (req) async {
         return IpcResponse.ok(id: req.id, data: {'echo': req.args['text']});
       });
       final r = await d.dispatch(_req('echo', args: {'text': 'hi'}));
@@ -48,13 +48,21 @@ void main() {
     test('isEmpty is true for a fresh dispatcher (ping + version only)', () {
       final d = DaemonDispatcher();
       expect(d.isEmpty, isTrue);
-      d.register('something', (req) async => IpcResponse.ok(id: req.id, data: const {}));
+      d.register(
+        'something',
+        risk: const CommandRisk(RiskTier.observe),
+        (req) async => IpcResponse.ok(id: req.id, data: const {}),
+      );
       expect(d.isEmpty, isFalse);
     });
 
     test('capabilities reflects the live registry with schemas (T-248)', () async {
       final d = DaemonDispatcher();
-      d.register('echo', (req) async => IpcResponse.ok(id: req.id, data: const {}));
+      d.register(
+        'echo',
+        risk: const CommandRisk(RiskTier.observe),
+        (req) async => IpcResponse.ok(id: req.id, data: const {}),
+      );
       d.register(
         'pane.resize',
         (req) async => IpcResponse.ok(id: req.id, data: const {}),
@@ -91,7 +99,11 @@ void main() {
 
     test('mcpTools generates the tool surface from the registry (T-225)', () async {
       final d = DaemonDispatcher();
-      d.register('echo', (req) async => IpcResponse.ok(id: req.id, data: const {}));
+      d.register(
+        'echo',
+        risk: const CommandRisk(RiskTier.observe),
+        (req) async => IpcResponse.ok(id: req.id, data: const {}),
+      );
       d.register(
         'pane.resize',
         (req) async => IpcResponse.ok(id: req.id, data: const {}),
@@ -167,7 +179,11 @@ void main() {
 
     test('clear removes user handlers but keeps the built-ins', () async {
       final d = DaemonDispatcher();
-      d.register('extra', (req) async => IpcResponse.ok(id: req.id, data: const {}));
+      d.register(
+        'extra',
+        risk: const CommandRisk(RiskTier.observe),
+        (req) async => IpcResponse.ok(id: req.id, data: const {}),
+      );
       expect(d.isEmpty, isFalse);
       d.clear();
       expect(d.isEmpty, isTrue);
@@ -177,6 +193,43 @@ void main() {
       // 'extra' is gone
       final r2 = await d.dispatch(_req('extra'));
       expect(r2.ok, isFalse);
+    });
+  });
+
+  // D-115: every command carries a risk tier; none may ship unclassified.
+  group('risk tiers (D-115)', () {
+    Future<IpcResponse> noop(IpcRequest req) async => IpcResponse.ok(id: req.id, data: const {});
+
+    test('a command with no tier, in the table or given, is refused at registration', () {
+      final d = DaemonDispatcher();
+      expect(() => d.register('made.up', noop), throwsA(isA<StateError>().having((e) => e.message, 'message', contains('made.up'))));
+    });
+
+    test('a tier comes from the table, or from an explicit risk:', () {
+      final d = DaemonDispatcher()
+        ..register('git.status', noop)
+        ..register('made.up', noop, risk: const CommandRisk(RiskTier.display));
+      expect(d.riskOf('git.status')!.tier, RiskTier.observe);
+      expect(d.riskOf('made.up')!.tier, RiskTier.display);
+      expect(d.riskOf('ping')!.tier, RiskTier.observe, reason: 'built-ins are tiered too');
+    });
+
+    test('an action argument can pick its own tier', () {
+      final risk = commandRiskTiers['claude.account']!;
+      expect(risk.tierFor(const {'action': 'list'}), RiskTier.observe);
+      expect(risk.tierFor(const {'action': 'set'}), RiskTier.escalate);
+      expect(risk.tierFor(const {}), RiskTier.escalate);
+    });
+
+    test('capabilities reports each command\'s tier', () async {
+      final d = DaemonDispatcher()
+        ..register('git.push', noop)
+        ..register('claude.account', noop);
+      final caps = (await d.dispatch(_req('capabilities'))).data['commands'] as Map;
+      expect((caps['git.push'] as Map)['risk'], 'escalate');
+      expect((caps['ping'] as Map)['risk'], 'observe');
+      expect((caps['claude.account'] as Map)['risk'], 'escalate');
+      expect((caps['claude.account'] as Map)['riskByAction'], {'list': 'observe'});
     });
   });
 }

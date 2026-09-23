@@ -16,6 +16,7 @@ import 'package:clide/kernel/src/events/types.dart';
 import 'package:clide/kernel/src/log.dart';
 import 'package:clide/src/cli/argv_dispatch.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
+import 'package:clide/src/daemon/risk_tiers.dart';
 import 'package:clide/src/daemon/instance_command.dart';
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/server.dart';
@@ -137,7 +138,11 @@ void main() {
       }
       // Stub handler that echoes the request's args back so we can
       // verify the wire shape end-to-end.
-      dispatcher.register('probe.echo', (req) async => IpcResponse.ok(id: req.id, data: req.args));
+      dispatcher.register(
+        'probe.echo',
+        risk: const CommandRisk(RiskTier.observe),
+        (req) async => IpcResponse.ok(id: req.id, data: req.args),
+      );
       final r = await runCli(['probe', 'echo', 'first', '--flag=val', '--bool', '--', 'pass1']);
       expect(r.exitCode, 0, reason: 'stderr: ${r.stderr}');
       final data = jsonDecode(r.stdout.toString().trim()) as Map<String, Object?>;

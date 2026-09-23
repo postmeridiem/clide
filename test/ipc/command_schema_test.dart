@@ -4,6 +4,7 @@
 library;
 
 import 'package:clide/src/daemon/dispatcher.dart';
+import 'package:clide/src/daemon/risk_tiers.dart';
 import 'package:clide/src/ipc/command_schema.dart';
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/schema_v1.dart';
@@ -173,7 +174,7 @@ void main() {
     test('validates + coerces before the handler runs', () async {
       final d = DaemonDispatcher();
       Object? seen;
-      d.register('demo.cmd', (req) async {
+      d.register('demo.cmd', risk: const CommandRisk(RiskTier.observe), (req) async {
         seen = req.args['n'];
         return IpcResponse.ok(id: req.id, data: const {});
       }, schema: const CommandSchema(args: {'n': ArgSpec(type: ArgType.number)}));
@@ -186,7 +187,7 @@ void main() {
     test('rejects a violation with userError before the handler runs', () async {
       final d = DaemonDispatcher();
       var handlerRan = false;
-      d.register('demo.cmd', (req) async {
+      d.register('demo.cmd', risk: const CommandRisk(RiskTier.observe), (req) async {
         handlerRan = true;
         return IpcResponse.ok(id: req.id, data: const {});
       }, schema: const CommandSchema(args: {'ref': ArgSpec(rejectLeadingDash: true, required: true)}));
@@ -199,7 +200,7 @@ void main() {
 
     test('a command with no schema dispatches unvalidated', () async {
       final d = DaemonDispatcher();
-      d.register('demo.bare', (req) async {
+      d.register('demo.bare', risk: const CommandRisk(RiskTier.observe), (req) async {
         return IpcResponse.ok(id: req.id, data: {'echo': req.args['anything']});
       });
       final r = await d.dispatch(IpcRequest(id: '1', cmd: 'demo.bare', args: const {'anything': '-not-checked'}));
@@ -210,8 +211,13 @@ void main() {
     test('re-registering a command without a schema clears its old schema', () async {
       final d = DaemonDispatcher();
       handler(IpcRequest req) async => IpcResponse.ok(id: req.id, data: const {});
-      d.register('demo.cmd', handler, schema: const CommandSchema(args: {'r': ArgSpec(required: true)}));
-      d.register('demo.cmd', handler); // no schema this time
+      d.register(
+        'demo.cmd',
+        risk: const CommandRisk(RiskTier.observe),
+        handler,
+        schema: const CommandSchema(args: {'r': ArgSpec(required: true)}),
+      );
+      d.register('demo.cmd', risk: const CommandRisk(RiskTier.observe), handler); // no schema this time
       final r = await d.dispatch(IpcRequest(id: '1', cmd: 'demo.cmd', args: const {}));
       expect(r.ok, isTrue); // required check no longer applies
     });

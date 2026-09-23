@@ -28,6 +28,18 @@ const int _filesReadMaxBytes = 10 * 1024 * 1024;
 
 /// Daemon-side state for the `files` subsystem. Holds one
 /// [FileWatcher] rooted at the workspace and a resolved [IgnoreSet].
+/// The user-scope Claude dirs `files read` may reach outside the workspace
+/// (D-80): `~/.claude/{skills,agents,commands}` under [home], those that
+/// exist. Never `~/.claude` itself — it holds Claude's credentials and
+/// settings, and files read is pre-approved for agents (D-115).
+List<Directory> claudeConfigReadRoots(String? home) {
+  if (home == null || home.isEmpty) return const [];
+  return [
+    for (final d in const ['skills', 'agents', 'commands'])
+      if (Directory('$home/.claude/$d').existsSync()) Directory('$home/.claude/$d'),
+  ];
+}
+
 class FilesService {
   FilesService({required this.root, required this.events, IgnoreSet? ignore, this.extraReadRoots = const []}) : ignore = ignore ?? _defaultIgnore(root);
 
@@ -148,6 +160,17 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
         return IpcResponse.err(
           id: req.id,
           error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'path outside workspace: $path'),
+        );
+      }
+      if (isProtectedWritePath(files.root, absPath)) {
+        return IpcResponse.err(
+          id: req.id,
+          error: IpcError(
+            code: IpcExitCode.userError,
+            kind: IpcErrorKind.userError,
+            message: 'protected path: $path',
+            hint: 'files write never writes under .git/ or .claude/ (D-115) — edit those yourself',
+          ),
         );
       }
       final content = contentFromArgs(req.args);

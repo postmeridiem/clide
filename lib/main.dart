@@ -400,16 +400,13 @@ Future<void> main([List<String> args = const []]) async {
         if (await kernelTray?.quit(all: false) != true) exit(0);
       },
     );
-    // Trusted read-only roots beyond the workspace: the global Claude
-    // config dir (~/.claude), so the reader can open user-scope skill /
-    // agent / command markdown the Config tab surfaces (D-80, T-195).
-    // The repo-local .claude is already under workRoot.
-    final extraReadRoots = <Directory>[];
-    final claudeHome = Platform.environment['HOME'];
-    if (claudeHome != null) {
-      final globalClaude = Directory('$claudeHome/.claude');
-      if (globalClaude.existsSync()) extraReadRoots.add(globalClaude);
-    }
+    // Trusted read-only roots beyond the workspace, so the reader can open
+    // the user-scope skill / agent / command markdown the Config tab
+    // surfaces (D-80, T-195). Only those three dirs — never ~/.claude
+    // itself, which holds Claude's credentials and settings, now that
+    // files read is pre-approved for agents (D-115). The repo-local
+    // .claude is already under workRoot.
+    final extraReadRoots = claudeConfigReadRoots(Platform.environment['HOME']);
     final filesService = FilesService(root: workRoot, events: eventSink, extraReadRoots: extraReadRoots);
     registerFilesCommands(dispatcher, filesService);
     // Search reuses the files service's resolved ignore set so the

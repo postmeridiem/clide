@@ -103,6 +103,31 @@ String resolveForWriteUnderRoot(Directory root, String relative) {
   return '$realParent$sep${pathResolved.substring(pathResolved.lastIndexOf(sep) + 1)}';
 }
 
+/// Top-level workspace directories no command may write through `files
+/// write` (D-115): git's hooks and config run code, and Claude's settings
+/// grant permissions — writing either is an escalation, not an edit.
+const Set<String> protectedWriteDirs = {'.git', '.claude'};
+
+/// Whether [resolvedPath] — a result of [resolveForWriteUnderRoot], so
+/// symlinks and `..` are already resolved — lies in one of
+/// [protectedWriteDirs] at the top of [root]. Compared case-insensitively:
+/// on a case-insensitive filesystem `.Git/config` is `.git/config`.
+bool isProtectedWritePath(Directory root, String resolvedPath) {
+  final sep = Platform.pathSeparator;
+  String rel;
+  final realRoot = Directory(root.absolute.path).resolveSymbolicLinksSync();
+  final plainRoot = _normalize(root.absolute.path);
+  if (resolvedPath.startsWith('$realRoot$sep')) {
+    rel = resolvedPath.substring(realRoot.length + 1);
+  } else if (resolvedPath.startsWith('$plainRoot$sep')) {
+    rel = resolvedPath.substring(plainRoot.length + 1);
+  } else {
+    return false;
+  }
+  final first = rel.split(sep).first.toLowerCase();
+  return protectedWriteDirs.contains(first);
+}
+
 /// Like [resolveUnderRoot], but an **absolute** [path] is also accepted
 /// when it falls under any of [extraReadRoots] — trusted read-only roots
 /// such as the Claude config dirs (`~/.claude`, `<repo>/.claude`) that

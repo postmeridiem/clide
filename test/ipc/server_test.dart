@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:clide/kernel/src/log.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
+import 'package:clide/src/daemon/risk_tiers.dart';
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/paths.dart';
 import 'package:clide/src/ipc/schema_v1.dart';
@@ -210,7 +211,7 @@ void main() {
     });
 
     test('a handler that throws surfaces as a toolError response', () async {
-      dispatcher.register('boom', (_) async => throw StateError('handler crash'));
+      dispatcher.register('boom', risk: const CommandRisk(RiskTier.observe), (_) async => throw StateError('handler crash'));
       server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
       final reply = await _roundTrip(server.socketPath, IpcRequest(id: 'x', cmd: 'boom'));
@@ -256,7 +257,7 @@ void main() {
     // corrupted runes split across socket writes.
     test('two requests pipelined in one write are handled serially, in order (T-372/D-72)', () async {
       final order = <String>[];
-      dispatcher.register('slow', (req) async {
+      dispatcher.register('slow', risk: const CommandRisk(RiskTier.observe), (req) async {
         order.add('${req.id}:start');
         await Future<void>.delayed(const Duration(milliseconds: 50));
         order.add('${req.id}:end');
@@ -278,7 +279,7 @@ void main() {
 
     test('a request split mid-UTF-8-rune across two writes decodes intact (T-372)', () async {
       String? gotText;
-      dispatcher.register('echo', (req) async {
+      dispatcher.register('echo', risk: const CommandRisk(RiskTier.observe), (req) async {
         gotText = req.args['text'] as String?;
         return IpcResponse.ok(id: req.id, data: {'echo': gotText});
       });

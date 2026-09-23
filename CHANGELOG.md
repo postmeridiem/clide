@@ -22,6 +22,15 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+### Security
+
+- **Claude sessions can no longer plant git hooks or rewrite Claude's
+  settings through clide** (T-602) — `clide files write` refuses anything
+  under `.git/` or `.claude/`. Edit those yourself.
+- **Claude's credentials are out of reach of `clide files read`** (T-602) —
+  outside the workspace it reads only your Claude skills, agents and
+  commands, not the rest of `~/.claude`.
+
 ## [2.18.2] — 2026-09-23
 
 ### Fixed

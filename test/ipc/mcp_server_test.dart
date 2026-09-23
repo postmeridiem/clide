@@ -318,7 +318,11 @@ void main() {
     setUp(() async {
       disc = await Directory.systemTemp.createTemp('clide-mcp-clide-');
       final dispatcher = DaemonDispatcher();
-      dispatcher.register('echo', (req) async => IpcResponse.ok(id: req.id, data: {'echo': req.args['text']}));
+      dispatcher.register(
+        'echo',
+        risk: const CommandRisk(RiskTier.observe),
+        (req) async => IpcResponse.ok(id: req.id, data: {'echo': req.args['text']}),
+      );
       // A poor MCP fit — withheld from the tool surface (D-86).
       dispatcher.register('pane.tail', (req) async => IpcResponse.ok(id: req.id, data: const {}), mcpExpose: false);
       srv = McpServer(workspaceRoot: '/x', log: _silent(), discoveryDirOverride: disc.path, dispatcher: dispatcher);
