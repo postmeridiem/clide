@@ -1,11 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="32 37.5 96 96" width="22" height="22">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="32 31 96 96" width="22" height="22">
   <!-- D-110 tray icon: the clide mark (`< />`, as in logo.svg and the in-app
        spinner), monochrome. Drawn shorter and lighter than the logo so it sits
        at the visual weight of neighbouring tray glyphs (~60% of the slot).
        The current-color-scheme stylesheet lets KDE Plasma recolor it to the
        panel's text colour, like its own tray icons; the fallback colour
        applies elsewhere. Keep the viewBox centred on x=80 — the loader's
-       spin frames scale about it. -->
+       spin frames scale about it. The mark sits ~1.5px below centre at
+       22px: optically centred against neighbouring tray glyphs. -->
   <style type="text/css" id="current-color-scheme">.ColorScheme-Text { color:#232629; }</style>
   <g class="ColorScheme-Text" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" transform="translate(-20,0)">
     <polyline points="89,60 69,80 89,100" stroke-width="8"/>
