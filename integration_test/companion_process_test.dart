@@ -26,6 +26,11 @@ import 'package:integration_test/integration_test.dart';
 /// than started, so this cannot be omitted.
 const _brief = 'You are Clide, an IDE companion. Say nothing.';
 
+/// Whether a real `claude` is on PATH. GitHub's runners have none — there the
+/// test is skipped rather than failing on the zero processes it would count
+/// (T-620); it runs wherever claude is installed, as on a dev box.
+final bool _hasClaude = Process.runSync('sh', ['-c', 'command -v claude']).exitCode == 0;
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -34,35 +39,40 @@ void main() {
     return r.stdout.toString().trim().split('\n').where((l) => l.isNotEmpty).toList();
   }
 
-  testWidgets('turning the companion off leaves no claude process behind', (tester) async {
-    final orch = ClaudeSessionOrchestrator();
-    activeSessionOrchestrator = orch;
-    addTearDown(() => activeSessionOrchestrator = null);
+  testWidgets(
+    'turning the companion off leaves no claude process behind',
+    (tester) async {
+      final orch = ClaudeSessionOrchestrator();
+      activeSessionOrchestrator = orch;
+      addTearDown(() => activeSessionOrchestrator = null);
 
-    late String sessionId;
-    final companion = CompanionSessionController(orchestrator: orch, newSessionId: () => sessionId = companionSessionId());
-    addTearDown(companion.shutdown);
+      late String sessionId;
+      final companion = CompanionSessionController(orchestrator: orch, newSessionId: () => sessionId = companionSessionId());
+      addTearDown(companion.shutdown);
 
-    final root = Directory.current.path;
+      final root = Directory.current.path;
 
-    await tester.runAsync(() async {
-      await companion.sync(enabled: true, open: true, root: root, brief: _brief);
-      // `claude` takes a moment to be a process worth finding.
-      await Future<void>.delayed(const Duration(seconds: 3));
-    });
+      await tester.runAsync(() async {
+        await companion.sync(enabled: true, open: true, root: root, brief: _brief);
+        // `claude` takes a moment to be a process worth finding.
+        await Future<void>.delayed(const Duration(seconds: 3));
+      });
 
-    final running = await tester.runAsync(() => pidsFor(sessionId));
-    expect(running, hasLength(1), reason: 'exactly one companion process per workspace — not zero, and not two');
+      final running = await tester.runAsync(() => pidsFor(sessionId));
+      expect(running, hasLength(1), reason: 'exactly one companion process per workspace — not zero, and not two');
 
-    await tester.runAsync(() async {
-      await companion.sync(enabled: false, open: true, root: root, brief: _brief);
-      // kill() has already awaited the real exit; this only covers the gap
-      // between the child dying and the kernel reaping it.
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-    });
+      await tester.runAsync(() async {
+        await companion.sync(enabled: false, open: true, root: root, brief: _brief);
+        // kill() has already awaited the real exit; this only covers the gap
+        // between the child dying and the kernel reaping it.
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+      });
 
-    final left = await tester.runAsync(() => pidsFor(sessionId));
-    expect(left, isEmpty, reason: 'off must mean off — a survivor keeps the primary session\'s quota pool at risk');
-    expect(companion.running, isFalse);
-  }, timeout: const Timeout(Duration(seconds: 90)));
+      final left = await tester.runAsync(() => pidsFor(sessionId));
+      expect(left, isEmpty, reason: 'off must mean off — a survivor keeps the primary session\'s quota pool at risk');
+      expect(companion.running, isFalse);
+    },
+    timeout: const Timeout(Duration(seconds: 90)),
+    skip: !_hasClaude,
+  );
 }

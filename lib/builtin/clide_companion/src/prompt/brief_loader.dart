@@ -23,9 +23,9 @@ const kPromptRoot = 'assets/clide/prompts';
 /// Filename of the brief within a locale folder.
 const kBriefAsset = 'clide-brief.md';
 
-/// The brief for [locale], and the locale suffix it was actually found under.
+/// The brief for a locale, and the locale suffix it was actually found under.
 ///
-/// **[foundIn] is also the language he answers in**, deliberately. An earlier
+/// **`foundIn` is also the language he answers in**, deliberately. An earlier
 /// draft compensated for a miss — load the English brief but instruct "reply in
 /// Dutch" — so that adding a locale could never silently change his language.
 /// Dropped 2026-08-10: it buys little and costs context clarity, because an

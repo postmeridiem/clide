@@ -23,7 +23,7 @@
 ///
 /// * **Absence.** The pane spawns a session, the sidebar clears its state, the
 ///   adapter publishes a defined "nothing is running". Three answers, all right
-///   for their surface — so the reader **reports** absence ([attached]) and
+///   for their surface — so the reader **reports** absence (`attached`) and
 ///   never decides what it means.
 /// * **Seeding.** The pane seeds `end` by hand because `endedStream` does not
 ///   replay; the sidebar seeds `status` by hand even though `statusStream` does;

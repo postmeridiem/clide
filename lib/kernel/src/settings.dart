@@ -147,7 +147,7 @@ class SettingsStore extends ChangeNotifier {
   }
 
   /// The storage layers [key] may be written to, by prefix: `app.*` → [app];
-  /// `project.*` → [project]; `ext.*` → [project, app].
+  /// `project.*` → [project]; `ext.*` → project, then app.
   List<SettingsScope> writableLayers(String key) {
     switch (_scopeOf(key)) {
       case SettingsScope.app:

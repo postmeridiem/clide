@@ -3,7 +3,7 @@
 /// `EditableText` is the widgets-layer text primitive, and it is deliberately
 /// bare: Material's `TextField` is what normally supplies the selection colour,
 /// the drag / double-tap-word / triple-tap-line selection gestures, and the
-/// context menu. clide ships no Material ([D-43]), so this supplies them —
+/// context menu. clide ships no Material (D-43), so this supplies them —
 /// and is what every clide text input is built on. No bare `EditableText`
 /// under `lib/`; a test enforces that.
 ///

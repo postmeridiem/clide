@@ -4,7 +4,7 @@
 /// credentials land in `<dir>` rather than the global `~/.claude` (D-64 — one
 /// CLI-initiated browser flow, on explicit action, nothing in the background).
 /// Also backs the composer's `/login` for the default (unbound) login, where
-/// [dir] is null. No-Material (D-7); shown via the DialogRouter.
+/// `dir` is null. No-Material (D-7); shown via the DialogRouter.
 library;
 
 import 'package:clide/builtin/terminal/src/terminal_pane.dart';

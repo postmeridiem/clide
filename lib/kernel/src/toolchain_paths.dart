@@ -10,12 +10,9 @@ library;
 
 import 'dart:io';
 
+// The canonical PATH-expansion logic lives in shell_env (T-439, the single
+// source of truth shared with git/pql/PTY/claude); import it from there.
 import 'package:clide/src/env/shell_env.dart';
-
-// The canonical PATH-expansion logic now lives in shell_env (T-439, the single
-// source of truth shared with git/pql/PTY/claude). Re-exported so existing
-// importers/tests keep resolving it from here.
-export 'package:clide/src/env/shell_env.dart' show expandToolPath;
 
 /// Serializable result of tool resolution (crosses isolate boundary).
 class ResolvedPaths {

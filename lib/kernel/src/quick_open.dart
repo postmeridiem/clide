@@ -4,8 +4,8 @@
 /// open. Mirrors [PaletteController]'s shape so the overlay can reuse
 /// the palette's interaction model.
 ///
-/// Two modes (T-571). [open] is the T-51 behaviour: accepting a row opens
-/// the file. [pick] instead *returns* the chosen path to a caller and opens
+/// Two modes (T-571). `open` is the T-51 behaviour: accepting a row opens
+/// the file. `pick` instead *returns* the chosen path to a caller and opens
 /// nothing — what the canvas needs to add a note node. It is a mode rather
 /// than a second controller-and-overlay pair because everything else about
 /// the surface (the walk, the fuzzy filter, recents, the keymap scope, the

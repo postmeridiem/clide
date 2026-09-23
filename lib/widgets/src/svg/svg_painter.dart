@@ -42,7 +42,7 @@ class _Ctx {
   final SvgImageResolver? images;
 }
 
-/// The fit of [doc]'s viewBox into [size] — a uniform [scale] plus a [dx]/[dy]
+/// The fit of a document's viewBox into a size — a uniform [scale] plus a [dx]/[dy]
 /// offset (xMidYMid meet) and the viewBox origin. Shared by the painter and the
 /// DrawingCard overlay so captions land exactly over the painted content.
 class SvgViewport {

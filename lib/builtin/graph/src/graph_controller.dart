@@ -2,7 +2,7 @@
 /// file (nodes), then fetches each file's `pql.meta` for its outlinks (edges)
 /// and tags, assembling a [VaultGraph] plus a per-file tag map. Holds the file
 /// glob + a client-side [GraphFilter] (tag include/exclude, depth-from-active)
-/// and exposes the filtered [visibleGraph] the pane draws.
+/// and exposes the filtered `visibleGraph` the pane draws.
 ///
 /// One `pql.meta` per file gives both outlinks and tags in a single call. Link
 /// targets carry `#heading` fragments (`foo.md#bar`); those are stripped to the

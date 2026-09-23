@@ -4,7 +4,7 @@
 /// Compaction can take tens of seconds with nothing streaming, which reads as a
 /// wedged session. This is display-only (D-78 — not an interactive control),
 /// sits in the same slot and chrome as the task dock, and renders nothing when
-/// [active] is false. A live region, so a screen reader hears it start.
+/// `active` is false. A live region, so a screen reader hears it start.
 library;
 
 import 'package:clide/widgets/widgets.dart';

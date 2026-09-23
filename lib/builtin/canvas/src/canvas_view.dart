@@ -3,7 +3,7 @@
 /// click-select via [hitTestCanvasNode], and editing — drag a node to move
 /// it, drag a corner handle to resize it.
 ///
-/// The view owns the working document. [onChanged] fires once per completed
+/// The view owns the working document. `onChanged` fires once per completed
 /// gesture, not per frame, so a drag repaints freely but persists once.
 library;
 

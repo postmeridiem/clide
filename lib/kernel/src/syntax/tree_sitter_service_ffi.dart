@@ -1,7 +1,7 @@
 /// FFI-backed tree-sitter highlighter (T-438 web fence, D-100). Selected by the
-/// [tree_sitter_service.dart] facade when `dart.library.ffi` is available; the
-/// web build gets [tree_sitter_service_stub.dart] instead. Pure result types
-/// live in [syntax_result.dart] (re-exported so consumers import only the
+/// `tree_sitter_service.dart` facade when `dart.library.ffi` is available; the
+/// web build gets `tree_sitter_service_stub.dart` instead. Pure result types
+/// live in `syntax_result.dart` (re-exported so consumers import only the
 /// facade).
 library;
 

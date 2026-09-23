@@ -1,7 +1,7 @@
 /// Paints a laid-out [VaultGraph] (T-323): edges as lines, nodes as labelled
 /// dots, with a hover neighbourhood lit and everything else dimmed.
 ///
-/// The [ForceLayout] solver produces [positions] in a [layoutSize] space; the
+/// The [ForceLayout] solver produces `positions` in a `layoutSize` space; the
 /// painter fits that into the canvas (aspect-preserving, centered). The graph is
 /// clide's own UI here (not arbitrary content), so it paints through
 /// [SurfaceTokens] — theme chrome, per D-7.
@@ -15,7 +15,7 @@ import 'package:clide/src/graph/force_layout.dart';
 import 'package:clide/src/graph/vault_graph.dart';
 import 'package:flutter/widgets.dart';
 
-/// The aspect-preserving, centered fit of the solver's [layoutSize] space into a
+/// The aspect-preserving, centered fit of the solver's `layoutSize` space into a
 /// canvas — shared by the painter and hit-testing so hover/click land exactly on
 /// what's drawn.
 class GraphViewport {

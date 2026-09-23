@@ -6,7 +6,7 @@
 /// 1) — a companion that outlives its off switch is the exact failure that
 /// switch exists to prevent.
 ///
-/// Separate from [companion_session.dart], which names the id and hands out
+/// Separate from `companion_session.dart`, which names the id and hands out
 /// readers: reading a session and owning its process are different jobs with
 /// different lifetimes, and every consumer wants the first without the second.
 ///

@@ -5,7 +5,7 @@
 ///
 /// ## An allow-list, deliberately
 ///
-/// [_admit] names the two types that pass and drops everything else, including
+/// `_admit` names the two types that pass and drops everything else, including
 /// types that do not exist yet. A deny-list would be the same code today and a
 /// leak tomorrow: a new item type added to the sealed union would flow straight
 /// to a second model with nobody deciding it should. The compiler cannot help —

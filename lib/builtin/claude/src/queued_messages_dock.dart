@@ -6,7 +6,7 @@
 /// in the interaction zone (D-78) — the conversation only shows a message once
 /// claude has it.
 ///
-/// Editing holds the whole queue ([onEditStart] / [onEditEnd]): a message must
+/// Editing holds the whole queue (`onEditStart` / `onEditEnd`): a message must
 /// not go out half-edited because the turn happened to end mid-edit.
 library;
 

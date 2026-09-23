@@ -4,6 +4,7 @@
 library;
 
 import 'package:clide/kernel/src/toolchain_paths.dart';
+import 'package:clide/src/env/shell_env.dart' show expandToolPath;
 import 'package:test/test.dart';
 
 void main() {

@@ -1,6 +1,6 @@
 /// Resolve the `native/<os>-<arch>/` directory name via FFI ABI introspection
 /// (T-438 web fence, D-100). Desktop-only; the web build uses
-/// [native_abi_stub.dart], so `dart:ffi` (here, only `Abi`) stays out of the
+/// `native_abi_stub.dart`, so `dart:ffi` (here, only `Abi`) stays out of the
 /// wasm graph.
 library;
 

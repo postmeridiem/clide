@@ -6,8 +6,9 @@ import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/typography.dart';
 import 'package:flutter/widgets.dart';
 
-/// The localized display title for a command (T-462): resolves [titleKey] in
-/// [i18nNamespace] when both are set, else the English title (then id). Shared
+/// The localized display title for a command (T-462): resolves the command's
+/// [CommandContribution.titleKey] in its [CommandContribution.i18nNamespace]
+/// when both are set, else the English title (then id). Shared
 /// by the command palette and the menu bar so both localize identically.
 String localizedCommandTitle(BuildContext context, CommandContribution cmd) {
   final k = cmd.titleKey;

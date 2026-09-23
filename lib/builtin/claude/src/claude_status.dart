@@ -41,8 +41,8 @@ String shortModelLabel(String model) {
 }
 
 /// The permission-mode cycle, matching Claude Code's own Shift+Tab (T-597):
-/// Manual → Accept edits → Plan → [Bypass, when the session allows it] →
-/// [Auto, when available] → back to Manual. The optional modes slot in after
+/// Manual → Accept edits → Plan → (Bypass, when the session allows it) →
+/// (Auto, when available) → back to Manual. The optional modes slot in after
 /// Plan with bypass first and auto last, as in the CLI.
 List<String> permissionModeCycle({required bool autoAvailable, required bool bypassAllowed}) => [
   'default',

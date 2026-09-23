@@ -140,6 +140,9 @@ jobs:
       # fence can't silently rot. Build-only for now; the full web-WASM Playwright
       # e2e (`make test-e2e`: setup-node + playwright install in tools/ui +
       # serve) is the follow-on once the harness is wired back up.
+      # gen-build-info writes lib/src/build_info.g.dart (gitignored) — the make
+      # targets do it for every other job; this one calls flutter directly.
+      - run: make gen-build-info
       - run: flutter build web --wasm
 
   docs:
@@ -153,6 +156,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with: { flutter-version: '${{ steps.fvm.outputs.flutter }}', channel: stable, cache: true }
       - run: flutter pub get
+      - run: make gen-build-info   # lib/src/build_info.g.dart, which lib/ imports
       - name: dart doc --validate-links (fail on warning)
         run: |
           set -o pipefail

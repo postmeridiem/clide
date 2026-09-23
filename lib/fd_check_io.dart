@@ -1,6 +1,6 @@
 /// FFI fd-inheritance probe for the testmode harness (T-438 web fence, D-100).
 ///
-/// Desktop-only — [test_app.dart] selects [fd_check_stub.dart] on web so the
+/// Desktop-only — `test_app.dart` selects `fd_check_stub.dart` on web so the
 /// `dart:ffi` / `package:ffi` / libc imports stay out of the wasm graph.
 library;
 
