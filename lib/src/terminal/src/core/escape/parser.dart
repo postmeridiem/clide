@@ -33,7 +33,43 @@ abstract class _EscapeParserBase {
   /// The last parsed [_Csi]. This is a mutable singletion by design to reduce
   /// object allocations.
   final _csi = _Csi(finalByte: 0, params: []);
+
+  /// Input being discarded as it streams in: an ignored control string
+  /// (DCS/SOS/PM/APC), an OSC past [_kMaxOscLength], or a CSI past
+  /// [_kMaxCsiLength]. The one piece of state the parser carries across
+  /// writes — without it the body of a string split over two writes, or
+  /// the tail of a dropped one, would print as text (T-637, T-612).
+  _Skip _skip = _Skip.none;
 }
+
+enum _Skip {
+  none,
+
+  /// Until ST (`ESC \`), CAN or SUB. Another ESC ends it and starts the
+  /// next sequence.
+  string,
+
+  /// As [string], but BEL terminates too (OSC).
+  stringOrBel,
+
+  /// Until a CSI final byte (0x40–0x7E), CAN, SUB or ESC.
+  csi,
+}
+
+/// Upper bound on a CSI numeric parameter. Real sequences stay far below;
+/// an unbounded accumulator overflowed into garbage counts (T-612).
+const int _kMaxCsiParam = 65535;
+
+/// Parameters kept per CSI; extras are ignored, as in xterm (30).
+const int _kMaxCsiParams = 32;
+
+/// Bytes a CSI may run to before it is dropped. Keeps an unterminated
+/// sequence from being re-scanned from its start on every write (T-612).
+const int _kMaxCsiLength = 4096;
+
+/// Bytes an OSC may run to before it is dropped (T-612). Clide's OSCs —
+/// titles, cwd, hyperlinks — are far smaller.
+const int _kMaxOscLength = 65536;
 
 /// [EscapeParser] translates control characters and escape sequences into
 /// function calls that the terminal can handle.
@@ -57,6 +93,10 @@ class EscapeParser extends _EscapeParserBase with _CsiHandlers, _ModeHandlers, _
   void _process() {
     while (_queue.isNotEmpty) {
       tokenBegin = _queue.totalConsumed;
+      if (_skip != _Skip.none) {
+        if (!_consumeSkipped()) return;
+        continue;
+      }
       final char = _queue.consume();
 
       if (char == Ascii.ESC) {
@@ -84,6 +124,53 @@ class EscapeParser extends _EscapeParserBase with _CsiHandlers, _ModeHandlers, _
     }
 
     sbcHandler();
+  }
+
+  /// Discard input per [_skip] until its terminator. Returns false when the
+  /// queue ran dry first (the skip carries over to the next write).
+  bool _consumeSkipped() {
+    while (_queue.isNotEmpty) {
+      final char = _queue.consume();
+      if (char == Ascii.CAN || char == Ascii.SUB) {
+        _skip = _Skip.none;
+        return true;
+      }
+      if (char == Ascii.ESC) {
+        if (_skip != _Skip.csi) {
+          if (_queue.isEmpty) {
+            // Might be the start of ST; decide when the next byte arrives.
+            _queue.rollback(1);
+            return false;
+          }
+          if (_queue.peek() == Ascii.backslash) {
+            _queue.consume();
+            _skip = _Skip.none;
+            return true;
+          }
+        }
+        // Any other ESC ends the skipped input and begins a new sequence.
+        _queue.rollback(1);
+        _skip = _Skip.none;
+        return true;
+      }
+      if (_skip == _Skip.stringOrBel && char == Ascii.BEL) {
+        _skip = _Skip.none;
+        return true;
+      }
+      if (_skip == _Skip.csi && char >= Ascii.atSign && char <= Ascii.tilde) {
+        _skip = _Skip.none;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// `ESC P` (DCS), `ESC X` (SOS), `ESC ^` (PM), `ESC _` (APC): control
+  /// strings clide doesn't act on (sixel, DECRQSS, tmux passthrough...).
+  /// Their bodies are discarded up to ST, never printed (T-637).
+  bool _escHandleIgnoredString() {
+    _skip = _Skip.string;
+    return true;
   }
 
   /// Processes a sequence of characters that starts with an escape character.
@@ -123,7 +210,10 @@ class EscapeParser extends _EscapeParserBase with _CsiHandlers, _ModeHandlers, _
     'E'.charCode: _escHandleNextLine,
     'H'.charCode: _escHandleTabSet,
     'M'.charCode: _escHandleReverseIndex,
-    // 'P'.charCode: _unsupportedHandler, // Sixel
+    'P'.charCode: _escHandleIgnoredString, // DCS (sixel, DECRQSS, ...)
+    'X'.charCode: _escHandleIgnoredString, // SOS
+    '^'.charCode: _escHandleIgnoredString, // PM
+    '_'.charCode: _escHandleIgnoredString, // APC
     // 'c'.charCode: _unsupportedHandler,
     // '#'.charCode: _unsupportedHandler,
     '('.charCode: _escHandleDesignateCharset0, // SCS — G0
@@ -217,6 +307,7 @@ class EscapeParser extends _EscapeParserBase with _CsiHandlers, _ModeHandlers, _
   bool _escHandleCSI() {
     final consumed = _consumeCsi();
     if (!consumed) return false;
+    if (_csiAborted) return true;
 
     // An intermediate byte changes the meaning of the final byte
     // (`CSI 5 SP @` is scroll-left, not insert-blank), so intermediate
@@ -249,13 +340,27 @@ class EscapeParser extends _EscapeParserBase with _CsiHandlers, _ModeHandlers, _
     handler.unknownCSI(_csi.finalByte);
   }
 
+  /// Set by [_consumeCsi] when the sequence was cancelled (CAN/SUB, an
+  /// interrupting ESC, or over-length) and must not dispatch.
+  bool _csiAborted = false;
+
+  /// Add a parameter unless the CSI already holds [_kMaxCsiParams].
+  void _addCsiParam(int value, bool linked) {
+    if (_csi.params.length >= _kMaxCsiParams) return;
+    _csi.params.add(value);
+    _csi.subParam.add(linked);
+  }
+
   /// Parse a CSI from the head of the queue. Return false if the CSI isn't
-  /// complete. After a CSI is successfully parsed, [_csi] is updated.
+  /// complete. After a CSI is successfully parsed, [_csi] is updated; when it
+  /// was cancelled instead, [_csiAborted] is set and nothing should dispatch.
   bool _consumeCsi() {
     if (_queue.isEmpty) {
       return false;
     }
 
+    _csiAborted = false;
+    final start = _queue.totalConsumed;
     _csi.params.clear();
     _csi.subParam.clear();
     _csi.intermediates.clear();
@@ -282,13 +387,30 @@ class EscapeParser extends _EscapeParserBase with _CsiHandlers, _ModeHandlers, _
         return false;
       }
 
+      // An endless CSI would be re-scanned from its start on every write;
+      // drop it and discard the rest up to its final byte (T-612).
+      if (_queue.totalConsumed - start >= _kMaxCsiLength) {
+        _skip = _Skip.csi;
+        _csiAborted = true;
+        return true;
+      }
+
       final char = _queue.consume();
 
+      // CAN / SUB cancel the sequence; an ESC cancels it and starts the
+      // next one. Neither dispatches the partial CSI (T-637).
+      if (char == Ascii.CAN || char == Ascii.SUB) {
+        _csiAborted = true;
+        return true;
+      }
+      if (char == Ascii.ESC) {
+        _queue.rollback(1);
+        _csiAborted = true;
+        return true;
+      }
+
       if (char == Ascii.semicolon) {
-        if (hasParam) {
-          _csi.params.add(param);
-          _csi.subParam.add(linkedToPrev);
-        }
+        if (hasParam) _addCsiParam(param, linkedToPrev);
         param = 0;
         linkedToPrev = false;
         continue;
@@ -297,8 +419,7 @@ class EscapeParser extends _EscapeParserBase with _CsiHandlers, _ModeHandlers, _
       if (char == Ascii.colon) {
         // Push the current value even when empty — `38:2::r:g:b` carries an
         // empty colorspace slot that must keep its position in the group.
-        _csi.params.add(hasParam ? param : 0);
-        _csi.subParam.add(linkedToPrev);
+        _addCsiParam(hasParam ? param : 0, linkedToPrev);
         hasParam = true;
         param = 0;
         linkedToPrev = true;
@@ -307,13 +428,14 @@ class EscapeParser extends _EscapeParserBase with _CsiHandlers, _ModeHandlers, _
 
       if (char >= Ascii.num0 && char <= Ascii.num9) {
         hasParam = true;
-        param *= 10;
-        param += char - Ascii.num0;
+        // Clamped: an unbounded accumulator overflowed int64 (T-612).
+        param = param * 10 + (char - Ascii.num0);
+        if (param > _kMaxCsiParam) param = _kMaxCsiParam;
         continue;
       }
 
       if (char >= Ascii.space && char <= Ascii.slash) {
-        _csi.intermediates.add(char);
+        if (_csi.intermediates.length < _kMaxCsiParams) _csi.intermediates.add(char);
         continue;
       }
 
@@ -323,10 +445,7 @@ class EscapeParser extends _EscapeParserBase with _CsiHandlers, _ModeHandlers, _
       }
 
       if (char >= Ascii.atSign && char <= Ascii.tilde) {
-        if (hasParam) {
-          _csi.params.add(param);
-          _csi.subParam.add(linkedToPrev);
-        }
+        if (hasParam) _addCsiParam(param, linkedToPrev);
 
         _csi.finalByte = char;
         return true;

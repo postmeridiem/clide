@@ -475,10 +475,13 @@ void main() {
   });
 
   group('EscapeParser — CSI window manipulation', () {
-    test('CSI 8 ; rows ; cols t → resize(cols, rows)', () {
+    // T-612: output could resize the grid to any size (CSI 8;100000;100000 t
+    // allocates 10^10 cells) and desync it from the pane. Ignored, as in
+    // xterm's default allowWindowOps=false.
+    test('CSI 8 ; rows ; cols t (resize) is ignored', () {
       final f = _newParser();
-      f.parser.write('\x1b[8;24;80t');
-      expect(f.h.lastCallNamed('resize').args, [80, 24]);
+      f.parser.write('\x1b[8;24;80t\x1b[8;100000;100000t');
+      expect(f.h.calls, isEmpty);
     });
 
     test('CSI 18 t → sendSize', () {
@@ -871,6 +874,80 @@ void main() {
       f.parser.write('\x1b[2!q');
       expect(f.h.named('setCursorShape'), isEmpty);
       expect(f.h.named('unknownCSI').single.args, ['q'.codeUnitAt(0)]);
+    });
+  });
+
+  // T-637 (#15) + T-612: control strings, aborted CSIs and bounded input.
+  group('EscapeParser — control strings and hardening', () {
+    List<String> printed(({EscapeParser parser, _RecordingHandler h}) f) => [for (final c in f.h.calls.where((c) => c.name == 'writeChar')) String.fromCharCode(c.args.single as int)];
+
+    test('DCS, SOS, PM and APC bodies are swallowed, not printed', () {
+      final f = _newParser();
+      f.parser.write('\x1bPq#0;2;0;0;0\x1b\\a\x1bXsos\x1b\\b\x1b^pm\x1b\\c\x1b_apc\x1b\\d');
+      expect(printed(f), ['a', 'b', 'c', 'd']);
+      expect(f.h.calls.where((c) => c.name != 'writeChar'), isEmpty);
+    });
+
+    test('a control string split across writes stays swallowed', () {
+      final f = _newParser();
+      f.parser.write('\x1bPabc');
+      f.parser.write('def\x1b');
+      f.parser.write('\\z');
+      expect(printed(f), ['z']);
+    });
+
+    test('CAN and SUB abort a control string', () {
+      final f = _newParser();
+      f.parser.write('\x1bPabc\x18y\x1b_def\x1az');
+      expect(printed(f), ['y', 'z']);
+    });
+
+    test('an ESC inside a control string ends it and starts a new sequence', () {
+      final f = _newParser();
+      f.parser.write('\x1bPabc\x1b7z');
+      expect(f.h.calls.map((c) => c.name), ['saveCursor', 'writeChar']);
+    });
+
+    test('CAN aborts a CSI; what follows prints', () {
+      final f = _newParser();
+      f.parser.write('\x1b[31\x18m');
+      expect(f.h.calls.map((c) => c.name), ['writeChar']);
+      expect(printed(f), ['m']);
+    });
+
+    test('an ESC inside a CSI aborts it and starts the next sequence', () {
+      final f = _newParser();
+      f.parser.write('\x1b[5\x1b7');
+      expect(f.h.calls.map((c) => c.name), ['saveCursor']);
+    });
+
+    test('a huge CSI parameter is clamped, not overflowed', () {
+      final f = _newParser();
+      f.parser.write('\x1b[99999999999999999999999b');
+      expect(f.h.lastCallNamed('repeatPreviousCharacter').args, [65535]);
+    });
+
+    test('a CSI with thousands of parameters neither hangs nor leaks into text', () {
+      final f = _newParser();
+      f.parser.write('\x1b[${'1;' * 20000}mz');
+      expect(printed(f), ['z']);
+    });
+
+    test('an OSC past the length cap is dropped, tail and all, across writes', () {
+      final f = _newParser();
+      f.parser.write('\x1b]0;');
+      for (var i = 0; i < 40; i++) {
+        f.parser.write('a' * 4096);
+      }
+      f.parser.write('\x07z');
+      expect(f.h.calls.where((c) => c.name == 'setTitle'), isEmpty);
+      expect(printed(f), ['z']);
+    });
+
+    test('an OSC under the cap still sets the title', () {
+      final f = _newParser();
+      f.parser.write('\x1b]2;${'t' * 1000}\x07');
+      expect((f.h.lastCallNamed('setTitle').args.single as String).length, 1000);
     });
   });
 

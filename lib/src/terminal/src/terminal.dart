@@ -1,7 +1,7 @@
 // Based on xterm.dart v4.0.0 by xuty (MIT). See LICENSE in this directory.
 
 import 'dart:convert' show ByteConversionSink, Utf8Decoder;
-import 'dart:math' show max;
+import 'dart:math' show max, min;
 
 import 'package:clide/src/terminal/src/base/observable.dart';
 import 'package:clide/src/terminal/src/core/buffer/buffer.dart';
@@ -480,6 +480,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       return;
     }
 
+    // More than a screenful only scrolls copies away; cap the work (T-612).
+    count = min(count, _viewWidth * _viewHeight);
     for (var i = 0; i < count; i++) {
       _buffer.writeChar(_precedingCodepoint);
     }

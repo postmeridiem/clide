@@ -146,14 +146,9 @@ mixin _CsiHandlers on _EscapeParserBase {
       case 6: // Lower Terminal Window
       case 7: // Refresh/Redraw Terminal Window
         return;
+      // Ignored, as with xterm's default allowWindowOps=false: the pane owns
+      // the grid size, and output could otherwise demand any size (T-612).
       case 8: // Set Terminal Window Size (in characters)
-        // This CSI contains 2 more parameters: width and height.
-        if (_csi.params.length != 3) {
-          return;
-        }
-        final rows = _csi.params[1];
-        final cols = _csi.params[2];
-        handler.resize(cols, rows);
         return;
       // Window handling is currently no in the scope of the package.
       case 9: // Maximize Terminal Window

@@ -184,6 +184,16 @@ void main() {
       expect(r.outputs.last, '\x1b[A');
     });
 
+    // T-612: REP looped once per requested repeat, so a huge count spun.
+    test('REP is capped at one screenful', () {
+      final t = _Recorder().build();
+      t.write('x');
+      final sw = Stopwatch()..start();
+      t.repeatPreviousCharacter(1 << 40);
+      expect(sw.elapsed, lessThan(const Duration(seconds: 2)));
+      expect(t.buffer.lines[t.buffer.lines.length - 1].getCodePoint(0), 'x'.codeUnitAt(0));
+    });
+
     // T-637 (#12): IRM was stored and never consulted — typing overwrote.
     test('insert mode (CSI 4 h) shifts the line right instead of overwriting', () {
       final t = _Recorder().build();

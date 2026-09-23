@@ -49,10 +49,20 @@ mixin _OscHandlers on _EscapeParserBase {
   bool _consumeOsc() {
     _osc.clear();
     final param = StringBuffer();
+    final start = _queue.totalConsumed;
 
     while (true) {
       if (_queue.isEmpty) {
         return false;
+      }
+
+      // An oversized OSC is dropped: discard the rest up to its terminator
+      // as it streams in, instead of re-scanning an ever-growing buffer
+      // on every write (T-612). _osc stays empty, so nothing dispatches.
+      if (_queue.totalConsumed - start >= _kMaxOscLength) {
+        _osc.clear();
+        _skip = _Skip.stringOrBel;
+        return true;
       }
 
       final char = _queue.consume();
