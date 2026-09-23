@@ -22,6 +22,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+## [2.18.2] — 2026-09-23
+
+### Fixed
+
 - **The editor can no longer save a new file outside the workspace**
   (T-610) — a new file under a symlinked directory was written wherever the
   link pointed; saves are now confined like `clide files write`.
