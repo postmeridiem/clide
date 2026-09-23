@@ -18,6 +18,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [2.19.0] — 2026-09-23
+
+### Added
+
 - **Let agents run chosen commands without asking** (T-602) — Settings →
   Claude → Agents lists commands (like `make test`, or `flutter test *`)
   a Claude session may start in a pane without the confirm. Agents also
@@ -25,8 +33,6 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - **macOS and Windows preview builds** (T-55) — each release now
   attaches untested macOS and Windows bundles alongside the Linux one,
   for trying the Dock and tray integration.
-
-### Changed
 
 ### Fixed
 
