@@ -234,6 +234,7 @@ Core, rendering, IPC, kernel, panel manager.
 - **Amendment (2026-05-19):** Implemented in T-99 across eight slices (T-124 server, T-125 argv translator, T-126 C client, T-127 socket loopback replacing InProcessClient, T-128 legacy-IPC cleanup, T-129 event streaming, T-130 MCP companion, T-131 this wrap-up). Per-workspace unix socket at the D-70 path; D-71 chmod gate; D-72 multi-connection serial dispatch; D-73 MCP transport. The C `clide` client lives at `native/clide-cli/clide.c` and ships with `make clide-cli`. Only the socket IPC model survives — InProcessClient + IsolateClient + Backend gone.
 - **Cross-reference:** [D-5](#d-5-dart-core-sidecar-dissolved-ptyc-as-pql-peer) (amended), [D-41](#d-41-claude-panes-one-primary-per-repo-tmux-backed) (tmux persistence), [D-1](#d-1-cli-first-not-mcp) (CLI-first surface preserved via C client), [D-70](#d-70-ipc-socket-path-is-per-workspace-deterministic) / [D-71](#d-71-ipc-socket-access-gated-by-chmod-0600-on-socket--parent) / [D-72](#d-72-ipc-server-is-multi-connection-with-serial-dispatch-on-the-main-isolate) (implementation contracts).
 - **Raised by:** 2026-04-23 architectural simplification.
+- **Amendment (2026-09-23):** In web UI mode ([D-116](#d-116-web-ui-mode--full-clide-in-the-browser-served-from-a-containerised-host)) the UI runs in a browser, and each workspace's subsystems run in one host process behind the front door. "Single process" is therefore scoped per host, per workspace. Desktop is unchanged.
 
 ### D-57: Frameless custom chrome with per-column 24px hats
 - **Date:** 2026-04-23
@@ -491,6 +492,7 @@ Core, rendering, IPC, kernel, panel manager.
 - **Cost:** Every builtin extension must declare its modes (a one-time classification pass); the host gains mode-gating logic; the vocabulary is open-ended and must stay coherent as values accrue. Defaulting an undeclared extension to `edit`-only is conservative but may surprise authors.
 - **Cross-reference:** [D-17](extensions.md#d-17-panels-are-extension-shaped-from-day-one), [D-95](#d-95-workspace-validity-and-onboarding-flow), [Q-23](../questions/architecture.md#q-23-ssh-remote-development--run-clide-against-a-remote-workspace).
 - **Raised by:** 2026-06-11 — user: "read_mode_safe: true is not leaving space for further modes (ssh mode, remote mode, webui mode, read mode, edit mode). Prepare it for that."
+- **Amendment (2026-09-23):** [D-116](#d-116-web-ui-mode--full-clide-in-the-browser-served-from-a-containerised-host) assigns the reserved `webui` value: the full IDE in a browser, backed by a containerised host.
 
 ### D-95: Workspace validity and onboarding flow
 - **Date:** 2026-06-11
@@ -672,5 +674,80 @@ Core, rendering, IPC, kernel, panel manager.
 - **Cost / risk:** Agents that spawn processes or write to the user's shell now meet a confirm, softened by the session memory and the spawn allowlist. Linux ancestry detection needs SO_PEERCRED plus a /proc walk. On macOS and Windows, escalate commands typed by hand in a clide terminal also confirm until an equivalent lands. A Claude Code connected over `/ide` loses the escalate verbs as MCP tools, but can still run them through its Bash tool behind the confirm. Every command gains a tier to maintain, and the registry test keeps it honest.
 - **Cross-reference:** [D-1](#d-1-cli-first-not-mcp), [D-6](#d-6-cli-and-event-surface-contract), [D-68](#d-68-dual-integration-surface--bash-cli-primary-mcp-secondary), [D-71](#d-71-ipc-socket-access-gated-by-chmod-0600-on-socket--parent), [D-86](#d-86-mcp-tool-surface--full-clide-namespace-generated-from-the-co-registered-command-registry). Implements T-602. Supersedes T-616.
 - **Raised by:** 2026-09-23 security posture scan (finding H1). The user settled the choices: workspace-write gets Claude's normal prompt; confirm agent-origin calls only; allow once or for this session; hide escalate verbs from MCP; an app-scope spawn allowlist; own panes free, others confirm; refuse `.git/` and `.claude/` writes; narrow the `~/.claude` read root in this work.
+
+---
+
+### D-116: Web UI mode — full clide in the browser, served from a containerised host
+- **Date:** 2026-09-23
+- **Decision:** clide gains a **web UI mode**: the full IDE (Claude sessions, terminal, files, editor, git, pql) in a browser, backed by clide host processes running in a container. It takes the `webui` value [D-94](#d-94-workspace-mode-is-a-first-class-extensible-declared-capability) reserved. The web build becomes a real target rather than a happy accident. It stays the Flutter WebAssembly build of the same UI, and desktop fidelity is still never traded for it.
+  - **One user, many workspaces, addressed by URL.**
+    - A workspace lives at `/u/<N>/w/<repo-slug>/`, e.g. `/u/0/w/clide/`, after the `mail/u/0/` pattern.
+    - Only `u/0` exists today; the user segment reserves the namespace so more users can arrive without breaking a URL.
+    - The workspace segment is the repository's name as a slug, scoped to its user, so it does not shift when other workspaces are removed.
+    - One browser tab per workspace: the web analogue of [D-111](#d-111-one-window-process-per-workspace-in-place-switching-is-retired)'s one window per workspace.
+    - There are no other routes; in-app state is not URL-addressed.
+    - The slug rule and the collision rule (two repositories whose names slugify alike) are settled with the workspace registry.
+  - **Front door:** [D-117](#d-117-web-front-door--caddy-at-the-edge-internal-dart-broker-and-hosts).
+  - **Shipping:** a container image plus an installer for non-developers — Linux hosts with Docker first, macOS and Windows later. Build instructions, the installer and user documentation are part of the deliverable ([Q-53](../questions/tooling.md#q-53-web-ui-distribution)).
+- **Rationale:** [D-100](tooling.md#d-100-fence-dartffi-behind-conditional-imports--web-stubs-to-keep-the-webwasm-target-compiling) kept the web build alive as a target the maintainer wanted to reach eventually; this reaches it. The web-target spike (`docs/spikes/web-target-2026-09-02.md`) found the build compiles and boots but has no transport. Most of what a browser front end needs already exists:
+  - the client talks through a `DaemonTransport` (T-331);
+  - the command handlers under `lib/src/` are Flutter-free;
+  - the terminal is message-based end to end.
+
+  Addressing a workspace by URL keeps D-111's one-workspace-one-process identity, and makes tabs bookmarkable.
+- **Cost:**
+  - The UI/host split that [D-56](#d-56-dissolve-daemon-process-flutter-app-hosts-ipc-server) dissolved returns in this mode, so "single process" now means one host process per workspace.
+  - Desktop-only builtins (tray, self-update, CLI install, native window chrome) must declare their modes.
+  - A network-reachable IDE is a remote-code-execution surface by construction, and D-117 carries that weight.
+  - The open design questions are [Q-52](../questions/architecture.md#q-52-web-ui-host-architecture) (the host) and [Q-53](../questions/tooling.md#q-53-web-ui-distribution) (distribution).
+- **Amends:**
+  - the web and single-process guardrails in `CLAUDE.md`;
+  - D-100: web is a real target, and functional parity is promised in this mode;
+  - D-94: assigns `webui`;
+  - D-56: single process per host, per workspace.
+- **Cross-reference:** D-94, D-100, D-56, D-111, D-117, [R-13](../rejected/architecture.md#r-13-api-framework-wrapper-around-the-backend-fastapi-or-a-rust-api-kit), Q-52, Q-53.
+- **Raised by:** 2026-09-23 — user, setting the web UI's shape:
+  - the full IDE in the browser;
+  - one user with many workspaces, URL-driven after Gmail's `u/0` pattern, as `u/N/w/<repo-slug>` so the namespace is ready for multiple users;
+  - an installer for Linux + Docker first;
+  - the container needs "proper build instructions and an installer for normal non-dev users … proper documentation as well".
+
+---
+
+### D-117: Web front door — Caddy at the edge, internal Dart broker and hosts
+- **Date:** 2026-09-23
+- **Decision:** In web UI mode ([D-116](#d-116-web-ui-mode--full-clide-in-the-browser-served-from-a-containerised-host)), three layers run in the container, and only the first listens on a network interface.
+  1. **Edge: Caddy**, built from source in the image build.
+     - It terminates TLS.
+     - It serves the static WebAssembly bundle itself, with the cross-origin-isolation headers, compression and caching.
+     - It authenticates every request: by forward-auth to the broker, or, behind an SSO proxy, by a configured trusted header. With neither configured, it refuses.
+     - It proxies **only** the session WebSocket under `/u/<N>/w/<slug>/` inward.
+  2. **Broker: internal Dart, on a unix socket.** It verifies sessions for the edge, maps `(user, workspace)` to that workspace's host, spawns or attaches, and passes the stream to the host's socket **without speaking clide's protocol**.
+  3. **Hosts: internal Dart, one per workspace.**
+     - The dispatcher stays the API ([D-74](#d-74-ipc-command-schema-is-co-registered-with-the-handler-validated-at-dispatch), [D-86](#d-86-mcp-tool-surface--full-clide-namespace-generated-from-the-co-registered-command-registry)).
+     - Sockets stay as [D-70](#d-70-ipc-socket-path-is-per-workspace-deterministic) and [D-71](#d-71-ipc-socket-access-gated-by-chmod-0600-on-socket--parent) define them.
+     - `McpServer` stays loopback-only ([D-73](#d-73-mcp-transport-for-ide-is-sse-over-http)).
+     - Claude and the `clide` CLI inside the container reach the host socket directly.
+
+  The contract this fixes is what later work preserves:
+  - the URL namespace;
+  - identity in: a token exchanged for a cookie now, a trusted header behind an SSO proxy;
+  - execution out: spawn or attach, per workspace;
+  - an opaque pass-through.
+- **Rationale:**
+  - A `dart:io` HTTP server is fine on loopback but is not an edge server. The layer facing the network is proven software that serves most requests itself and proxies sparingly.
+  - TLS is required even on a LAN. Skwasm's threads need cross-origin isolation, and both that and the clipboard API need a secure context.
+  - Caddy does automatic HTTPS (ACME for a real domain, an internal CA for a LAN install), static serving, header control, WebSocket proxying and forward-auth in one binary. That suits an install done by a non-developer.
+  - A protocol-blind broker means a protocol bug cannot escalate through it. This is the privilege-separation argument in `docs/golden-dreams.md`.
+  - Dart for the broker and hosts keeps one toolchain, and compiles natively for the later macOS and Windows installers.
+- **Cost:**
+  - Caddy is a Go binary whose module tree must be built from source, pinned and attributed ([D-42](tooling.md#d-42-dependencies-documented-in-licensesyaml), [D-61](tooling.md#d-61-dependency-vetting-checklist)). Its Apache-2.0 licence is accepted for a component inside the container, with its NOTICE kept verbatim.
+  - There are three processes to supervise instead of one.
+  - `dart:io` cannot drop privileges for a child, so isolating several users will need a privileged helper or a Rust broker behind the same contract. That waits until multi-user is real.
+- **Cross-reference:** D-116, [R-13](../rejected/architecture.md#r-13-api-framework-wrapper-around-the-backend-fastapi-or-a-rust-api-kit), D-70, D-71, D-73, D-74, D-86, [D-115](#d-115-risk-tiers-for-clide-verbs-observedisplay-pre-approved-workspace-write-prompts-escalate-confirms-in-app), [Q-52](../questions/architecture.md#q-52-web-ui-host-architecture), [Q-53](../questions/tooling.md#q-53-web-ui-distribution), `docs/golden-dreams.md`.
+- **Raised by:** 2026-09-23 — user:
+  - no Dart HTTP server exposed to the internet: "a front door that sometimes proxies is a better pattern";
+  - Caddy for the edge;
+  - Dart rather than Rust for the internal pieces, for portability.
 
 ---

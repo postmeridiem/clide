@@ -173,3 +173,34 @@ ticket persistence.
 - **Source:** T-421 / 2026-06-14 user review.
 
 ---
+
+### Q-52: Web UI host architecture
+- **Status:** Open
+- **Question:** What runs behind the front door ([D-117](../decisions/architecture.md#d-117-web-front-door--caddy-at-the-edge-internal-dart-broker-and-hosts)), and where does the host/UI line fall?
+  - (a) **Thick or thin host.** Does the host run the dispatcher and every handler, with the browser only rendering? Or do subsystems run in the browser, with the container as an exec endpoint?
+    - The spike and T-577 say to sequence web work behind T-399, the execution seam.
+    - T-399's scope is git, pql, files, search and editor. That code already runs behind the dispatcher and can stay on a thick host unchanged.
+    - The `dart:io` that would actually run in a browser lives in `lib/builtin/claude/` and `lib/kernel/`.
+
+    Leaning: a thick host, with T-399 adjacent rather than a prerequisite.
+  - (b) **Host entrypoint and process model.** A pure-Dart AOT host needs `buildDispatcher` separated from the Flutter `main.dart`, which captures layout, settings, `MessageBus` and `DialogRouter`. It also needs host-side types taken off `ChangeNotifier`, which pulls in `dart:ui`. A headless Flutter engine avoids that split but is heavier. One host per workspace keeps [D-111](../decisions/architecture.md#d-111-one-window-process-per-workspace-in-place-switching-is-retired)'s identity chain.
+  - (c) **Transport.** The browser speaks the `v:1` envelope over WebSocket, and the broker bridges it to the host's socket (D-117). Still open:
+    - how a remote UI subscribes to events (the desktop UI gets them in-process);
+    - per-connection concurrency, so terminal input does not queue behind slow requests;
+    - wire versioning ([Q-5](#q-5-ipc-wire-format-stability--schema-version)).
+  - (d) **Trust behind the front door.**
+    - How the host tells the UI from an agent when there is no peer process to inspect ([D-115](../decisions/architecture.md#d-115-risk-tiers-for-clide-verbs-observedisplay-pre-approved-workspace-write-prompts-escalate-confirms-in-app)).
+    - How the escalate confirm reaches the browser.
+    - Whether [D-71](../decisions/architecture.md#d-71-ipc-socket-access-gated-by-chmod-0600-on-socket--parent) needs amending at all.
+
+    See also [Q-1](#q-1-authorisation-granularity-on-the-ipc-socket) and [D-97](../decisions/architecture.md#d-97-ssh-workspace-uri--system-ssh-auth).
+  - (e) **The Claude session stack.** Either host-side sessions with a wire contract, or the `claude` process's stdio (`StreamJsonProcess`) tunnelled to a browser-side session. Leaning: host-side. Per-session MCP servers and the team broker must live there anyway, and sessions should outlive a closed tab.
+  - (f) **Native pieces and mode gating.** Whether tree-sitter and Lua run server-side or as wasm on web (this decides T-26), and which builtins go dark in `webui` ([D-94](../decisions/architecture.md#d-94-workspace-mode-is-a-first-class-extensible-declared-capability)).
+- **Context:** The web-target spike (`docs/spikes/web-target-2026-09-02.md`) and a 2026-09-23 code survey.
+  - What exists: the client already takes a `DaemonTransport` (T-331); the command handlers under `lib/src/` are Flutter-free, with their suites running under plain `dart test`; the terminal is message-based end to end.
+  - What is missing: the Claude session stack lives in the UI process with no wire contract and only two dispatcher commands; the IPC server is typed to unix sockets and identifies callers by their peer process.
+
+  The resolution gates the host epics of the web UI initiative.
+- **Source:** [D-116](../decisions/architecture.md#d-116-web-ui-mode--full-clide-in-the-browser-served-from-a-containerised-host) / 2026-09-23 user direction.
+
+---

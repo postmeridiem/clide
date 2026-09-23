@@ -31,3 +31,15 @@ future reference.
 - **Cross-reference:** [D-43](../decisions/architecture.md#d-43-design-handoff--adopt-token-palettes-reject-material-wrapper)
 
 ---
+
+### R-13: API-framework wrapper around the backend (FastAPI or a Rust API kit)
+- **Rejected:** 2026-09-23 (in favour of [D-117](../decisions/architecture.md#d-117-web-front-door--caddy-at-the-edge-internal-dart-broker-and-hosts))
+- **Reason:** A web framework in front of the host would re-expose what the dispatcher already provides: per-command schemas validated at dispatch ([D-74](../decisions/architecture.md#d-74-ipc-command-schema-is-co-registered-with-the-handler-validated-at-dispatch)) and a generated command surface ([D-86](../decisions/architecture.md#d-86-mcp-tool-surface--full-clide-namespace-generated-from-the-co-registered-command-registry)).
+  - It would either mirror the commands as routes, which is a second source of truth, or become a thin relay that uses none of the framework's strengths.
+  - It adds a second core language and supply chain, against [D-5](../decisions/architecture.md#d-5-dart-core-sidecar-dissolved-ptyc-as-pql-peer); compare [R-2](#r-2-go-sidecar).
+  - It puts a protocol-aware layer on the network edge, which D-117's protocol-blind broker exists to avoid.
+
+  None of the real obstacles to a web UI sits in the layer a wrapper would add. Those are the host/UI split, the Claude session stack's missing wire contract, and the local-only transport ([Q-52](../questions/architecture.md#q-52-web-ui-host-architecture)).
+- **Cross-reference:** D-117, [D-116](../decisions/architecture.md#d-116-web-ui-mode--full-clide-in-the-browser-served-from-a-containerised-host), D-5, R-2, D-74, D-86.
+
+---

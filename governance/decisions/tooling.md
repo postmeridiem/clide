@@ -110,6 +110,7 @@ Toolchain, supply chain, CI, ignore strategy.
 - **Cost:** An ongoing tax — every new native binding needs a web stub + conditional import, and the wasm compile gate must stay green. Accepted deliberately: the maintainer values keeping the door open over avoiding that tax. Functional web parity is explicitly **not** promised — only that the tree compiles to wasm and the Playwright/e2e harness ([D-26](process.md)) can run again.
 - **Cross-reference:** [Q-50](../questions/architecture.md#q-50-webwasm-target-after-the-dartffi-pivot--fence-fix-or-drop), [D-32](#d-32-ci--github-actions-linux--windows-runners-active) (the withheld web-WASM e2e job lands once this fence is implemented), the tree-sitter FFI pivot.
 - **Raised by:** 2026-06-15 — user, reconciling T-384: "a happy accident for the web-based UI lives a bit more hopeful for me than it does in CLAUDE.md … let's fence dart:ffi with web stubs."
+- **Amendment (2026-09-23):** [D-116](architecture.md#d-116-web-ui-mode--full-clide-in-the-browser-served-from-a-containerised-host) makes web a real target. In web UI mode functional parity is promised, with a containerised host behind the browser. The fence and its compile gate stay. A gate that boots the bundle and asserts first paint joins them, because compiling proved not to mean booting (T-577).
 
 ### D-104: Explicit supporter-binary path overrides in user-scope settings
 - **Date:** 2026-06-28

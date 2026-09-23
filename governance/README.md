@@ -157,6 +157,8 @@ You might also want, project-permitting:
 - [D-113: Self-update: verified download, rename swap of the install, windows restart onto it; the loader stays](decisions/architecture.md#d-113-self-update-verified-download-rename-swap-of-the-install-windows-restart-onto-it-the-loader-stays) — _architecture_
 - [D-114: Open sessions come back after a restart: files always, secondary Claude sessions on a prompt, all of it after an update](decisions/architecture.md#d-114-open-sessions-come-back-after-a-restart-files-always-secondary-claude-sessions-on-a-prompt-all-of-it-after-an-update) — _architecture_
 - [D-115: Risk tiers for clide verbs: observe/display pre-approved, workspace-write prompts, escalate confirms in-app](decisions/architecture.md#d-115-risk-tiers-for-clide-verbs-observedisplay-pre-approved-workspace-write-prompts-escalate-confirms-in-app) — _architecture_
+- [D-116: Web UI mode — full clide in the browser, served from a containerised host](decisions/architecture.md#d-116-web-ui-mode--full-clide-in-the-browser-served-from-a-containerised-host) — _architecture_
+- [D-117: Web front door — Caddy at the edge, internal Dart broker and hosts](decisions/architecture.md#d-117-web-front-door--caddy-at-the-edge-internal-dart-broker-and-hosts) — _architecture_
 
 ## Open questions
 
@@ -198,6 +200,8 @@ You might also want, project-permitting:
 - [Q-47: Live mixed documents — implement?](questions/design.md#q-47-live-mixed-documents--implement) — _design_
 - [Q-48: Sealed-workspace mode — implement?](questions/design.md#q-48-sealed-workspace-mode--implement) — _design_
 - [Q-49: Review honorable mentions — which, if any, get promoted?](questions/design.md#q-49-review-honorable-mentions--which-if-any-get-promoted) — _design_
+- [Q-52: Web UI host architecture](questions/architecture.md#q-52-web-ui-host-architecture) — _architecture_
+- [Q-53: Web UI distribution](questions/tooling.md#q-53-web-ui-distribution) — _tooling_
 
 ## Resolved questions
 
@@ -227,3 +231,4 @@ You might also want, project-permitting:
 - [R-10: Python-script stopgap under `tooling/db/`](rejected/process.md#r-10-python-script-stopgap-under-toolingdb) — _process_
 - [R-11: Permanent stopgap](rejected/process.md#r-11-permanent-stopgap) — _process_
 - [R-12: MaterialApp wrapper from design handoff](rejected/architecture.md#r-12-materialapp-wrapper-from-design-handoff) — _architecture_
+- [R-13: API-framework wrapper around the backend (FastAPI or a Rust API kit)](rejected/architecture.md#r-13-api-framework-wrapper-around-the-backend-fastapi-or-a-rust-api-kit) — _architecture_
