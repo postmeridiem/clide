@@ -20,6 +20,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+### Fixed
+
+## [2.16.0] — 2026-09-23
+
+### Changed
+
 - **Messages sent while Claude works reach it at its next step** (T-618) —
   instead of waiting for the whole turn to end. The dock shows them as "next
   step" until Claude takes them in. Turn off "Deliver messages mid-turn"
