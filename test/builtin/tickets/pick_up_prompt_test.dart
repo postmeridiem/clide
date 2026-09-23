@@ -22,6 +22,16 @@ void main() {
     expect(p, contains('Do the thing.'));
   });
 
+  test('the lead-in states the whole loop and ends in review, not done (T-543)', () {
+    final p = pickUpPrompt({'id': 'T-543', 'title': 'Loop'});
+    final leadIn = p.substring(0, p.indexOf('**T-543'));
+    expect(leadIn, contains('`pql ticket status T-543 in_progress`'));
+    expect(leadIn, contains('`/git-commit`'));
+    expect(leadIn, contains('set the ticket to `review`, not `done`'));
+    expect(leadIn, contains('two-sentence summary'));
+    expect(leadIn, contains('ask the user to review'));
+  });
+
   test('omits the meta line and parent when those fields are absent', () {
     final p = pickUpPrompt({'id': 'T-1', 'title': 'Bare'});
     expect(p, contains('**T-1 — Bare**'));

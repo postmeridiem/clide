@@ -41,6 +41,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   on "Allow bypass permissions mode" in Settings → Claude.
 - **Ticket ids on the sidebar cards are no longer bold** (T-441) — easier to
   read at card size.
+- **Picking up a ticket tells Claude how to finish it** (T-543) — set it in
+  progress, commit through `/git-commit`, and leave it in `review` for you
+  rather than closing it.
 
 ### Fixed
 

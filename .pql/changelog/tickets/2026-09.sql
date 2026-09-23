@@ -385,3 +385,47 @@ INSERT INTO tickets (record_id, type, parent_record_id, title, description, stat
 **Fix:** drop the bold weight from the id label. lib/builtin/tickets/src/tickets_view.dart:405 — `ClideText(entry.id, fontSize: clideFontSmall, color: tokens.globalForeground, fontFamily: clideMonoFamily, fontWeight: FontWeight.w600)` → remove `fontWeight: FontWeight.w600` so it renders at the default UI weight. Confirm the parent-id breadcrumb line (the muted `└ T-NNN` above a child, ~line 385-395) still reads fine; keep the title (line 409) as-is.
 
 Scope: cosmetic weight tweak only. Verify against the four presets/themes; no golden churn expected beyond the tickets-view widget golden if one exists.', 'done', 'low', NULL, NULL, NULL, '2026-06-16 09:16:07', '2026-09-23 07:49:05.865', NULL, 'd2e7eb500b7005c1bcee25f4fe4c0f35', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDGH6NA4M13VHHSSDWN7TZ0', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'Pick-up prompt should state the whole loop — status, /git-commit, leave in review', '`pickUpPrompt` (`lib/builtin/tickets/src/pick_up_prompt.dart:25`) opens with one
+line — "Pick up and start working this ticket. Read it fully, then begin." — and
+says nothing about how the work should *end*. So the ending is improvised each
+time: sometimes the ticket is closed, sometimes left open, sometimes committed
+before the ticket is updated, and the user has to ask what happened.
+
+Extend the lead-in to state the whole loop, not just the start.
+
+## What the prompt should ask for
+
+1. **Keep the ticket status honest as work proceeds** — `in_progress` on pickup,
+   and moved on deliberately rather than left wherever it was.
+2. **Run `/git-commit`** when the work is done, so the commit goes through the
+   skill that encodes message format, explicit staging and changelog discipline
+   rather than being hand-rolled.
+3. **Leave the ticket in `review`, not `done`.** This is the substantive change:
+   the agent does not get to mark its own work complete. `done` becomes
+   something the human sets after looking.
+4. **End with a two-sentence summary and an explicit request to review.** Short
+   on purpose — the ticket body already holds the detail, and a long sign-off
+   buries the one thing being asked for.
+
+## Why `review` rather than `done`
+
+Every ticket this session was closed by the agent that wrote it, on the strength
+of its own tests. That is exactly the reviewer arrangement nobody would accept
+between two people. A `review` rung costs one status transition and puts the
+decision back with the person who can actually judge whether the thing is right —
+several tickets this session needed visual corrections that no test caught
+(T-539''s face balance, T-531''s arc, T-535''s colour).
+
+## Check first
+
+- Confirm `review` is a status the pql schema accepts, and what the board does
+  with it — if it is not a real status this needs one, or a label, and that is a
+  bigger change than the prompt text.
+- The prompt is also produced for tickets picked up from the CLI, not only the
+  detail pane; keep one wording.
+- `pick_up_prompt_test.dart` asserts the current lead-in; update it with the
+  text rather than around it.
+
+Confirmed 2026-08-09: **`review` is already a valid pql status** — `pql ticket status <id> review` is accepted and reads back. So the open question at the bottom of this ticket resolves cleanly and the change really is just prompt text plus its test.
+
+Adopted immediately by hand on T-540 while this ticket waits: work recorded on the ticket, `/git-commit` run, status left at `review` rather than `done`, and a two-sentence summary put to the user. Worth checking the board renders a `review` column sensibly before this lands, since it will start appearing routinely.', 'done', 'medium', NULL, NULL, NULL, '2026-08-09 13:41:51.402', '2026-09-23 07:49:21.063', NULL, 'eaf4318348fddaa2c00f98a6dda40329', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
