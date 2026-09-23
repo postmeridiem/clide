@@ -65,6 +65,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   `claude auth login`.
 - **Images, drawings, icons and ticket pick-ups land in the Claude tab you're
   in** (T-295) — they always went to the primary tab.
+- **Drawings open full-size on click, like images** (T-563) — click, or focus
+  and press Enter, to open any drawing zoomable in the lightbox.
 - **API errors stand out in the conversation** (T-461) — a rate-limit,
   overload or expired-login error gets a red border and a failure mark
   instead of looking like any other clide notice.

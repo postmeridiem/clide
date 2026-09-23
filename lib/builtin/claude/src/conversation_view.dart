@@ -1485,8 +1485,9 @@ class _DrawingWithImagesState extends State<_DrawingWithImages> {
       description: widget.description,
       source: widget.source,
       sourceLabel: widget.sourceLabel,
-      // A data-lightbox element opens the whole drawing, zoomable (T-318); the
-      // lightbox paints through the same image resolver (T-319).
+      // Clicking the drawing (or a data-lightbox element, T-318) opens the
+      // whole drawing, zoomable (T-563); the lightbox paints through the same
+      // image resolver (T-319).
       onLightbox: () => ClideKernel.of(context).dialog.show<Object>(
         (ctx, dismiss) => ClideLightbox(
           onDismiss: dismiss,

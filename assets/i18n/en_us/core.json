@@ -5,6 +5,7 @@
   "collapser.collapsed": { "translation": "collapsed" },
   "toast.dismiss": { "translation": "Dismiss notification" },
   "lightbox.close": { "translation": "close" },
+  "drawing.openLightbox": { "translation": "Open drawing in full view" },
   "lightbox.hint": { "translation": "scroll to zoom · double-click to reset · Esc to close" },
   "tab.new": { "translation": "New tab" },
   "exline.notCommand": { "translation": "Not an editor command" },

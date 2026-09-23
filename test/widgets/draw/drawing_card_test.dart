@@ -1,6 +1,9 @@
 import 'package:clide/src/svg/svg_document.dart';
+import 'package:clide/widgets/src/clide_settings.dart';
+import 'package:clide/widgets/src/clide_tappable.dart';
 import 'package:clide/widgets/src/draw/drawing_card.dart';
 import 'package:clide/widgets/src/svg/svg_painter.dart';
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -82,5 +85,74 @@ void main() {
     await tester.pump();
     await tester.tap(find.byType(DrawingCard));
     expect(tapped, isTrue);
+  });
+
+  group('whole-card lightbox affordance (T-563)', () {
+    // No data-lightbox anywhere: the default open target is the card itself.
+    Widget openable(VoidCallback onLightbox) => SizedBox(
+      width: 400,
+      child: DrawingCard(document: buildSvgDocument('<svg viewBox="0 0 20 10"><rect width="20" height="10" fill="#FF0000"/></svg>'), onLightbox: onLightbox),
+    );
+
+    testWidgets('a tap anywhere on the drawing opens the lightbox', (tester) async {
+      var opened = 0;
+      await tester.pumpWidget(anchoredHarness(f, openable(() => opened++)));
+      await tester.tap(find.byType(SvgView));
+      expect(opened, 1);
+    });
+
+    testWidgets('carries a labelled semantics button whose tap action opens it', (tester) async {
+      final handle = tester.ensureSemantics();
+      var opened = 0;
+      await tester.pumpWidget(anchoredHarness(f, openable(() => opened++)));
+      expect(find.bySemanticsLabel('Open drawing in full view'), findsOneWidget);
+      tester.semantics.tap(find.semantics.byLabel('Open drawing in full view'));
+      expect(opened, 1);
+      handle.dispose();
+    });
+
+    testWidgets('is keyboard-focusable and opens on Activate (Enter/Space)', (tester) async {
+      var opened = 0;
+      await tester.pumpWidget(anchoredHarness(f, openable(() => opened++)));
+      final focus = tester.widget<Focus>(find.descendant(of: find.byType(ClideTappable), matching: find.byType(Focus)).first);
+      focus.focusNode!.requestFocus();
+      await tester.pump();
+      expect(focus.focusNode!.hasFocus, isTrue);
+      // The keymap binds Enter/Space to ActivateIntent; invoke it directly as
+      // the collapser's a11y test does.
+      Actions.invoke(focus.focusNode!.context!, const ActivateIntent());
+      expect(opened, 1);
+    });
+
+    testWidgets('hovering lights the frame in the focus colour', (tester) async {
+      await tester.pumpWidget(anchoredHarness(f, openable(() {})));
+      final tokens = ClideSettings.theme.of(tester.element(find.byType(DrawingCard))).surface;
+      Color frameColor() {
+        final box = tester.widget<DecoratedBox>(
+          find.descendant(
+            of: find.byType(ClideTappable),
+            matching: find.byWidgetPredicate((w) => w is DecoratedBox && (w.decoration as BoxDecoration).color == tokens.panelBackground),
+          ),
+        );
+        return ((box.decoration as BoxDecoration).border! as Border).top.color;
+      }
+
+      expect(frameColor(), tokens.panelBorder);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(mouse.removePointer);
+      await mouse.addPointer(location: Offset.zero);
+      await mouse.moveTo(tester.getCenter(find.byType(SvgView)));
+      await tester.pump();
+      expect(frameColor(), tokens.globalFocus);
+      // Leave, and let the tooltip's hover-delay timer run out.
+      await mouse.moveTo(const Offset(-10, -10));
+      await tester.pump(const Duration(seconds: 1));
+      expect(frameColor(), tokens.panelBorder);
+    });
+
+    testWidgets('no onLightbox means no open target', (tester) async {
+      await tester.pumpWidget(anchoredHarness(f, card()));
+      expect(find.byType(ClideTappable), findsNothing);
+    });
   });
 }

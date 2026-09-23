@@ -554,3 +554,25 @@ DESIGN NOTE: ClideCollapserCard currently renders ONLY the ticker row when colla
 FILES: lib/builtin/claude/src/conversation_view.dart (_workflowCard / _workflowBody / _workflowAgentRow); possibly lib/widgets/src/clide_collapser_card.dart if going with option (b). Tests: test/builtin/claude/conversation_view_test.dart (assert agent rows + usage render while collapsed).
 
 ACCEPTANCE: a collapsed workflow card shows each agent row with its live state and the usage line; the counter/spinner still summarize; non-workflow collapsers are unchanged.', 'review', 'medium', NULL, NULL, NULL, '2026-06-12 19:58:58', '2026-09-23 07:52:12.421', NULL, 'ec200df206655bc049c805f20b52c9bc', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYR002H0BYV99HPK769J2ZF8', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Drawing cards should open in the lightbox by default, like image cards do', 'Found while dogfooding `clide draw` during T-532 (2026-08-10): a rendered diagram was too small to read and there was no way to enlarge it.
+
+The zoom is **already built**. `conversation_view.dart:1421` wires `onLightbox` to a `ClideLightbox` containing an `SvgView` of the whole document, and it works. It is simply never reachable unless the *author* put a `data-lightbox` attribute on an element — `drawing_card.dart:90` filters annotations to those where `a.lightbox`, and only those get a tap target.
+
+## Why that is the wrong default
+
+Image cards set the expectation: `_openLightbox` (`conversation_view.dart:796`) opens the whole image, no markup required, no opt-in. A user who has clicked one image card reasonably expects a diagram to behave the same way.
+
+And nothing teaches the attribute. `clide draw --help` prints `file is required` and nothing else, so the affordance is discoverable only by reading `docs/design/drawing-card-schema.md`. In practice that means: nobody adds `data-lightbox`, so in practice: no drawing is ever zoomable.
+
+This also absorbs a second complaint from the same session — a diagram authored at sensible dimensions renders smaller than the pane it sits in, and smaller again in a narrow context column. A larger default card is the wrong fix (it spends conversation height on every drawing); an always-available lightbox is the right one.
+
+## Ask
+
+- The drawing card as a whole gets a **default open affordance**, matching the image card.
+- Per-element `data-lightbox` **stays** for the case it was designed for — zoom *this node*, not the whole diagram. The two are different intents and both are wanted.
+
+## Watch for
+
+- **Discoverability, not just a hidden tap target.** An invisible click region is not an affordance; it needs a hover cue, and it needs to be reachable without a mouse.
+- **D-20 (a11y is tier 0).** The open action needs a semantics label and a keyboard route, which the current element-scoped `GestureDetector` does not have.
+- **D-78 holds.** A lightbox is a view over display-only content, not an interaction with the model, so nothing about cards-are-display-only changes.', 'review', 'medium', NULL, NULL, 'D-103', '2026-08-10 14:07:31.464', '2026-09-23 07:52:32.328', NULL, 'c52ba826040f9338a5a17c258184ebc3', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

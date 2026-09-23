@@ -6,7 +6,10 @@
 /// carry `data-label` / `data-description` (mapped to pixel space via the same
 /// viewBox fit the painter uses). The SVG is *content* (its own palette); the
 /// frame and captions are clide *chrome* and use `SurfaceTokens`. Display-only
-/// per D-78 — no interaction lives on the card.
+/// per D-78 — the one gesture is opening the lightbox, a view over the
+/// content rather than an interaction with the model: the whole drawing is a
+/// focusable, hover-cued open target (T-563), and a `data-lightbox` element
+/// keeps its own element-scoped target on top.
 ///
 /// Sizes the SVG to its intrinsic aspect ratio (viewBox / width-height) within
 /// a height cap, filling the available width.
@@ -16,6 +19,7 @@ import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/src/clide_card_metrics.dart';
 import 'package:clide/widgets/src/clide_collapser_card.dart';
 import 'package:clide/widgets/src/clide_settings.dart';
+import 'package:clide/widgets/src/clide_tappable.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/svg/svg_painter.dart';
 import 'package:clide/widgets/src/typography.dart';
@@ -44,8 +48,9 @@ class DrawingCard extends StatelessWidget {
   /// the drawing (T-494) — the rendered diagram leads; the code folds away.
   final String? source, sourceLabel;
 
-  /// Called when a `data-lightbox` element is tapped (the caller opens the
-  /// zoom view). Null ⇒ no lightbox affordance.
+  /// Opens the zoom view (the caller shows the lightbox). Fired by a tap —
+  /// or Enter/Space when focused — anywhere on the drawing (T-563), and by a
+  /// `data-lightbox` element's own target. Null ⇒ no lightbox affordance.
   final VoidCallback? onLightbox;
   final double maxHeight;
 
@@ -61,7 +66,7 @@ class DrawingCard extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: kClideCardHeaderPadV),
             child: ClideText(label!, fontSize: clideFontMeta, fontWeight: FontWeight.w600, color: tokens.globalForeground),
           ),
-        _svgRegion(tokens),
+        _svgRegion(context, tokens),
         if (_has(description))
           Padding(
             padding: const EdgeInsets.only(top: kClideCardHeaderPadV),
@@ -85,7 +90,7 @@ class DrawingCard extends StatelessWidget {
     );
   }
 
-  Widget _svgRegion(SurfaceTokens tokens) {
+  Widget _svgRegion(BuildContext context, SurfaceTokens tokens) {
     final view = SvgView(document: document, images: images);
     final anns = document.annotations.where((a) => _has(a.label) || _has(a.description) || (a.lightbox && onLightbox != null)).toList();
     final content = anns.isEmpty
@@ -104,10 +109,12 @@ class DrawingCard extends StatelessWidget {
           );
     final aspect = _aspect(document);
     final sized = aspect != null ? AspectRatio(aspectRatio: aspect, child: content) : SizedBox(height: maxHeight, child: content);
-    return DecoratedBox(
+    Widget frame({bool hovered = false}) => DecoratedBox(
       decoration: BoxDecoration(
         color: tokens.panelBackground,
-        border: Border.all(color: tokens.panelBorder),
+        // Hover cue for the open affordance: the frame lights up in the focus
+        // colour, so the target is visible, not just a cursor change.
+        border: Border.all(color: hovered ? tokens.globalFocus : tokens.panelBorder),
         borderRadius: BorderRadius.circular(kClideCardRadius),
       ),
       child: ClipRRect(
@@ -116,6 +123,24 @@ class DrawingCard extends StatelessWidget {
           constraints: BoxConstraints(maxHeight: maxHeight),
           child: sized,
         ),
+      ),
+    );
+    final open = onLightbox;
+    if (open == null) return frame();
+    // The whole drawing opens the lightbox, like an image card (T-563): a
+    // pointer target with a hover cue, plus a Tab stop activated by
+    // Enter/Space and a labelled semantics button (D-20). A data-lightbox
+    // element's own target sits deeper in the tree and still wins its taps.
+    final openLabel = ClideSettings.i18n.string(context, 'drawing.openLightbox', namespace: 'core', placeholder: 'Open drawing in full view');
+    return Semantics(
+      container: true,
+      button: true,
+      label: openLabel,
+      onTap: open,
+      child: ClideTappable(
+        onTap: open,
+        tooltip: openLabel,
+        builder: (_, hovered, _) => frame(hovered: hovered),
       ),
     );
   }
