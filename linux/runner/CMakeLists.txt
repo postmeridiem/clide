@@ -5,6 +5,8 @@ project(runner LANGUAGES C CXX)
 add_executable(${BINARY_NAME}
   "main.cc"
   "clide_app.cc"
+  "clide_loader.cc"
+  "clide_tray_bridge.cc"
   "protocols/server-decoration-protocol.c"
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
 )

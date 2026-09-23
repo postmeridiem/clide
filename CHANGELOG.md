@@ -22,6 +22,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   ticket, decision, or editor file comes back as `subject`.
 - **Messages sent while Claude is working wait in a queue** (T-587) — shown
   above the composer, where each can be edited or dismissed before it sends.
+- **Closing a window keeps clide running in the tray** (T-55, Linux) — Claude
+  sessions and terminals survive; one shared tray icon lists every window and
+  quits them all. Opt out under Settings → General.
 
 ### Changed
 

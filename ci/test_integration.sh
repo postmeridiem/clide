@@ -12,6 +12,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Real app boots would each start the tray loader (D-110) — an icon on a dev
+# box's panel, a stray process on CI. The runner leaves the tray alone with this.
+export CLIDE_NO_TRAY=1
+
 for f in integration_test/*_test.dart; do
   echo "==> integration_test: $f"
   flutter test -d linux "$f"

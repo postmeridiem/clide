@@ -13,6 +13,7 @@
 #include "protocols/server-decoration-client-protocol.h"
 #endif
 
+#include "clide_tray_bridge.h"
 #include "flutter/generated_plugin_registrant.h"
 
 struct _ClideApp {
@@ -320,6 +321,10 @@ static void clide_app_activate(GApplication* application) {
         fl_method_call_respond(method_call, response, nullptr);
       },
       window, nullptr);
+
+  // D-110: tray bridge — close-to-tray, the `clide/tray` channel, and the
+  // loader that owns the shared tray icon.
+  clide_tray_bridge_attach(window, fl_engine_get_binary_messenger(engine));
 
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }

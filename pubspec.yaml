@@ -97,6 +97,9 @@ flutter:
     - assets/logo/logo-192.png
     - assets/logo/appicon.svg
     - assets/logo/appicon-256.png
+    # Tray icon (D-110): the symbolic mark. The Linux loader builds an icon
+    # theme from it at runtime so KDE/GNOME can recolor it to the panel.
+    - assets/tray/clide-tray.svg
     - assets/clide.tmux.conf
     - assets/grammars/
     - assets/queries/
