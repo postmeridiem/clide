@@ -123,8 +123,9 @@ class ClaudeExtension extends ClideExtension {
       run: _cycleFoldLevel,
     ),
     // Claude settings category (T-457) — defaults applied to NEW sessions
-    // (the pane reads these keys at spawn). Effort flows through --effort;
-    // model + permission mode are sent as control requests post-spawn. The
+    // (the pane reads these keys at spawn) as the --model, --effort and
+    // --permission-mode launch flags (T-597); allowing bypass adds
+    // --allow-dangerously-skip-permissions. The
     // conversation fold level (T-453) lives here too: it had a one-field
     // "Activity" tab of its own until the settings restructure.
     SettingsCategoryContribution(
