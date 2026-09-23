@@ -397,3 +397,20 @@ Want:
 5. New sessions start in the configured default mode via `--permission-mode` at spawn instead of a post-spawn control request. The CLI then falls back to Manual itself when auto isn''t available, silently and correctly. Default for the setting: `auto` (Anthropic''s preferred mode); users who set another value keep it.', NULL, '2026-09-23 07:35:03', '2026-09-23 07:35:03.310', '2026-09-23 07:35:03.310', NULL, '4685aa58299ae65aea084b98a92d7f57', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCTC3QRDPP5RJMFMCKRW045M', 'status', 'backlog', 'in_progress', NULL, '2026-09-23 07:35:03', '2026-09-23 07:35:03.790', '2026-09-23 07:35:03.790', NULL, '8a73f3f6f7e7ddb31a91b3e4033499e7', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCTC3QRDPP5RJMFMCKRW045M', 'status', 'in_progress', 'done', NULL, '2026-09-23 07:44:03', '2026-09-23 07:44:03.874', '2026-09-23 07:44:03.874', NULL, '23eef9d44b07e715d8f752a641ce9169', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCTF77KDWXQ4693GDWCC1YE0', 'description', NULL, 'User 2026-09-23, after the tray work converged only because they looked at the panel after each round (three icon problems they caught before I did): give the agent a way to see clide''s own UI, so it can verify visual changes instead of asking.
+
+Want: `clide window screenshot` — render the live clide window to a PNG and return its path, so an agent can Read the image. Variants:
+- `--pane <id>` / `--slot <sidebar|workspace|context|dock|statusbar>`: capture just that region (the ids `clide pane list` reports).
+- `--out <path>`: where to write; default a per-workspace user-scope dir (never the repo, D-93), newest-N retained.
+- `--scale <n>`: device-pixel ratio for the capture (default the window''s).
+
+Shape: wrap the app root (and each slot/pane host) in a RepaintBoundary with a GlobalKey; `RenderRepaintBoundary.toImage()` → `toByteData(png)` → file. This is in-process and cross-platform (Linux, macOS, Windows) with no desktop screenshot permissions, since it''s clide rendering its own layer tree. It captures what clide painted, not the OS chrome; the frameless window has none anyway (D-57). It must work while the window is hidden to the tray (render off-screen), and return a clear error when there''s no frame yet.
+
+D-6: a UI affordance too (e.g. a command-palette "Window: Save Screenshot" that writes to the same place and toasts the path).
+
+Out of scope, noted: things outside clide''s window (the OS tray/panel, native dialogs) can''t be captured this way. That needs the desktop''s screenshot portal (xdg-desktop-portal Screenshot on Linux), which prompts the user and is a separate ticket if wanted.
+
+Relates: T-573 (loading a pasted screenshot into the workspace — the input direction; this is the output direction).
+
+Acceptance: `clide window screenshot` returns a PNG path whose image matches the current UI; `--pane claude.primary` returns only that pane; works with the window hidden; the palette command does the same; covered by a widget test that captures a known tree and checks dimensions + a sampled pixel.', NULL, '2026-09-23 07:48:38', '2026-09-23 07:48:38.253', '2026-09-23 07:48:38.253', NULL, '5ba9a4dee63d4fcdd8b81744bd44fe55', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCZDVPBWGM5NHJ9BNQBVKCD0', 'status', 'backlog', 'done', NULL, '2026-09-23 07:49:05', '2026-09-23 07:49:05.866', '2026-09-23 07:49:05.866', NULL, 'dcb1243c2d0e6a20c6fbcb3f4490eadd', 2) ON CONFLICT(hash) DO NOTHING;

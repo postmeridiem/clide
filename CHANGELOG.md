@@ -39,6 +39,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - **Permission modes use Claude Code's names** (T-597) — Manual, Accept
   edits, Plan, Auto, Bypass permissions. Bypass is offered only once you turn
   on "Allow bypass permissions mode" in Settings → Claude.
+- **Ticket ids on the sidebar cards are no longer bold** (T-441) — easier to
+  read at card size.
 
 ### Fixed
 

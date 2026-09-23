@@ -62,6 +62,13 @@ void main() {
     expect(find.text('T-9'), findsOneWidget);
   });
 
+  testWidgets('the card id label renders at regular weight (T-441)', (tester) async {
+    f.ipc.stub('pql.tickets.list', (_) async => _list([_t('T-1', 'Readable id', 'backlog')]));
+    await pumpView(tester);
+
+    expect(tester.widget<Text>(find.text('T-1')).style?.fontWeight, isNull);
+  });
+
   testWidgets('filter narrows the visible cards', (tester) async {
     f.ipc.stub('pql.tickets.list', (_) async => _list([_t('T-1', 'Alpha', 'backlog'), _t('T-2', 'Beta', 'backlog')]));
     await pumpView(tester);

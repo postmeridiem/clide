@@ -427,8 +427,9 @@ class _TicketCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Parent shown as a muted breadcrumb above; the card's own ticket
-                  // sits below it under a tree connector and in bold, so it's clear
-                  // which id is the subject and which is its parent (T-281).
+                  // sits below it under a tree connector in full foreground, so it's
+                  // clear which id is the subject and which is its parent (T-281).
+                  // The id is regular weight — semibold read poorly at this size (T-441).
                   if (entry.parentId != null)
                     ClideTappable(
                       onTap: () => ClideKernel.of(context).messages.publish('builtin.tickets', 'selection', {'id': entry.parentId}),
@@ -454,13 +455,7 @@ class _TicketCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 6),
-                      ClideText(
-                        entry.id,
-                        fontSize: clideFontSmall,
-                        color: tokens.globalForeground,
-                        fontFamily: ClideSettings.fonts.monoOf(context),
-                        fontWeight: FontWeight.w600,
-                      ),
+                      ClideText(entry.id, fontSize: clideFontSmall, color: tokens.globalForeground, fontFamily: ClideSettings.fonts.monoOf(context)),
                     ],
                   ),
                   const SizedBox(height: 4),
