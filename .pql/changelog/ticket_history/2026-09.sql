@@ -1102,3 +1102,54 @@ Step 1 is a probe, because stream-json headless mode may behave differently from
 - D-6: `clide claude queue` verbs (T-588) must reflect the new states.
 
 Acceptance: a message sent during a long multi-tool turn reaches Claude within one tool step (not at turn end) and shows up in the conversation where it was delivered; the user can still choose to hold a message for the next turn.', NULL, '2026-09-23 08:28:24', '2026-09-23 08:28:24.218', '2026-09-23 08:28:24.218', NULL, '7791aacc54038a90836e81e626021adb', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCTRADYM8J1D4XKA81PAE5X8', 'description', 'User request 2026-09-23: queued messages take very long to arrive. A message typed while Claude works waits until the whole turn ends, and with long agentic turns that can be many minutes. The user wants their message woven into the running work, like an inline "also, the user messaged this:" note, instead of waiting for the end or interrupting.
+
+## Today
+
+`StreamJsonSession.send` (T-587) holds a message in clide''s own queue while a turn is busy, and `_flushQueued()` writes it to claude''s stdin only once the turn''s `result` arrives. So clide adds the whole remaining turn as latency.
+
+## Direction
+
+Claude Code''s own TUI already does what''s asked. Input typed during a turn is queued inside the CLI and attached at the next tool-call boundary as a "the user sent a message while you were working" note, so the model sees it mid-turn and can adjust without being stopped. So the likely fix is to stop holding: write the message to stdin right away and let the CLI inject it at its next step.
+
+Step 1 is a probe, because stream-json headless mode may behave differently from the TUI. Start `claude -p --input-format stream-json --output-format stream-json`, send a prompt that runs a few slow tool calls, and write a second user message on stdin partway through. Record whether:
+- (a) the second message reaches the model inside the same turn (before `result`; visible in the transcript as a queued-command attachment or system-reminder), or
+- (b) it''s processed as a separate turn afterwards, or
+- (c) it breaks the turn.
+
+- **If (a):** send immediately by default. The queue dock changes meaning. A message stays editable and dismissable only until it''s written; after that it shows "delivered, reaches Claude at its next step" until it appears in the conversation. Keep today''s hold-until-turn-end as a per-message or setting option ("hold for the next turn").
+- **If (b) or (c):** the CLI won''t do it headless. Then weigh having clide deliver it itself, for example through a PostToolUse/UserPromptSubmit-style hook that reads a clide-owned inbox and returns the note as additionalContext. Hooks are the documented way to inject context mid-turn. This needs a D-record because it puts clide into Claude''s hook chain.
+
+## Notes
+
+- Mid-turn delivery only happens at tool boundaries. A turn that is one long text generation still delivers at its end.
+- Interaction with T-587''s edit-pauses-sending: editing must still stop delivery, but once a message is written to stdin it can''t be pulled back. The UI must make that moment visible.
+- D-6: `clide claude queue` verbs (T-588) must reflect the new states.
+
+Acceptance: a message sent during a long multi-tool turn reaches Claude within one tool step (not at turn end) and shows up in the conversation where it was delivered; the user can still choose to hold a message for the next turn.', 'User request 2026-09-23: queued messages take very long to arrive. A message typed while Claude works waits until the whole turn ends, and with long agentic turns that can be many minutes. The user wants their message woven into the running work, like an inline "also, the user messaged this:" note, instead of waiting for the end or interrupting.
+
+## Today
+
+`StreamJsonSession.send` (T-587) holds a message in clide''s own queue while a turn is busy, and `_flushQueued()` writes it to claude''s stdin only once the turn''s `result` arrives. So clide adds the whole remaining turn as latency.
+
+## Direction
+
+Claude Code''s own TUI already does what''s asked. Input typed during a turn is queued inside the CLI and attached at the next tool-call boundary as a "the user sent a message while you were working" note, so the model sees it mid-turn and can adjust without being stopped. So the likely fix is to stop holding: write the message to stdin right away and let the CLI inject it at its next step.
+
+Step 1 is a probe, because stream-json headless mode may behave differently from the TUI. Start `claude -p --input-format stream-json --output-format stream-json`, send a prompt that runs a few slow tool calls, and write a second user message on stdin partway through. Record whether:
+- (a) the second message reaches the model inside the same turn (before `result`; visible in the transcript as a queued-command attachment or system-reminder), or
+- (b) it''s processed as a separate turn afterwards, or
+- (c) it breaks the turn.
+
+- **If (a):** send immediately by default. The queue dock changes meaning. A message stays editable and dismissable only until it''s written; after that it shows "delivered, reaches Claude at its next step" until it appears in the conversation. Keep today''s hold-until-turn-end as a per-message or setting option ("hold for the next turn").
+- **If (b) or (c):** the CLI won''t do it headless. Then weigh having clide deliver it itself, for example through a PostToolUse/UserPromptSubmit-style hook that reads a clide-owned inbox and returns the note as additionalContext. Hooks are the documented way to inject context mid-turn. This needs a D-record because it puts clide into Claude''s hook chain.
+
+## Notes
+
+- Mid-turn delivery only happens at tool boundaries. A turn that is one long text generation still delivers at its end.
+- Interaction with T-587''s edit-pauses-sending: editing must still stop delivery, but once a message is written to stdin it can''t be pulled back. The UI must make that moment visible.
+- D-6: `clide claude queue` verbs (T-588) must reflect the new states.
+
+Acceptance: a message sent during a long multi-tool turn reaches Claude within one tool step (not at turn end) and shows up in the conversation where it was delivered; the user can still choose to hold a message for the next turn.
+
+Probe result 2026-09-23 (claude -p stream-json, haiku, three sequential ''sleep 4'' Bash calls, second user message written to stdin 20 ms after the first tool_use): CASE (a) — the CLI does it natively. The second message was queued by the CLI (transcript: queue-operation + a queued_command attachment) and delivered right after the first tool_result, i.e. at the next tool step (~4 s after sending, not at turn end). The model acted on it within the same turn: ONE result, num_turns=4, reply ended with the requested word. Without --replay-user-messages there is NO stdout event for the injection. WITH --replay-user-messages, the CLI emits {type:user, isReplay:true, message.content:<text>} at the moment of injection (8.2 s, right after tool_result #1), and also echoes the turn''s opening prompt. So the design is: (1) add --replay-user-messages to the stream-json spawn; (2) send() writes to stdin immediately even while busy; (3) the dock shows the message as ''waiting for Claude''s next step'' until the matching isReplay echo arrives, then it moves into the conversation at that position; (4) edit/dismiss are only possible while it''s still in clide''s hold (the explicit ''hold for next turn'' option) — once written to stdin it can''t be recalled; (5) the conversation renderer must de-duplicate the replay echo of messages clide already rendered on send (match by text/uuid order). Probe script: tmp/midturn_probe.dart (local).', NULL, '2026-09-23 08:35:14', '2026-09-23 08:35:14.229', '2026-09-23 08:35:14.229', NULL, '28fcce3abe2dfe6c80356afddd7f4a3d', 2) ON CONFLICT(hash) DO NOTHING;
