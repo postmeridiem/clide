@@ -164,6 +164,33 @@ void main() {
       expect(t.keyInput(TerminalKey.arrowUp), isFalse);
       expect(r.outputs, isEmpty);
     });
+
+    // T-632: arrow keys follow DECCKM (CSI ?1h / ?1l), not the keypad mode.
+    // vim and less switch to application cursor keys and expect ESC O A.
+    test('arrow keys send CSI in normal cursor mode, SS3 after DECCKM', () {
+      final r = _Recorder();
+      final t = r.build();
+      t.keyInput(TerminalKey.arrowUp);
+      expect(r.outputs.last, '\x1b[A');
+
+      t.write('\x1b[?1h'); // DECCKM on: application cursor keys
+      t.keyInput(TerminalKey.arrowUp);
+      expect(r.outputs.last, '\x1bOA');
+      t.keyInput(TerminalKey.arrowLeft);
+      expect(r.outputs.last, '\x1bOD');
+
+      t.write('\x1b[?1l'); // and back
+      t.keyInput(TerminalKey.arrowUp);
+      expect(r.outputs.last, '\x1b[A');
+    });
+
+    test('the keypad mode alone does not switch the arrow keys', () {
+      final r = _Recorder();
+      final t = r.build();
+      t.write('\x1b='); // DECKPAM: application keypad
+      t.keyInput(TerminalKey.arrowUp);
+      expect(r.outputs.last, '\x1b[A');
+    });
   });
 
   group('Terminal — charInput', () {

@@ -41,6 +41,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   held.
 - **Terminal mouse clicks land on the right row** (T-629) — in the older
   mouse modes a click was reported one line below where you clicked.
+- **Arrow keys work in programs that switch cursor-key mode** (T-632) —
+  vim, less and others that ask for application cursor keys now get them.
 
 ## [2.18.1] — 2026-09-23
 

@@ -114,7 +114,8 @@ class KeytabInputHandler implements TerminalInputHandler {
       alt: event.alt,
       shift: event.shift,
       newLineMode: event.state.lineFeedMode,
-      appCursorKeys: event.state.appKeypadMode,
+      // Arrow keys follow DECCKM (CSI ?1h), not the keypad mode (T-632).
+      appCursorKeys: event.state.cursorKeysMode,
       appKeyPad: event.state.appKeypadMode,
       appScreen: event.altBuffer,
       macos: event.platform == TerminalTargetPlatform.macos,
