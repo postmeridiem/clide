@@ -26,7 +26,24 @@ void main() {
     test('strings that start with a YAML indicator round-trip as strings (audit #8)', () async {
       // Unquoted, `*.dart` is an alias, `[wip] x` a broken flow sequence (the
       // file moves aside as .broken), and a JSON array reloads as a List.
-      const values = ['*.dart', '[wip] x', '["a","b"]', '{x}', '- item', '&anchor', '!tag', '|pipe', '>fold', "'q", '"dq', '%pct', '@at', '`tick', '? q', ', c'];
+      const values = [
+        '*.dart',
+        '[wip] x',
+        '["a","b"]',
+        '{x}',
+        '- item',
+        '&anchor',
+        '!tag',
+        '|pipe',
+        '>fold',
+        "'q",
+        '"dq',
+        '%pct',
+        '@at',
+        '`tick',
+        '? q',
+        ', c',
+      ];
       for (var i = 0; i < values.length; i++) {
         await store.set<String>('app.indicator.k$i', values[i]);
       }
