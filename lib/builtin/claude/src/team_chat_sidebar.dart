@@ -168,8 +168,7 @@ class _TeamChatSidebarState extends State<TeamChatSidebar> {
             ),
           )
         else
-          for (final msg in messages.length > 5 ? messages.sublist(messages.length - 5) : messages)
-            _ChatRow(key: ObjectKey(msg), message: msg, tokens: tokens),
+          for (final msg in messages.length > 5 ? messages.sublist(messages.length - 5) : messages) _ChatRow(key: ObjectKey(msg), message: msg, tokens: tokens),
         const SizedBox(height: 6),
         // Quick-post composer.
         ClideTypeahead(

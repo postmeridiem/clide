@@ -879,7 +879,9 @@ void main() {
 
   // T-637 (#15) + T-612: control strings, aborted CSIs and bounded input.
   group('EscapeParser — control strings and hardening', () {
-    List<String> printed(({EscapeParser parser, _RecordingHandler h}) f) => [for (final c in f.h.calls.where((c) => c.name == 'writeChar')) String.fromCharCode(c.args.single as int)];
+    List<String> printed(({EscapeParser parser, _RecordingHandler h}) f) => [
+      for (final c in f.h.calls.where((c) => c.name == 'writeChar')) String.fromCharCode(c.args.single as int),
+    ];
 
     test('DCS, SOS, PM and APC bodies are swallowed, not printed', () {
       final f = _newParser();
