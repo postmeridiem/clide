@@ -264,5 +264,11 @@
   "settings.claude.account.registry.label": { "translation": "Accounts" },
   "settings.claude.account.registry.help": { "translation": "Registered Claude accounts (each a separate config dir + login)." },
   "settings.claude.account.workspace.label": { "translation": "Account for this workspace" },
-  "settings.claude.account.workspace.help": { "translation": "Which Claude account this repo runs under; Default uses the system login." }
+  "settings.claude.account.workspace.help": { "translation": "Which Claude account this repo runs under; Default uses the system login." },
+  "settings.claude.agents.label": { "translation": "Agents" },
+  "settings.claude.spawnAllow.label": { "translation": "Commands agents may start without asking" },
+  "settings.claude.spawnAllow.help": { "translation": "Exact commands, word for word (e.g. make test). End with * to allow any further arguments (flutter test *). Anything else an agent starts asks you first." },
+  "settings.claude.spawnAllow.empty": { "translation": "None yet — every command an agent starts asks you first." },
+  "settings.claude.spawnAllow.add": { "translation": "Add command" },
+  "settings.claude.spawnAllow.remove": { "translation": "Remove {command}" }
 }

@@ -282,7 +282,7 @@ void main() {
       ran = [];
       answer = EscalationVerdict.deny;
       d = DaemonDispatcher();
-      for (final cmd in ['pane.spawn', 'git.status', 'files.write', 'claude.account']) {
+      for (final cmd in ['git.push', 'git.status', 'files.write', 'claude.account']) {
         d.register(cmd, (req) async {
           ran.add(cmd);
           return IpcResponse.ok(id: req.id, data: const {});
@@ -300,47 +300,47 @@ void main() {
         runZoned(() => d.dispatch(_req(cmd, args: args)), zoneValues: {callerZoneKey: from});
 
     test('an in-app call (no caller) runs without asking', () async {
-      expect((await call('pane.spawn')).ok, isTrue);
+      expect((await call('git.push')).ok, isTrue);
       expect(asked, isEmpty);
     });
 
     test('a person at a terminal runs without asking', () async {
-      expect((await call('pane.spawn', from: caller(null))).ok, isTrue);
+      expect((await call('git.push', from: caller(null))).ok, isTrue);
       expect(asked, isEmpty);
     });
 
     test('an agent is asked, and a deny refuses without running', () async {
-      final r = await call('pane.spawn', args: const {'argv': 'x'}, from: caller('claude:7'));
+      final r = await call('git.push', args: const {'argv': 'x'}, from: caller('claude:7'));
       expect(r.ok, isFalse);
       expect(r.error!.kind, IpcErrorKind.userError);
       expect(r.error!.message, contains('declined'));
       expect(ran, isEmpty);
-      expect(asked.single.command, 'pane.spawn');
+      expect(asked.single.command, 'git.push');
       expect(asked.single.args['argv'], 'x');
       expect(asked.single.agent.key, 'claude:7');
     });
 
     test('allow once runs this call only', () async {
       answer = EscalationVerdict.once;
-      expect((await call('pane.spawn', from: caller('claude:7'))).ok, isTrue);
-      expect((await call('pane.spawn', from: caller('claude:7'))).ok, isTrue);
+      expect((await call('git.push', from: caller('claude:7'))).ok, isTrue);
+      expect((await call('git.push', from: caller('claude:7'))).ok, isTrue);
       expect(asked, hasLength(2));
-      expect(ran, ['pane.spawn', 'pane.spawn']);
+      expect(ran, ['git.push', 'git.push']);
     });
 
     test('allow for this session covers the same exact command from the same agent', () async {
       answer = EscalationVerdict.session;
-      await call('pane.spawn', args: const {'argv': 'make test'}, from: caller('claude:7'));
+      await call('git.push', args: const {'argv': 'make test'}, from: caller('claude:7'));
       answer = EscalationVerdict.deny;
-      expect((await call('pane.spawn', args: const {'argv': 'make test'}, from: caller('claude:7'))).ok, isTrue);
+      expect((await call('git.push', args: const {'argv': 'make test'}, from: caller('claude:7'))).ok, isTrue);
       expect(asked, hasLength(1), reason: 'remembered');
       expect(
-        (await call('pane.spawn', args: const {'argv': 'make other'}, from: caller('claude:7'))).ok,
+        (await call('git.push', args: const {'argv': 'make other'}, from: caller('claude:7'))).ok,
         isFalse,
         reason: 'different args ask again',
       );
       expect(
-        (await call('pane.spawn', args: const {'argv': 'make test'}, from: caller('claude:8'))).ok,
+        (await call('git.push', args: const {'argv': 'make test'}, from: caller('claude:8'))).ok,
         isFalse,
         reason: 'a different agent asks again',
       );
@@ -349,9 +349,16 @@ void main() {
 
     test('with no confirm available, escalation from an agent is refused', () async {
       d.escalationGate = null;
-      final r = await call('pane.spawn', from: caller('claude:7'));
+      final r = await call('git.push', from: caller('claude:7'));
       expect(r.ok, isFalse);
       expect(ran, isEmpty);
+    });
+
+    test('a handler-checked command is left to its handler (pane ownership, allowlist)', () async {
+      d.register('pane.spawn', (req) async => IpcResponse.ok(id: req.id, data: const {}));
+      expect(d.riskOf('pane.spawn')!.handlerChecked, isTrue);
+      expect((await call('pane.spawn', from: caller('claude:7'))).ok, isTrue);
+      expect(asked, isEmpty, reason: 'pane_commands decides; its tests pin that it asks');
     });
 
     test('lower tiers from an agent never ask', () async {
@@ -372,12 +379,12 @@ void main() {
       final r = await call(
         '_argv',
         args: const {
-          'argv': ['pane', 'spawn'],
+          'argv': ['git', 'push'],
         },
         from: caller('claude:7'),
       );
       expect(r.ok, isFalse);
-      expect(asked.single.command, 'pane.spawn');
+      expect(asked.single.command, 'git.push');
       expect(ran, isEmpty);
     });
 

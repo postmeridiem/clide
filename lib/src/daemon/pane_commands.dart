@@ -20,6 +20,7 @@ import '../panes/registry.dart';
 import '../panes/view_pane.dart';
 import '../pty/errors.dart';
 import 'dispatcher.dart';
+import 'escalation.dart';
 
 /// Snapshots the non-PTY panes the user sees in the GUI (kernel tabs) at
 /// request time — see [ViewPane]. Null in headless contexts (tests, the
@@ -27,18 +28,62 @@ import 'dispatcher.dart';
 /// PTY panes, exactly as before (T-219, D-6 parity / D-83).
 typedef ViewPaneSource = List<ViewPane> Function();
 
-void registerPaneCommands(DaemonDispatcher d, PaneRegistry registry, {ViewPaneSource? viewPanes}) {
+/// The user's app-scope list of commands an agent may start without the
+/// confirm (`app.agent.spawnAllow`, D-115); see [spawnAllowlisted].
+typedef SpawnAllowSource = List<String> Function();
+
+void registerPaneCommands(DaemonDispatcher d, PaneRegistry registry, {ViewPaneSource? viewPanes, SpawnAllowSource? agentSpawnAllow}) {
   // Positional schemas bind `clide pane <verb> <args…>` to the named keys the
   // handlers read (T-232, via D-74 normalize). Non-required — handlers keep
   // their presence checks — so the effect is positional→named mapping plus
   // numeric coercion of cols/rows.
   const idArg = CommandSchema(positional: ['id'], args: {'id': ArgSpec()});
-  d.register('pane.spawn', (req) => _spawn(req, registry));
+
+  // Which agent spawned each pane (D-115): an agent types into and closes
+  // its own panes freely; any other pane — the user's shell included —
+  // waits on the confirm. These three verbs are handler-checked for that.
+  final owners = <String, String>{};
+
+  Future<IpcResponse?> ownerOrConfirm(IpcRequest req) async {
+    final agent = await currentCaller()?.agent();
+    if (agent == null) return null;
+    final id = req.args['id'];
+    // An unknown pane: let the handler report not-found, nothing to ask.
+    if (id is! String || registry.get(id) == null) return null;
+    if (owners[id] == agent.key) return null;
+    return d.checkEscalation(req);
+  }
+
+  d.register('pane.spawn', (req) async {
+    final agent = await currentCaller()?.agent();
+    if (agent != null) {
+      final argv = req.args['argv'];
+      final env = req.args['env'];
+      final allowed =
+          argv is List &&
+          argv.every((a) => a is String) &&
+          (env == null || env is Map) &&
+          spawnAllowlisted(agentSpawnAllow?.call() ?? const [], argv: argv.cast<String>(), env: (env as Map?)?.cast<String, Object?>(), cwd: req.args['cwd']);
+      if (!allowed) {
+        final refusal = await d.checkEscalation(req);
+        if (refusal != null) return refusal;
+      }
+    }
+    final r = await _spawn(req, registry);
+    if (agent != null && r.ok) owners[r.data['id'] as String] = agent.key;
+    return r;
+  });
   d.register('pane.list', (req) => _list(req, registry, viewPanes));
-  d.register('pane.close', (req) => _close(req, registry), schema: idArg);
+  d.register('pane.close', (req) async {
+    final refusal = await ownerOrConfirm(req);
+    if (refusal != null) return refusal;
+    final r = await _close(req, registry);
+    if (r.ok) owners.remove(req.args['id']);
+    return r;
+  }, schema: idArg);
   d.register(
     'pane.write',
-    (req) => _write(req, registry),
+    (req) async => await ownerOrConfirm(req) ?? await _write(req, registry),
     schema: const CommandSchema(positional: ['id', 'text'], args: {'id': ArgSpec(), 'text': ArgSpec()}),
   );
   d.register(

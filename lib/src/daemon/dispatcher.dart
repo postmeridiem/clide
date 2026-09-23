@@ -110,7 +110,8 @@ class DaemonDispatcher {
     }
     // After validation, so the tier and the confirm see the args the
     // handler will actually run with.
-    if (_risk[req.cmd]!.tierFor(validated.args) == RiskTier.escalate) {
+    final risk = _risk[req.cmd]!;
+    if (risk.tierFor(validated.args) == RiskTier.escalate && !risk.handlerChecked) {
       final refusal = await checkEscalation(validated);
       if (refusal != null) return refusal;
     }

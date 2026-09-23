@@ -316,16 +316,16 @@ void main() {
     test('a socket request carries its caller\'s pid to the escalation check', () async {
       final seen = <int?>[];
       final asked = <EscalationRequest>[];
-      dispatcher.register('pane.spawn', (req) async => IpcResponse.ok(id: req.id, data: const {}));
+      dispatcher.register('git.push', (req) async => IpcResponse.ok(id: req.id, data: const {}));
       dispatcher.escalationGate = (r) async {
         asked.add(r);
         return EscalationVerdict.deny;
       };
       server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir, agentDetector: _RecordingDetector(seen));
       await server.start();
-      final reply = await _roundTrip(server.socketPath, IpcRequest(id: 'e', cmd: 'pane.spawn'));
+      final reply = await _roundTrip(server.socketPath, IpcRequest(id: 'e', cmd: 'git.push'));
       expect(reply.ok, isFalse);
-      expect(asked.single.command, 'pane.spawn');
+      expect(asked.single.command, 'git.push');
       if (Platform.isLinux || Platform.isMacOS) expect(seen.single, pid, reason: 'the peer is this very process');
     });
 

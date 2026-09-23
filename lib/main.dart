@@ -39,6 +39,7 @@ import 'dart:io' show Directory, File, Platform, exit, pid;
 
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/builtin/claude/src/account_registry.dart';
+import 'package:clide/builtin/claude/src/spawn_allow_control.dart' show readSpawnAllow;
 import 'package:clide/clide.dart' show clideCommit, clideDate, clideRepository, clideVersion;
 import 'package:clide/src/daemon/claude_account_commands.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
@@ -435,7 +436,17 @@ Future<void> main([List<String> args = const []]) async {
     // D-6 parity (T-219, D-83): make the tabs the user sees in the GUI
     // visible to `pane list` by snapshotting the kernel PanelRegistry +
     // LayoutArrangement at request time — no mirrored state to drift.
-    registerPaneCommands(dispatcher, paneRegistry, viewPanes: () => snapshotViewPanes(panels, arrangement, subjects: viewSubjects()));
+    registerPaneCommands(
+      dispatcher,
+      paneRegistry,
+      viewPanes: () => snapshotViewPanes(panels, arrangement, subjects: viewSubjects()),
+      // App scope only (D-115): an `app.*` key is never read from a repo's
+      // settings, so an opened repository can't allowlist its own commands.
+      agentSpawnAllow: () {
+        final s = kernelSettings;
+        return s == null ? const [] : readSpawnAllow(s);
+      },
+    );
     // External .editorconfig edits (another editor, a branch switch) re-resolve
     // open buffers off the files watcher rather than a second watch (T-291).
     filesService.addChangeListener((change) => editorRegistry.onFileChanged(change.path));

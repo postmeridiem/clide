@@ -164,6 +164,34 @@ Future<ProcessEntry?> _readPsEntry(int pid) async {
   }
 }
 
+/// Whether an agent may start [argv] without the confirm, per the user's
+/// app-scope allowlist [patterns] (D-115). Each entry is an argv written
+/// out with spaces — `make test` — matched word for word against the argv
+/// array, never as a shell string, so `make test; curl …` is just another
+/// argv that doesn't match. A trailing `*` word allows any further
+/// arguments (`flutter test *`). Any [env] or [cwd] override never matches:
+/// `LD_PRELOAD` or a strange directory turns an allowed argv into anything.
+bool spawnAllowlisted(List<String> patterns, {required List<String> argv, Map<String, Object?>? env, Object? cwd}) {
+  if ((env != null && env.isNotEmpty) || cwd != null) return false;
+  for (final raw in patterns) {
+    final words = raw.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) continue;
+    final open = words.last == '*';
+    final fixed = open ? words.sublist(0, words.length - 1) : words;
+    if (fixed.isEmpty) continue; // a bare `*` would allow everything
+    if (open ? argv.length < fixed.length : argv.length != fixed.length) continue;
+    var match = true;
+    for (var i = 0; i < fixed.length; i++) {
+      if (argv[i] != fixed[i]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) return true;
+  }
+  return false;
+}
+
 /// The user's answer to an escalation confirm.
 enum EscalationVerdict {
   /// Refuse (also what dismissing the modal means).

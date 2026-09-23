@@ -264,5 +264,11 @@
   "settings.claude.account.registry.label": { "translation": "Accounts" },
   "settings.claude.account.registry.help": { "translation": "Geregistreerde Claude-accounts (elk een eigen configmap + login)." },
   "settings.claude.account.workspace.label": { "translation": "Account voor deze werkmap" },
-  "settings.claude.account.workspace.help": { "translation": "Welk Claude-account deze repo gebruikt; Standaard gebruikt de systeemlogin." }
+  "settings.claude.account.workspace.help": { "translation": "Welk Claude-account deze repo gebruikt; Standaard gebruikt de systeemlogin." },
+  "settings.claude.agents.label": { "translation": "Agents" },
+  "settings.claude.spawnAllow.label": { "translation": "Opdrachten die agents zonder vragen mogen starten" },
+  "settings.claude.spawnAllow.help": { "translation": "Exacte opdrachten, woord voor woord (bijv. make test). Eindig met * om verdere argumenten toe te staan (flutter test *). Al het andere dat een agent start, vraagt eerst." },
+  "settings.claude.spawnAllow.empty": { "translation": "Nog geen — elke opdracht die een agent start, vraagt eerst." },
+  "settings.claude.spawnAllow.add": { "translation": "Opdracht toevoegen" },
+  "settings.claude.spawnAllow.remove": { "translation": "{command} verwijderen" }
 }

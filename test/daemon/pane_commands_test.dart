@@ -5,10 +5,12 @@
 /// behaviour is covered more fully in `test/panes/registry_test.dart`.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:clide/clide.dart';
+import 'package:clide/src/daemon/escalation.dart';
 import 'package:clide/src/daemon/pane_commands.dart';
 import 'package:clide/src/panes/registry.dart';
 import 'package:clide/src/panes/view_pane.dart';
@@ -277,4 +279,90 @@ void main() {
       expect(panes.where((p) => p['id'].toString().startsWith('p_')), hasLength(1));
     });
   });
+
+  // D-115: agents start allowlisted commands freely, and type into / close
+  // the panes they spawned; everything else waits on the user's confirm.
+  group('agent access to panes (D-115)', () {
+    late DaemonDispatcher d;
+    late PaneRegistry registry;
+    late List<EscalationRequest> asked;
+    late EscalationVerdict answer;
+
+    setUp(() {
+      asked = [];
+      answer = EscalationVerdict.once;
+      registry = PaneRegistry(events: RecordingEventSink());
+      d = DaemonDispatcher()
+        ..escalationGate = (r) async {
+          asked.add(r);
+          return answer;
+        };
+      registerPaneCommands(d, registry, agentSpawnAllow: () => const ['/bin/cat']);
+    });
+    tearDown(() => registry.shutdown());
+
+    Future<IpcResponse> call(String cmd, Map<String, Object?> args, {String? agent}) => runZoned(
+      () => d.dispatch(IpcRequest(id: '1', cmd: cmd, args: args)),
+      zoneValues: {callerZoneKey: agent == null ? null : CallerInfo(pid: 1, detector: _AgentIs(agent))},
+    );
+
+    Future<String> spawn({String? agent, List<String> argv = const ['/bin/cat']}) async {
+      final r = await call('pane.spawn', {'argv': argv}, agent: agent);
+      expect(r.ok, isTrue, reason: r.error?.message);
+      return r.data['id'] as String;
+    }
+
+    test('an allowlisted spawn runs without asking; anything else asks', () async {
+      await spawn(agent: 'claude:1');
+      expect(asked, isEmpty);
+      answer = EscalationVerdict.deny;
+      final r = await call('pane.spawn', {
+        'argv': ['/bin/sh', '-c', 'true'],
+      }, agent: 'claude:1');
+      expect(r.ok, isFalse);
+      expect(asked.single.command, 'pane.spawn');
+      expect(registry.panes, hasLength(1), reason: 'the denied pane never started');
+    });
+
+    test('an allowlisted argv with an env override still asks', () async {
+      await call('pane.spawn', {
+        'argv': ['/bin/cat'],
+        'env': {'LD_PRELOAD': '/x.so'},
+      }, agent: 'claude:1');
+      expect(asked, hasLength(1));
+    });
+
+    test('an agent types into and closes its own pane without asking', () async {
+      final id = await spawn(agent: 'claude:1');
+      expect((await call('pane.write', {'id': id, 'text': 'hi\n'}, agent: 'claude:1')).ok, isTrue);
+      expect((await call('pane.close', {'id': id}, agent: 'claude:1')).ok, isTrue);
+      expect(asked, isEmpty);
+    });
+
+    test('typing into or closing someone else\'s pane asks', () async {
+      final mine = await spawn(); // the user's, opened in the app
+      final theirs = await spawn(agent: 'claude:2');
+      answer = EscalationVerdict.deny;
+      expect((await call('pane.write', {'id': mine, 'text': 'rm -rf .\n'}, agent: 'claude:1')).ok, isFalse);
+      expect((await call('pane.write', {'id': theirs, 'text': 'x'}, agent: 'claude:1')).ok, isFalse, reason: 'another agent\'s pane');
+      expect((await call('pane.close', {'id': mine}, agent: 'claude:1')).ok, isFalse);
+      expect(asked.map((r) => r.command), ['pane.write', 'pane.write', 'pane.close']);
+      expect(registry.panes, hasLength(2), reason: 'nothing was closed');
+    });
+
+    test('the user in the app is never asked', () async {
+      final id = await spawn(argv: const ['/bin/sh', '-c', 'cat']);
+      expect((await call('pane.write', {'id': id, 'text': 'x'})).ok, isTrue);
+      expect((await call('pane.close', {'id': id})).ok, isTrue);
+      expect(asked, isEmpty);
+    });
+  });
+}
+
+class _AgentIs implements AgentDetector {
+  _AgentIs(this.key);
+  final String key;
+
+  @override
+  Future<AgentIdentity?> agentOf(int? pid) async => AgentIdentity(key: key, label: key);
 }

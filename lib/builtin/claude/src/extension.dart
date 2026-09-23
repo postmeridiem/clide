@@ -29,6 +29,7 @@ import 'package:clide/src/daemon/icon_commands.dart' show iconShowChannel;
 import 'package:clide/src/daemon/image_commands.dart' show imageShowChannel;
 import 'package:clide/builtin/claude/src/team_chat_sidebar.dart' show TeamChatPane;
 import 'package:clide/builtin/claude/src/team_panel_host.dart';
+import 'package:clide/builtin/claude/src/spawn_allow_control.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
@@ -274,9 +275,27 @@ class ClaudeExtension extends ClideExtension {
               ),
             ],
           ),
+          SettingsSection(
+            label: 'Agents',
+            labelKey: 'settings.claude.agents.label',
+            fields: [
+              SettingsField(
+                key: kSpawnAllowKey,
+                kind: SettingsFieldKind.custom,
+                label: 'Commands agents may start without asking',
+                labelKey: 'settings.claude.spawnAllow.label',
+                help:
+                    'Exact commands, word for word (e.g. make test). End with * to allow any further arguments (flutter test *). Anything else an agent starts asks you first.',
+                helpKey: 'settings.claude.spawnAllow.help',
+                customId: 'claude.spawn-allow',
+              ),
+            ],
+          ),
         ],
       ),
     ),
+    // D-115: the agent spawn allowlist (app scope only).
+    SettingsControlContribution(id: 'claude.spawn-allow', customId: 'claude.spawn-allow', builder: (_) => const SpawnAllowControl()),
     SettingsControlContribution(id: 'claude.accounts', customId: 'claude.accounts', builder: (_) => const ClaudeAccountsListControl()),
     SettingsControlContribution(id: 'claude.workspace-account', customId: 'claude.workspace-account', builder: (_) => const ClaudeWorkspaceAccountControl()),
     // T-171: agent roster controls (D-6 CLI/UI parity).

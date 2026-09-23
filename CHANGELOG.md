@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Let agents run chosen commands without asking** (T-602) — Settings →
+  Claude → Agents lists commands (like `make test`, or `flutter test *`)
+  a Claude session may start in a pane without the confirm. Agents also
+  type into and close panes they started themselves freely.
+
 ### Changed
 
 ### Fixed

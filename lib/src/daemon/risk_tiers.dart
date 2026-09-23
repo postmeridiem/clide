@@ -39,10 +39,17 @@ enum RiskTier {
 /// `action` argument picks a different one (`claude account list` only
 /// reads; `claude account set` changes the session's account).
 class CommandRisk {
-  const CommandRisk(this.tier, {this.byAction = const {}});
+  const CommandRisk(this.tier, {this.byAction = const {}, this.handlerChecked = false});
 
   /// The tier for the command, and for any action not in [byAction].
   final RiskTier tier;
+
+  /// The command's handler decides when to confirm, instead of the
+  /// dispatcher confirming every escalating call: an agent may start an
+  /// allowlisted argv, or type into a pane it spawned, without asking
+  /// (D-115). Such a handler must call `checkEscalation` for everything
+  /// else — its tests pin that.
+  final bool handlerChecked;
 
   /// Tier overrides keyed by the request's `action` argument.
   final Map<String, RiskTier> byAction;
@@ -104,6 +111,7 @@ const _observe = CommandRisk(RiskTier.observe);
 const _display = CommandRisk(RiskTier.display);
 const _write = CommandRisk(RiskTier.workspaceWrite);
 const _escalate = CommandRisk(RiskTier.escalate);
+const _paneOwned = CommandRisk(RiskTier.escalate, handlerChecked: true);
 
 /// The tier of every command clide registers. Keep it sorted by command.
 const Map<String, CommandRisk> commandRiskTiers = {
@@ -165,13 +173,13 @@ const Map<String, CommandRisk> commandRiskTiers = {
   'image.show': _display,
   'instance': _observe,
   'log.level': _display,
-  'pane.close': _escalate, // own panes are free (D-115)
+  'pane.close': _paneOwned, // own panes are free (D-115)
   'pane.focus': _display,
   'pane.list': _observe,
   'pane.resize': _display,
-  'pane.spawn': _escalate,
+  'pane.spawn': _paneOwned, // allowlisted argv is free (D-115)
   'pane.tail': _observe,
-  'pane.write': _escalate, // own panes are free (D-115)
+  'pane.write': _paneOwned, // own panes are free (D-115)
   'panel.resize': _display,
   'ping': _observe,
   'pql.backlinks': _observe,
