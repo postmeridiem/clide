@@ -132,6 +132,8 @@
   "queue.dismiss": { "translation": "Dismiss queued message" },
   "queue.save": { "translation": "Save queued message" },
   "queue.cancelEdit": { "translation": "Cancel edit" },
+  "compacting.banner": { "translation": "Compacting context…" },
+  "compacting.status": { "translation": "compacting" },
   "sessionPicker.title": { "translation": "Resume a Claude session" },
   "sessionPicker.empty": { "translation": "No sessions found for this workspace." },
   "modelPicker.cancel": { "translation": "cancel" },

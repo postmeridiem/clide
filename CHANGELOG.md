@@ -30,6 +30,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - **Auto permission mode** (T-597) — a safety check reviews each action
   instead of asking you. It's in the mode picker when your model supports it,
   and new sessions now start in it.
+- **Compacting shows progress** (T-244) — a "Compacting context…" strip in the
+  Claude pane and a spinner in the status bar, so a long compaction no longer
+  looks like a hung session.
 - **The ticket detail view lists a ticket's children** (T-595) — epics and
   stories show their child tickets as clickable cards, open work first, with
   finished ones folded behind a "N closed" toggle.

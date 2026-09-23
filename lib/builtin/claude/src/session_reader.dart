@@ -73,6 +73,7 @@ class SessionReader extends ChangeNotifier {
 
   // Replay-latest, because they carry state a late subscriber needs now.
   final _busy = ValueStream<bool>.seeded(false);
+  final _compacting = ValueStream<bool>.seeded(false);
   final _status = ValueStream<SessionStatus>();
   final _phase = ValueStream<TurnPhase>.seeded(TurnPhase.idle);
   final _workflows = ValueStream<Map<String, WorkflowRun>>.seeded(const {});
@@ -100,6 +101,9 @@ class SessionReader extends ChangeNotifier {
   StreamJsonSession? get session => _managed?.session;
 
   Stream<bool> get busy => _busy.stream;
+
+  /// Whether the bound session is compacting its context (T-244).
+  Stream<bool> get compacting => _compacting.stream;
   Stream<SessionStatus> get status => _status.stream;
   Stream<TurnPhase> get phase => _phase.stream;
   Stream<Map<String, WorkflowRun>> get workflows => _workflows.stream;
@@ -172,6 +176,7 @@ class SessionReader extends ChangeNotifier {
       // interpreted. The busy signal drops so nothing is left believing a
       // vanished session is still working.
       _busy.add(false);
+      _compacting.add(false);
       _phase.add(TurnPhase.idle);
       if (changed) notifyListeners();
       return;
@@ -180,6 +185,7 @@ class SessionReader extends ChangeNotifier {
     // Replay-latest sources need no seeding — subscribing is the seed.
     _subs
       ..add(session.busyStream.listen(_busy.add))
+      ..add(session.compactingStream.listen(_compacting.add))
       ..add(session.statusStream.listen(_status.add))
       ..add(session.phaseStream.listen(_phase.add))
       ..add(session.workflowsStream.listen(_workflows.add))
@@ -223,6 +229,7 @@ class SessionReader extends ChangeNotifier {
     // The ValueStreams are closed too — a consumer holding one after dispose
     // gets a done, not a stream that quietly never fires again.
     _busy.close();
+    _compacting.close();
     _status.close();
     _phase.close();
     _workflows.close();

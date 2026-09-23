@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'account_login_dialog.dart';
 import 'account_settings_control.dart';
 import 'claude_banner.dart';
+import 'claude_compacting_indicator.dart';
 import 'claude_composer.dart';
 import 'claude_config.dart';
 import 'claude_status.dart';
@@ -90,6 +91,11 @@ class _ClaudePaneState extends State<ClaudePane> {
   StreamSubscription<Message>? _commandSub;
   StreamSubscription<String>? _modelErrorSub;
   StreamSubscription<Map<String, WorkflowRun>>? _workflowsSub;
+  StreamSubscription<bool>? _compactingSub;
+
+  /// Whether the session is compacting its context (T-244) — drives the
+  /// in-pane strip and the status-bar spinner.
+  bool _compacting = false;
   ConversationController? _conversation;
   StreamJsonSession? _session;
   SessionStatus _status = const SessionStatus();
@@ -138,7 +144,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   // skills count from ClaudeConfig (T-154). Null when there's nothing yet.
   Widget? _statusWidget(SurfaceTokens tokens) {
     final skills = formatSkillsLabel(activeClaudeConfig?.skills.length ?? 0);
-    if (_status.isEmpty && skills == null) return null;
+    if (_status.isEmpty && skills == null && !_compacting) return null;
 
     final seg = statusSegmentsAroundMode(_status);
     final mode = _status.permissionMode;
@@ -154,6 +160,20 @@ class _ClaudePaneState extends State<ClaudePane> {
       children.add(w);
     }
 
+    // Compaction leads the line while it runs (T-244): the long-running
+    // spinner + a word, so the slot shows progress rather than a frozen status.
+    if (_compacting) {
+      add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClideSpinner(size: 10, color: tokens.statusBarForeground),
+            const SizedBox(width: 4),
+            text(ClideSettings.i18n.string(context, 'compacting.status', namespace: 'builtin.claude', placeholder: 'compacting')),
+          ],
+        ),
+      );
+    }
     if (seg.leading != null) add(text(seg.leading!));
     // The permission-mode segment is a passive, per-mode-coloured indicator now
     // (T-275); switching lives in the composer's mode control + Ctrl/Cmd+M.
@@ -199,6 +219,12 @@ class _ClaudePaneState extends State<ClaudePane> {
       _workflowsSub = _reader.workflows.listen((_) {
         if (!mounted) return;
         setState(() {});
+      });
+      // Compaction streams nothing for its whole run; say so rather than
+      // look wedged (T-244).
+      _compactingSub = _reader.compacting.listen((c) {
+        if (!mounted || c == _compacting) return;
+        setState(() => _compacting = c);
       });
       // A rejected /model change (unknown name) rolls back silently in the
       // status — say why out loud (T-408).
@@ -264,6 +290,8 @@ class _ClaudePaneState extends State<ClaudePane> {
     _modeErrorSub = null;
     _workflowsSub?.cancel();
     _workflowsSub = null;
+    _compactingSub?.cancel();
+    _compactingSub = null;
     _reader.dispose();
     // The orchestrator owns the session, so disposing this pane does NOT kill
     // it — that's what lets a hidden/kept-alive pane keep its session (T-169).
@@ -858,6 +886,7 @@ class _ClaudePaneState extends State<ClaudePane> {
                     onEditEnd: () => _session?.releaseQueue(),
                   ),
                 ),
+              ClaudeCompactingIndicator(active: _compacting),
               // An open prompt takes the composer's space and hides the text
               // input until it's answered, so interaction stays out of the
               // conversation stream (D-78). The /model picker uses the same

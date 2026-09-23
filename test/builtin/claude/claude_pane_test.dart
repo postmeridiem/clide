@@ -12,6 +12,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:clide/builtin/claude/src/account_login_dialog.dart';
+import 'package:clide/builtin/claude/src/claude_compacting_indicator.dart';
 import 'package:clide/builtin/claude/src/claude_composer.dart';
 import 'package:clide/builtin/claude/src/claude_pane.dart';
 import 'package:clide/builtin/claude/src/conversation_view.dart';
@@ -24,6 +25,7 @@ import 'package:clide/builtin/claude/src/session_picker.dart';
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/widgets/widgets.dart' show ClidePane;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -318,6 +320,32 @@ void main() {
     // (the rendered slot lives in the status bar, absent from this harness).
     expect(orch.byId('primary')!.session.status.permissionMode, 'plan');
     expect(orch.byId('primary')!.session.status.model, 'claude-opus-4-8');
+  });
+
+  testWidgets('compaction shows in the pane and the status slot, then clears (T-244)', (tester) async {
+    await mount(tester, const ClaudePane(showChrome: false));
+    final proc = created.single;
+    ClaudeCompactingIndicator strip() => tester.widget<ClaudeCompactingIndicator>(find.byType(ClaudeCompactingIndicator));
+    Widget? slot() => tester.widget<ClidePane>(find.byType(ClidePane)).statusWidget;
+    expect(strip().active, isFalse);
+    expect(slot(), isNull, reason: 'nothing to show before init');
+
+    await act(tester, () => proc.feed({'type': 'system', 'subtype': 'status', 'status': 'compacting', 'session_id': primarySessionId('/repo-a')}));
+    expect(strip().active, isTrue);
+    expect(find.text('Compacting context…'), findsOneWidget);
+    expect(slot(), isNotNull, reason: 'the status bar shows compaction progress');
+
+    await act(tester, () {
+      proc.feed({'type': 'system', 'subtype': 'status', 'status': null, 'compact_result': 'success'});
+      proc.feed({
+        'type': 'system',
+        'subtype': 'compact_boundary',
+        'compact_metadata': {'trigger': 'manual', 'pre_tokens': 1000},
+      });
+    });
+    expect(strip().active, isFalse);
+    expect(find.text('Compacting context…'), findsNothing);
+    expect(slot(), isNull);
   });
 
   testWidgets('the status survives a /clear — the pane stays bound across a respawn (T-568)', (tester) async {

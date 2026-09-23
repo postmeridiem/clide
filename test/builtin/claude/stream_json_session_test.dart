@@ -1057,6 +1057,73 @@ void main() {
     });
   });
 
+  // T-244: the event shapes are the CLI's own SDK schema (2.1.280) —
+  // `system/status` with `status: "compacting" | "requesting" | null`, a
+  // closing status carrying `compact_result`, then `system/compact_boundary`.
+  group('compaction (T-244)', () {
+    String status(String? s, {String? result}) =>
+        jsonEncode({'type': 'system', 'subtype': 'status', 'status': s, 'compact_result': ?result, 'uuid': 'u-${s ?? 'none'}', 'session_id': 'sess-1'});
+    final boundary = jsonEncode({
+      'type': 'system',
+      'subtype': 'compact_boundary',
+      'compact_metadata': {'trigger': 'manual', 'pre_tokens': 181234, 'post_tokens': 9120},
+      'uuid': 'u-boundary',
+      'session_id': 'sess-1',
+    });
+    // A manual /compact, start to finish, as the wire delivers it.
+    final fixture = [
+      status('compacting'),
+      status(null, result: 'success'),
+      boundary,
+      jsonEncode({'type': 'result', 'subtype': 'success'}),
+    ];
+
+    test('a /compact run flips compacting on, then off when it finishes', () async {
+      final seen = <bool>[];
+      session.compactingStream.listen(seen.add);
+      proc.emit(fixture[0]);
+      await pumpEventQueue();
+      expect(session.compacting, isTrue);
+
+      for (final line in fixture.skip(1)) {
+        proc.emit(line);
+      }
+      await pumpEventQueue();
+      expect(session.compacting, isFalse);
+      expect(seen, [false, true, false], reason: 'seed, start, end — no flicker');
+      expect(items, isEmpty, reason: 'compaction events are not conversation items');
+    });
+
+    test('the boundary alone ends it (a dropped closing status cannot strand it)', () async {
+      proc.emit(status('compacting'));
+      proc.emit(boundary);
+      await pumpEventQueue();
+      expect(session.compacting, isFalse);
+    });
+
+    test('a result ends it', () async {
+      proc.emit(status('compacting'));
+      proc.emit(jsonEncode({'type': 'result', 'subtype': 'success'}));
+      await pumpEventQueue();
+      expect(session.compacting, isFalse);
+    });
+
+    test('a non-compacting status (requesting) ends it', () async {
+      proc.emit(status('compacting'));
+      proc.emit(status('requesting'));
+      await pumpEventQueue();
+      expect(session.compacting, isFalse);
+    });
+
+    test('a process exit ends it', () async {
+      proc.emit(status('compacting'));
+      await pumpEventQueue();
+      proc.exit.complete(1);
+      await pumpEventQueue();
+      expect(session.compacting, isFalse);
+    });
+  });
+
   test('dispose kills the process', () async {
     await session.dispose();
     expect(proc.killed, isTrue);

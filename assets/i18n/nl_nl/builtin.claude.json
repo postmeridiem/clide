@@ -132,6 +132,8 @@
   "queue.dismiss": { "translation": "Bericht in wachtrij verwijderen" },
   "queue.save": { "translation": "Bericht in wachtrij opslaan" },
   "queue.cancelEdit": { "translation": "Bewerken annuleren" },
+  "compacting.banner": { "translation": "Context wordt gecomprimeerd…" },
+  "compacting.status": { "translation": "comprimeren" },
   "sessionPicker.title": { "translation": "Een Claude-sessie hervatten" },
   "sessionPicker.empty": { "translation": "Geen sessies gevonden voor deze workspace." },
   "modelPicker.cancel": { "translation": "annuleren" },

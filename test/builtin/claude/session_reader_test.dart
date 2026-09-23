@@ -227,6 +227,25 @@ void main() {
       await b.cancel();
       reader.dispose();
     });
+
+    test('compacting forwards, and drops when the session goes (T-244)', () async {
+      final orch = orchestrator();
+      final reader = SessionReader.primary(orchestrator: orch)..start();
+      await spawn(orch, 'primary');
+      await settle();
+      final seen = <bool>[];
+      final sub = reader.compacting.listen(seen.add);
+
+      proc.emit({'type': 'system', 'subtype': 'status', 'status': 'compacting'});
+      await settle();
+      expect(seen.last, isTrue);
+
+      await orch.close('primary');
+      await settle();
+      expect(seen.last, isFalse, reason: 'a vanished session must not look like it is compacting');
+      await sub.cancel();
+      reader.dispose();
+    });
   });
 
   group('teardown', () {

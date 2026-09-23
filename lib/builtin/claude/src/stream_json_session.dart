@@ -536,6 +536,36 @@ class StreamJsonSession {
     _busyCtl.add(value);
   }
 
+  /// Whether claude is compacting the context right now (T-244). Compaction
+  /// can run for tens of seconds with no tokens streaming, so without this the
+  /// pane looks wedged. Replay-latest, like [busyStream].
+  ///
+  /// Wire shape, read from the CLI 2.1.280 SDK schema: `system`/`status`
+  /// events carry `status: "compacting" | "requesting" | null`; compaction
+  /// ends with a `status` event whose status is no longer `compacting` (it
+  /// carries `compact_result`), followed by `system`/`compact_boundary`.
+  final _compactingCtl = ValueStream<bool>.seeded(false);
+  bool get compacting => _compactingCtl.value;
+  Stream<bool> get compactingStream => _compactingCtl.stream;
+
+  void _setCompacting(bool value) {
+    if (_compactingCtl.value == value) return;
+    _compactingCtl.add(value);
+  }
+
+  /// Fold a compaction signal from [ev] into [compacting]. Any `status` event
+  /// is authoritative (it names the current state); a `compact_boundary` or a
+  /// `result` means compaction is over whatever the status stream said, so a
+  /// dropped final `status` can't leave the indicator spinning.
+  void _trackCompaction(Map<String, dynamic> ev) {
+    switch ((ev['type'], ev['subtype'])) {
+      case ('system', 'status'):
+        _setCompacting(ev['status'] == 'compacting');
+      case ('system', 'compact_boundary') || ('result', _):
+        _setCompacting(false);
+    }
+  }
+
   /// The prompt currently awaiting a decision (queue head), or null.
   ToolPrompt? get pendingPrompt => _queue.isEmpty ? null : _queue.first;
 
@@ -631,6 +661,7 @@ class StreamJsonSession {
       _onControlResponse(ev);
       return;
     }
+    _trackCompaction(ev);
     // A `result` ends the turn — clear the busy/interruptible state and reset
     // streaming state so the next turn is fresh.
     if (ev['type'] == 'result') {
@@ -1288,6 +1319,7 @@ class StreamJsonSession {
     if (_disposed || _end != null) return;
     _end = SessionEnd(exitCode: code, stderrTail: _proc.stderrTail);
     _setBusy(false);
+    _setCompacting(false);
     // A prompt pending against a dead process can never be answered —
     // clear it so the composer comes back.
     if (_queue.isNotEmpty) {
@@ -1320,6 +1352,7 @@ class StreamJsonSession {
     await _pendingCtl.close();
     await _busyCtl.close();
     await _queuedCtl.close();
+    await _compactingCtl.close();
     await _endCtl.close();
     await _modelErrorCtl.close();
     await _modeErrorCtl.close();
