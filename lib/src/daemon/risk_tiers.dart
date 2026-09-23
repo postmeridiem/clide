@@ -58,6 +58,48 @@ class CommandRisk {
   Set<RiskTier> get tiers => {tier, ...byAction.values};
 }
 
+/// Reads answered outside the dispatcher: the IPC server streams and pulls
+/// events itself (`tail`, `events`), and the C client lists running
+/// instances locally (`instances`). They have no dispatcher entry, so they
+/// are tiered here for the generated rules.
+const Map<String, RiskTier> nonDispatcherCommandTiers = {'tail': RiskTier.observe, 'events': RiskTier.observe, 'instances': RiskTier.observe};
+
+/// How [cmd] is typed at the shell: the first dot splits subsystem from
+/// verb (`pql.decisions.list` → `clide pql decisions.list`), and an
+/// umbrella command has no verb (`clide capabilities`).
+String cliSpelling(String cmd) {
+  final dot = cmd.indexOf('.');
+  return dot < 0 ? 'clide $cmd' : 'clide ${cmd.substring(0, dot)} ${cmd.substring(dot + 1)}';
+}
+
+/// The Claude Code allow rules that pre-approve clide for a hosted agent:
+/// one `Bash(<spelling>:*)` rule per observe or display command, plus one
+/// per pre-approved action of a command that otherwise escalates. Generated
+/// from [commandRiskTiers], never hand-kept, so it can't drift from what
+/// clide enforces. Sorted, no duplicates.
+List<String> agentAllowRules([Map<String, CommandRisk> table = commandRiskTiers]) {
+  final rules = <String>{};
+  for (final e in table.entries) {
+    if (e.key.startsWith('_')) continue; // transport sentinels aren't typed
+    final spelling = cliSpelling(e.key);
+    if (e.value.tier.preApproved) {
+      rules.add('Bash($spelling:*)');
+      continue;
+    }
+    for (final a in e.value.byAction.entries) {
+      if (a.value.preApproved) rules.add('Bash($spelling ${a.key}:*)');
+    }
+  }
+  for (final e in nonDispatcherCommandTiers.entries) {
+    if (e.value.preApproved) rules.add('Bash(${cliSpelling(e.key)}:*)');
+  }
+  return rules.toList()..sort();
+}
+
+/// Spawn args carrying [agentAllowRules] into a session: one comma-joined
+/// value, so the variadic flag can't swallow a following argument.
+List<String> agentAllowedToolsArgs() => ['--allowedTools', agentAllowRules().join(',')];
+
 const _observe = CommandRisk(RiskTier.observe);
 const _display = CommandRisk(RiskTier.display);
 const _write = CommandRisk(RiskTier.workspaceWrite);

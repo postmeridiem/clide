@@ -61,10 +61,13 @@ void main() {
     });
   });
 
-  group('clideBashAllowRule (T-217)', () {
-    test('is the command-scoped Bash rule and rides on --allowedTools', () {
-      expect(clideBashAllowRule, 'Bash(clide:*)');
-      expect(clideAllowedToolsArgs, ['--allowedTools', 'Bash(clide:*)']);
+  group('clideAllowedToolsArgs (T-217, D-115)', () {
+    test('carries the generated tier rules, not the blanket Bash(clide:*)', () {
+      final args = clideAllowedToolsArgs();
+      expect(args.first, '--allowedTools');
+      expect(args.last, contains('Bash(clide git status:*)'));
+      expect(args.last, isNot(contains('Bash(clide:*)')));
+      expect(args.last, isNot(contains('pane spawn')));
     });
   });
 
@@ -217,7 +220,7 @@ void main() {
       final b = agentBootstrap('/some/workspace');
       expect(b.envDelta['CLIDE_SOCK'], workspaceSocketPath('/some/workspace'));
       expect(b.envDelta['CLIDE_WORKSPACE'], '/some/workspace');
-      expect(b.extraArgs, ['--allowedTools', 'Bash(clide:*)']);
+      expect(b.extraArgs, clideAllowedToolsArgs());
     });
 
     test('merges over the provided base env', () {

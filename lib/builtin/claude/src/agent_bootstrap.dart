@@ -13,8 +13,9 @@
 ///   * T-216 — a context note (`--append-system-prompt`) telling the agent
 ///     it is inside clide and how to drive it via `clide …` (the D-6
 ///     parity contract).
-///   * T-217 — a `Bash(clide:*)` allow rule (`--allowedTools`) so the agent
-///     is not prompted on every `clide …` call.
+///   * T-217 — allow rules (`--allowedTools`) so the agent is not prompted
+///     on every `clide …` call: the observe and display verbs only,
+///     generated from the risk tiers (D-115).
 ///
 /// The pure helpers ([clideContextNote], [agentEnvDelta], [resolveClideCli], [clideCliCandidates])
 /// hold the logic and are unit-tested directly; [agentBootstrap] is the thin
@@ -23,6 +24,7 @@ library;
 
 import 'dart:io';
 
+import 'package:clide/src/daemon/risk_tiers.dart' show agentAllowedToolsArgs;
 import 'package:clide/src/env/path_preset.dart' show applyPathPreset;
 import 'package:clide/src/env/shell_env.dart' show resolvedToolPath;
 import 'package:clide/src/ipc/paths.dart' show socketDirectory, workspaceSocketPath;
@@ -31,14 +33,13 @@ import 'package:clide/src/ipc/paths.dart' show socketDirectory, workspaceSocketP
 // build gets a default dir name with no FFI introspection.
 import 'native_abi_stub.dart' if (dart.library.ffi) 'native_abi_io.dart';
 
-/// The `--allowedTools` rule that pre-approves `clide …` Bash calls for a
-/// hosted session (T-217), so the agent isn't prompted on every IDE call.
-/// Claude Code's settings/flag syntax for a command-scoped Bash rule is
-/// `Bash(<prefix>:*)` — see `permissions.allow` in `claude_config.dart`.
-const String clideBashAllowRule = 'Bash(clide:*)';
-
-/// Spawn args that carry the [clideBashAllowRule] into a session.
-const List<String> clideAllowedToolsArgs = ['--allowedTools', clideBashAllowRule];
+/// Spawn args that pre-approve `clide …` Bash calls for a hosted session
+/// (T-217), so the agent isn't prompted on every IDE call — but only the
+/// observe and display verbs, generated from the risk tiers (D-115). The
+/// blanket `Bash(clide:*)` this replaces also pre-approved every verb that
+/// runs code. Workspace writes get Claude's own prompt; escalating verbs
+/// are confirmed inside clide.
+List<String> clideAllowedToolsArgs() => agentAllowedToolsArgs();
 
 /// The agent context note injected via `--append-system-prompt` (T-216).
 ///
@@ -221,7 +222,7 @@ AgentBootstrap agentBootstrap(
   // SpawnSpec.env override still wins (precedence: override > binding > parent
   // env > unset); omitted entirely when there's nothing to set.
   final configDir = claudeConfigDirForWorkspace(cwd: workspaceRoot, boundConfigDir: boundConfigDir ?? (_) => null, env: Platform.environment);
-  return AgentBootstrap(envDelta: {'CLAUDE_CONFIG_DIR': ?configDir, ...?base, ...delta}, extraArgs: ['--allowedTools', clideBashAllowRule]);
+  return AgentBootstrap(envDelta: {'CLAUDE_CONFIG_DIR': ?configDir, ...?base, ...delta}, extraArgs: clideAllowedToolsArgs());
 }
 
 bool _isExecutableFile(String path) {

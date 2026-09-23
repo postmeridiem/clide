@@ -108,7 +108,15 @@ class DaemonDispatcher {
   /// subsystem + verb — with its argument schema (positional order + per-arg
   /// type/required/constraints) where one is declared. Sourced from the
   /// registry, so it never drifts from what actually dispatches.
+  ///
+  /// With `--allow-rules` it prints the Claude Code allow rules instead —
+  /// the observe and display verbs, generated from the risk tiers (D-115) —
+  /// for pasting into a project's `.claude/settings.json`.
   Future<IpcResponse> _capabilities(IpcRequest req) async {
+    final flags = req.args['flags'];
+    if (req.args['allowRules'] == true || (flags is Map && flags['allow-rules'] == true)) {
+      return IpcResponse.ok(id: req.id, data: {'allowRules': agentAllowRules()});
+    }
     final names = _handlers.keys.toList()..sort();
     final commands = <String, Object?>{};
     for (final cmd in names) {

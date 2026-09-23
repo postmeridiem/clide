@@ -221,6 +221,21 @@ void main() {
       expect(risk.tierFor(const {}), RiskTier.escalate);
     });
 
+    test('capabilities --allow-rules prints the generated agent allow rules', () async {
+      final d = DaemonDispatcher();
+      // The CLI shape (`clide capabilities --allow-rules`) and the plain arg.
+      for (final args in [
+        {
+          'flags': {'allow-rules': true},
+        },
+        {'allowRules': true},
+      ]) {
+        final r = await d.dispatch(IpcRequest(id: '1', cmd: 'capabilities', args: args));
+        expect(r.data['allowRules'], agentAllowRules(), reason: '$args');
+        expect(r.data.containsKey('commands'), isFalse);
+      }
+    });
+
     test('capabilities reports each command\'s tier', () async {
       final d = DaemonDispatcher()
         ..register('git.push', noop)
