@@ -28,9 +28,13 @@
   "detail.assigned": { "translation": "toegewezen aan: {name}" },
   "detail.section.parents": { "translation": "BOVENLIGGENDE BOOM" },
   "detail.section.decisions": { "translation": "GEREFEREERDE BESLISSINGEN" },
+  "detail.section.children": { "translation": "ONDERLIGGENDE TICKETS" },
+  "detail.children.showClosed": { "translation": "{count} afgesloten" },
+  "detail.children.hideClosed": { "translation": "Afgesloten verbergen" },
   "status.backlog": { "translation": "BACKLOG" },
   "status.ready": { "translation": "GEREED" },
   "status.in_progress": { "translation": "WIP" },
   "status.review": { "translation": "BEOORDELING" },
-  "status.done": { "translation": "KLAAR" }
+  "status.done": { "translation": "KLAAR" },
+  "status.cancelled": { "translation": "GEANNULEERD" }
 }

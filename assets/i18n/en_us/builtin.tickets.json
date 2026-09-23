@@ -28,9 +28,13 @@
   "detail.assigned": { "translation": "assigned: {name}" },
   "detail.section.parents": { "translation": "PARENT TREE" },
   "detail.section.decisions": { "translation": "REFERENCED DECISIONS" },
+  "detail.section.children": { "translation": "CHILDREN" },
+  "detail.children.showClosed": { "translation": "{count} closed" },
+  "detail.children.hideClosed": { "translation": "Hide closed" },
   "status.backlog": { "translation": "BACKLOG" },
   "status.ready": { "translation": "READY" },
   "status.in_progress": { "translation": "WIP" },
   "status.review": { "translation": "REVIEW" },
-  "status.done": { "translation": "DONE" }
+  "status.done": { "translation": "DONE" },
+  "status.cancelled": { "translation": "CANCELLED" }
 }

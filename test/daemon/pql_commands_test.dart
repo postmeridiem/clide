@@ -207,6 +207,13 @@ void main() {
     expect(ok.ok, isTrue);
   });
 
+  test('pql.tickets.show forwards withChildren (T-595)', () async {
+    // T-6 is a closed epic in clide's plan whose children include T-1.
+    final r = await call('pql.tickets.show', {'id': 'T-6', 'withChildren': true});
+    expect(r.ok, isTrue);
+    expect((r.data['children'] as List).map((c) => (c as Map)['id']), contains('T-1'));
+  });
+
   test('pql.tickets.status requires ids + status', () async {
     final missing = await call('pql.tickets.status');
     expect(missing.ok, isFalse);

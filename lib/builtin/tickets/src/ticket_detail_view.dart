@@ -110,6 +110,11 @@ class _TicketDetailViewState extends State<TicketDetailView> {
                     const SizedBox(height: 12),
                     ClideMarkdown(d.description!, onRecordTap: (id) => _navigateToRecord(ctx, id)),
                   ],
+                  if (d.children.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    // Keyed by ticket so the closed-children toggle resets on navigation.
+                    _ChildrenSection(key: ValueKey(d.id), children: d.children, tokens: tokens, typeColors: typeColors),
+                  ],
                   if (d.parents.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     _SectionLabel(
@@ -255,6 +260,7 @@ class _StatusControls extends StatelessWidget {
     'in_progress' => ClideSettings.i18n.string(context, 'status.in_progress', namespace: 'builtin.tickets', placeholder: 'WIP'),
     'review' => ClideSettings.i18n.string(context, 'status.review', namespace: 'builtin.tickets', placeholder: 'REVIEW'),
     'done' => ClideSettings.i18n.string(context, 'status.done', namespace: 'builtin.tickets', placeholder: 'DONE'),
+    'cancelled' => ClideSettings.i18n.string(context, 'status.cancelled', namespace: 'builtin.tickets', placeholder: 'CANCELLED'),
     _ => s.toUpperCase(),
   };
 }
@@ -270,18 +276,87 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
+/// The ticket's direct children (T-595): open work as compact cards, closed
+/// children (done / cancelled) folded behind a "N closed" toggle so a long-lived
+/// epic doesn't bury its live work under its history.
+class _ChildrenSection extends StatefulWidget {
+  const _ChildrenSection({super.key, required this.children, required this.tokens, required this.typeColors});
+  final List<Map<String, Object?>> children;
+  final SurfaceTokens tokens;
+  final TicketTypeColors typeColors;
+
+  @override
+  State<_ChildrenSection> createState() => _ChildrenSectionState();
+}
+
+class _ChildrenSectionState extends State<_ChildrenSection> {
+  bool _showClosed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = widget.tokens;
+    final open = widget.children.where((c) => !TicketDetail.isClosed(c)).toList();
+    final closed = widget.children.where(TicketDetail.isClosed).toList();
+    final toggleLabel = _showClosed
+        ? ClideSettings.i18n.string(context, 'detail.children.hideClosed', namespace: 'builtin.tickets', placeholder: 'Hide closed')
+        : ClideSettings.i18n.interpolated(
+            context,
+            'detail.children.showClosed',
+            namespace: 'builtin.tickets',
+            placeholder: '{count} closed',
+            replacers: [I18nReplacer(from: '{count}', replace: '${closed.length}')],
+          );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionLabel(
+          label: ClideSettings.i18n.string(context, 'detail.section.children', namespace: 'builtin.tickets', placeholder: 'CHILDREN'),
+          tokens: tokens,
+        ),
+        const SizedBox(height: 6),
+        for (final child in open) _CompactCard(data: child, tokens: tokens, typeColors: widget.typeColors, showStatus: true),
+        if (_showClosed)
+          for (final child in closed) _CompactCard(data: child, tokens: tokens, typeColors: widget.typeColors, showStatus: true, dimmed: true),
+        if (closed.isNotEmpty)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: ClideTappable(
+              onTap: () => setState(() => _showClosed = !_showClosed),
+              builder: (ctx, hovered, _) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: ClideText(
+                  toggleLabel,
+                  fontSize: clideFontSmall,
+                  color: hovered ? tokens.globalForeground : tokens.globalTextMuted,
+                  fontFamily: ClideSettings.fonts.monoOf(context),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _CompactCard extends StatelessWidget {
-  const _CompactCard({required this.data, required this.tokens, required this.typeColors, this.indent = 0});
+  const _CompactCard({required this.data, required this.tokens, required this.typeColors, this.indent = 0, this.showStatus = false, this.dimmed = false});
   final Map<String, Object?> data;
   final SurfaceTokens tokens;
   final TicketTypeColors typeColors;
   final int indent;
+
+  /// Trailing status label — shown on child rows, where status is the point.
+  final bool showStatus;
+
+  /// Mutes the title for closed tickets so they read as history.
+  final bool dimmed;
 
   @override
   Widget build(BuildContext context) {
     final id = data['id'] as String? ?? '';
     final title = data['title'] as String? ?? '';
     final type = data['type'] as String?;
+    final status = data['status'] as String?;
     final typeColor = typeColors.forType(type);
     return Padding(
       padding: EdgeInsets.only(left: indent * 12.0, bottom: 4),
@@ -304,7 +379,18 @@ class _CompactCard extends StatelessWidget {
               const SizedBox(width: 6),
               ClideText(id, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: ClideSettings.fonts.monoOf(context)),
               const SizedBox(width: 8),
-              Expanded(child: ClideText(title, fontSize: clideFontSmall)),
+              Expanded(
+                child: ClideText(title, fontSize: clideFontSmall, muted: dimmed),
+              ),
+              if (showStatus && status != null) ...[
+                const SizedBox(width: 8),
+                ClideText(
+                  _StatusControls._shortLabel(context, status),
+                  fontSize: clideFontBadge,
+                  color: tokens.globalTextMuted,
+                  fontFamily: ClideSettings.fonts.monoOf(context),
+                ),
+              ],
             ],
           ),
         ),

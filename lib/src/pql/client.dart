@@ -107,10 +107,11 @@ class PqlClient {
     return _runList(args);
   }
 
-  Future<Map<String, Object?>> ticketShow(String id, {bool withContext = false, bool withBlockers = false}) async {
+  Future<Map<String, Object?>> ticketShow(String id, {bool withContext = false, bool withBlockers = false, bool withChildren = false}) async {
     final args = ['ticket', 'show', id];
     if (withContext) args.add('--with-context');
     if (withBlockers) args.add('--with-blockers');
+    if (withChildren) args.add('--with-children');
     return _runObject(args);
   }
 

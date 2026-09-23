@@ -429,3 +429,79 @@ several tickets this session needed visual corrections that no test caught
 Confirmed 2026-08-09: **`review` is already a valid pql status** — `pql ticket status <id> review` is accepted and reads back. So the open question at the bottom of this ticket resolves cleanly and the change really is just prompt text plus its test.
 
 Adopted immediately by hand on T-540 while this ticket waits: work recorded on the ticket, `/git-commit` run, status left at `review` rather than `done`, and a two-sentence summary put to the user. Worth checking the board renders a `review` column sensibly before this lands, since it will start appearing routinely.', 'done', 'medium', NULL, NULL, NULL, '2026-08-09 13:41:51.402', '2026-09-23 07:49:21.063', NULL, 'eaf4318348fddaa2c00f98a6dda40329', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCZDVPBWGM5NHJ9BNQBVKCD0', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Ticket card: drop bold from the ticket-id label (hard to read)', 'The ticket-id label at the top of each kanban card (e.g. "T-403") is rendered in semibold and is hard to read at the small card font size — user feedback 2026-06-16 (screenshot: ~/.cache/clide/pasted/paste-1781601250588.png).
+
+**Fix:** drop the bold weight from the id label. lib/builtin/tickets/src/tickets_view.dart:405 — `ClideText(entry.id, fontSize: clideFontSmall, color: tokens.globalForeground, fontFamily: clideMonoFamily, fontWeight: FontWeight.w600)` → remove `fontWeight: FontWeight.w600` so it renders at the default UI weight. Confirm the parent-id breadcrumb line (the muted `└ T-NNN` above a child, ~line 385-395) still reads fine; keep the title (line 409) as-is.
+
+Scope: cosmetic weight tweak only. Verify against the four presets/themes; no golden churn expected beyond the tickets-view widget golden if one exists.', 'review', 'low', NULL, NULL, NULL, '2026-06-16 09:16:07', '2026-09-23 07:49:31.808', NULL, '934275c8c2ad1221759be8c77e743681', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCTC3QRDPP5RJMFMCKRW045M', 'story', '06FB0TNQM5TWC00GW0P3X02HZW', 'Permission modes: add auto, modern labels, ack-aware switching, bypass behind a setting', 'User 2026-09-23: auto mode is missing from the permission-mode picker; "bypass" is an old pattern, and auto is now Anthropic''s preferred mode. Implement the mode setter the modern way (as the desktop app / IDE extensions do).
+
+Docs (code.claude.com/docs/en/permission-modes): modes are `default` (labelled **Manual** everywhere; CLI accepts `manual` as alias), `acceptEdits`, `plan`, `auto` (a classifier reviews each action instead of prompting), `dontAsk` (CI only, never in the cycle), `bypassPermissions` (containers/VMs only). Auto is the built-in starting mode on Pro/Max/Team for interactive sessions, but `claude -p` / the Agent SDK start in `default`. Desktop/VS Code: the picker shows Manual, Accept/Edit automatically, Plan, Auto (only when auto mode is available), Bypass (only when explicitly allowed in settings). Shift+Tab cycle: default → acceptEdits → plan → [bypass if enabled] → auto; from auto the first press goes to default.
+
+Probe against the installed CLI, over clide''s own stream-json protocol (control handshake only):
+- `set_permission_mode auto` → accepted (`{"mode":"auto"}`).
+- `set_permission_mode bypassPermissions` → **error**: "Cannot set permission mode to bypassPermissions because the session was not launched with --dangerously-skip-permissions". clide never launches with it, and `StreamJsonSession.setPermissionMode` is fire-and-forget with an optimistic status merge. So choosing bypass today shows "bypass" while the session stays in its old mode (a lying UI).
+- `manual` → normalised to `default`; `dontAsk` → accepted.
+- The `initialize` response carries `current_permission_mode` and per-model `supportsAutoMode`.
+
+Want:
+1. Auto in the picker, the cycle chords, `/permissions`, the Claude settings'' default-mode field, the sidebar roster, and `clide claude.mode set`. Offered only when the session''s model supports it (from the handshake). If the CLI later rejects it (server-side off, `disableAutoMode`), roll back and say why.
+2. Modern labels: Manual / Accept edits / Plan / Auto / Bypass permissions (i18n keys).
+3. Mode changes become ack-aware like set_model: roll the status back and surface the CLI''s error on rejection.
+4. Bypass follows the Desktop pattern: hidden unless a Claude setting "Allow bypass permissions mode" (default off) is on. When on, new sessions launch with `--allow-dangerously-skip-permissions` (adds bypass to what the session will accept without activating it), and bypass is a normal, clearly-dangerous picker row. The shift-click gate goes.
+5. New sessions start in the configured default mode via `--permission-mode` at spawn instead of a post-spawn control request. The CLI then falls back to Manual itself when auto isn''t available, silently and correctly. Default for the setting: `auto` (Anthropic''s preferred mode); users who set another value keep it.', 'review', 'medium', NULL, NULL, NULL, '2026-09-23 07:35:00.803', '2026-09-23 07:49:31.815', NULL, '3b194297692c9c14753b221a6835d77d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDGH6NA4M13VHHSSDWN7TZ0', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'Pick-up prompt should state the whole loop — status, /git-commit, leave in review', '`pickUpPrompt` (`lib/builtin/tickets/src/pick_up_prompt.dart:25`) opens with one
+line — "Pick up and start working this ticket. Read it fully, then begin." — and
+says nothing about how the work should *end*. So the ending is improvised each
+time: sometimes the ticket is closed, sometimes left open, sometimes committed
+before the ticket is updated, and the user has to ask what happened.
+
+Extend the lead-in to state the whole loop, not just the start.
+
+## What the prompt should ask for
+
+1. **Keep the ticket status honest as work proceeds** — `in_progress` on pickup,
+   and moved on deliberately rather than left wherever it was.
+2. **Run `/git-commit`** when the work is done, so the commit goes through the
+   skill that encodes message format, explicit staging and changelog discipline
+   rather than being hand-rolled.
+3. **Leave the ticket in `review`, not `done`.** This is the substantive change:
+   the agent does not get to mark its own work complete. `done` becomes
+   something the human sets after looking.
+4. **End with a two-sentence summary and an explicit request to review.** Short
+   on purpose — the ticket body already holds the detail, and a long sign-off
+   buries the one thing being asked for.
+
+## Why `review` rather than `done`
+
+Every ticket this session was closed by the agent that wrote it, on the strength
+of its own tests. That is exactly the reviewer arrangement nobody would accept
+between two people. A `review` rung costs one status transition and puts the
+decision back with the person who can actually judge whether the thing is right —
+several tickets this session needed visual corrections that no test caught
+(T-539''s face balance, T-531''s arc, T-535''s colour).
+
+## Check first
+
+- Confirm `review` is a status the pql schema accepts, and what the board does
+  with it — if it is not a real status this needs one, or a label, and that is a
+  bigger change than the prompt text.
+- The prompt is also produced for tickets picked up from the CLI, not only the
+  detail pane; keep one wording.
+- `pick_up_prompt_test.dart` asserts the current lead-in; update it with the
+  text rather than around it.
+
+Confirmed 2026-08-09: **`review` is already a valid pql status** — `pql ticket status <id> review` is accepted and reads back. So the open question at the bottom of this ticket resolves cleanly and the change really is just prompt text plus its test.
+
+Adopted immediately by hand on T-540 while this ticket waits: work recorded on the ticket, `/git-commit` run, status left at `review` rather than `done`, and a two-sentence summary put to the user. Worth checking the board renders a `review` column sensibly before this lands, since it will start appearing routinely.', 'review', 'medium', NULL, NULL, NULL, '2026-08-09 13:41:51.402', '2026-09-23 07:49:31.815', NULL, '7611bdab2ef673eeae1a57503a2bf616', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCT929BB9PM3C1NVM0FDNRJC', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'Ticket detail view: show child tickets (epics/stories hide their contents today)', 'The ticket detail view (context panel) shows a ticket''s PARENT TREE but never its children. Opening an epic or story therefore hides what it contains. The user''s screenshot of T-276 (the UI tracker epic, which has dozens of children) showed only its own description.
+
+User 2026-09-23: "a ticket to add child tickets. in the previous screenshot the 276 ticket has a lot of children, but they are not shown".
+
+Today: `TicketDetailController.load` requests `pql.tickets.show` with `withContext: true` and reads only `ancestors` + `decisions`; `TicketDetail` has no children field; `ticket_detail_view.dart` renders a parents section (`_CompactCard` rows) and nothing below.
+
+Want: a CHILDREN section under the description, listing the direct children as the same compact cards (id, type colour, title, status), each opening that ticket in the reader on click (via the same ReaderNav `selection` path, so back/forward works). Order: open work first (in_progress, then ready/backlog), done last. An epic like T-276 can have many, so collapse done children behind a "N done" toggle, or cap with "show all".
+
+Data: pql already supports `pql ticket show <id> --with-children` (returns a `children` array: id/type/title/status/priority). Check whether the clide `pql.tickets.show` wrapper (lib/src/pql/) passes it through with `withContext`, or add a `withChildren` arg. Wrap, don''t duplicate (D-3).
+
+Acceptance: opening T-276 lists its children; clicking one navigates to it and Back returns; a leaf ticket shows no children section; done children are de-emphasised or collapsed; covered by controller + widget tests.', 'review', 'medium', NULL, NULL, 'D-3', '2026-09-23 07:21:42.490', '2026-09-23 07:49:46.740', NULL, 'e7bd80196b79f6067aadb1992c107d9f', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

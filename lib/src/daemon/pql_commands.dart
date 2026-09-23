@@ -181,7 +181,12 @@ void registerPqlCommands(DaemonDispatcher d, PqlClient pql) {
       return _userError(req.id, 'pql.tickets.show requires an id');
     }
     try {
-      final result = await pql.ticketShow(id, withContext: req.args['withContext'] as bool? ?? false, withBlockers: req.args['withBlockers'] as bool? ?? false);
+      final result = await pql.ticketShow(
+        id,
+        withContext: req.args['withContext'] as bool? ?? false,
+        withBlockers: req.args['withBlockers'] as bool? ?? false,
+        withChildren: req.args['withChildren'] as bool? ?? false,
+      );
       return IpcResponse.ok(id: req.id, data: result);
     } on PqlException catch (e) {
       return _pqlError(req.id, e);

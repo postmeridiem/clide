@@ -120,6 +120,13 @@ void main() {
       expect(t['id'], 'T-1');
     });
 
+    test('ticketShow with children returns the children array (T-595)', () async {
+      // T-6 is a closed epic in clide's plan whose children include T-1.
+      final t = await pql.ticketShow('T-6', withChildren: true);
+      expect(t['id'], 'T-6');
+      expect((t['children'] as List).map((c) => (c as Map)['id']), contains('T-1'));
+    });
+
     test('ticketBoard with team filter', () async {
       final board = await pql.ticketBoard(team: 'nope');
       expect(board, isA<List>());
