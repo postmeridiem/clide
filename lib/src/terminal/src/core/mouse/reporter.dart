@@ -23,9 +23,9 @@ abstract class MouseReporter {
         // supports positions up to 2015. Both modes send a null byte if the
         // position exceeds that limit.
         final col = (reportMode == MouseReportMode.normal && x > 223) || (reportMode == MouseReportMode.utf && x > 2015) ? '\x00' : String.fromCharCode(32 + x);
-        final row = (reportMode == MouseReportMode.normal && y > 223) || (reportMode == MouseReportMode.utf && y > 2015)
-            ? '\x00'
-            : String.fromCharCode(32 + y + 1);
+        // Row and column get the same encoding: 32 + the 1-based coordinate
+        // (T-629 — the row carried an extra +1 and landed one line low).
+        final row = (reportMode == MouseReportMode.normal && y > 223) || (reportMode == MouseReportMode.utf && y > 2015) ? '\x00' : String.fromCharCode(32 + y);
         return "\x1b[M$btn$col$row";
       case MouseReportMode.sgr:
         final buttonID = button.id;

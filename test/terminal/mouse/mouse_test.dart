@@ -83,11 +83,15 @@ void main() {
       expect(TerminalMouseButton.right.isWheel, isFalse);
     });
 
-    test('wheel buttons are flagged isWheel and use the 64+N transposed ids', () {
-      expect(TerminalMouseButton.wheelUp.id, 64 + 4);
-      expect(TerminalMouseButton.wheelDown.id, 64 + 5);
-      expect(TerminalMouseButton.wheelLeft.id, 64 + 6);
-      expect(TerminalMouseButton.wheelRight.id, 64 + 7);
+    test('wheel buttons are flagged isWheel and report as 64-67 (xterm ctlseqs, T-628)', () {
+      // xterm: "Wheel mice may return buttons 4 and 5. Those buttons are
+      // represented by the same event codes as buttons 1 and 2 respectively,
+      // except that 64 is added" — so 64/65, and 66/67 for buttons 6 and 7.
+      // 68 would decode as wheel-up with Shift held.
+      expect(TerminalMouseButton.wheelUp.id, 64);
+      expect(TerminalMouseButton.wheelDown.id, 65);
+      expect(TerminalMouseButton.wheelLeft.id, 66);
+      expect(TerminalMouseButton.wheelRight.id, 67);
       for (final b in [TerminalMouseButton.wheelUp, TerminalMouseButton.wheelDown, TerminalMouseButton.wheelLeft, TerminalMouseButton.wheelRight]) {
         expect(b.isWheel, isTrue, reason: '$b');
       }
@@ -98,18 +102,26 @@ void main() {
     String r(TerminalMouseButton b, TerminalMouseButtonState s, {int x = 0, int y = 0}) => MouseReporter.report(b, s, CellOffset(x, y), MouseReportMode.normal);
 
     test('press encodes button id + 1-based coordinates', () {
-      // Position (0,0) → button code 32+0=32 (' '), col 32+1=33 ('!'),
-      // row 32+1+1=34 ('"').
-      expect(r(TerminalMouseButton.left, TerminalMouseButtonState.down), '\x1b[M !"');
+      // Position (0,0) → button code 32+0=32 (' '), col 32+1=33 ('!'), row
+      // 32+1=33 ('!'): row and column get the same encoding (xterm ctlseqs,
+      // T-629 — the row used to get an extra +1).
+      expect(r(TerminalMouseButton.left, TerminalMouseButtonState.down), '\x1b[M !!');
+      // (4,9) → col 32+5=37 ('%'), row 32+10=42 ('*').
+      expect(r(TerminalMouseButton.left, TerminalMouseButtonState.down, x: 4, y: 9), '\x1b[M %*');
     });
 
     test('release uses button id 3 regardless of which button was up', () {
-      expect(r(TerminalMouseButton.right, TerminalMouseButtonState.up), '\x1b[M#!"'); // 32+3='#' for the up code
+      expect(r(TerminalMouseButton.right, TerminalMouseButtonState.up), '\x1b[M#!!'); // 32+3='#' for the up code
+    });
+
+    test('a wheel scroll reports as button 64 (up) / 65 (down) — no Shift bit', () {
+      expect(r(TerminalMouseButton.wheelUp, TerminalMouseButtonState.down), '\x1b[M`!!'); // 32+64 = 96 = '`'
+      expect(r(TerminalMouseButton.wheelDown, TerminalMouseButtonState.down), '\x1b[Ma!!'); // 32+65 = 97 = 'a'
     });
 
     test('coordinates beyond 223 (8-bit limit) emit a null byte', () {
       final out = r(TerminalMouseButton.left, TerminalMouseButtonState.down, x: 300, y: 0);
-      expect(out, '\x1b[M \x00"'); // null in the column slot
+      expect(out, '\x1b[M \x00!'); // null in the column slot
     });
   });
 
@@ -128,6 +140,11 @@ void main() {
     test('M for press, m for release, with raw 1-based coords', () {
       expect(MouseReporter.report(TerminalMouseButton.middle, TerminalMouseButtonState.down, const CellOffset(10, 20), MouseReportMode.sgr), '\x1b[<1;11;21M');
       expect(MouseReporter.report(TerminalMouseButton.middle, TerminalMouseButtonState.up, const CellOffset(10, 20), MouseReportMode.sgr), '\x1b[<1;11;21m');
+    });
+
+    test('wheel up/down are 64/65 (T-628)', () {
+      expect(MouseReporter.report(TerminalMouseButton.wheelUp, TerminalMouseButtonState.down, const CellOffset(0, 0), MouseReportMode.sgr), '\x1b[<64;1;1M');
+      expect(MouseReporter.report(TerminalMouseButton.wheelDown, TerminalMouseButtonState.down, const CellOffset(0, 0), MouseReportMode.sgr), '\x1b[<65;1;1M');
     });
   });
 

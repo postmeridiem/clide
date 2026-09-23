@@ -36,6 +36,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   remembered list was written in a form that didn't read back, so the
   restore offer never appeared. Settings values starting with characters
   like `*` or `[` could also break the whole settings file.
+- **Scrolling in terminal programs no longer arrives as Shift+scroll**
+  (T-628) — vim, tmux and friends saw every mouse-wheel turn with Shift
+  held.
+- **Terminal mouse clicks land on the right row** (T-629) — in the older
+  mouse modes a click was reported one line below where you clicked.
 
 ## [2.18.1] — 2026-09-23
 
