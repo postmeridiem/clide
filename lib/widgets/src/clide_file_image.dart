@@ -15,17 +15,19 @@ import 'package:flutter/widgets.dart';
 class ClideFileImage extends FileImage {
   ClideFileImage(String path, {double scale = 1.0}) : _stamp = _stampOf(path), super(File(path), scale: scale);
 
-  /// mtime ⊕ size — changes on any in-place overwrite (a write bumps mtime; a
-  /// different length bumps size even within one clock tick). 0 if the file
+  /// (mtime, size) — changes on any in-place overwrite (a write bumps mtime; a
+  /// different length bumps size even within one clock tick). Both kept, not
+  /// combined: `mtime ^ size` collided whenever the two changed by the same
+  /// bit pattern, e.g. 3 → 4 bytes one millisecond later. (0, 0) if the file
   /// can't be stat'd, which falls back to plain path+scale keying.
-  final int _stamp;
+  final (int, int) _stamp;
 
-  static int _stampOf(String path) {
+  static (int, int) _stampOf(String path) {
     try {
       final s = File(path).statSync();
-      return s.modified.millisecondsSinceEpoch ^ s.size;
+      return (s.modified.millisecondsSinceEpoch, s.size);
     } catch (_) {
-      return 0;
+      return (0, 0);
     }
   }
 
