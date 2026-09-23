@@ -26,6 +26,7 @@ bool FlutterWindow::OnCreate() {
   }
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
+  tray_ = std::make_unique<ClideTrayBridge>(flutter_controller_->engine()->messenger(), GetHandle());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
@@ -40,6 +41,7 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  tray_ = nullptr;  // before the engine it holds a channel on
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }
@@ -58,6 +60,14 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                                                       lparam);
     if (result) {
       return *result;
+    }
+  }
+
+  // D-110: WM_CLOSE becomes a hide while the tray can bring the window back;
+  // loader commands (show / hide / quit) arrive here too.
+  if (tray_) {
+    if (std::optional<LRESULT> handled = tray_->HandleMessage(hwnd, message, wparam, lparam)) {
+      return *handled;
     }
   }
 
