@@ -621,6 +621,57 @@ void main() {
     });
   });
 
+  group('slash-command stdout (T-509)', () {
+    // Shape from a real transcript: a "user" record whose string content is
+    // the CLI's <local-command-stdout> block.
+    String stdoutEvent(Object content) => jsonEncode({
+      'type': 'user',
+      'uuid': 'lc1',
+      'timestamp': '2026-07-02T10:00:00.000Z',
+      'message': {'role': 'user', 'content': content},
+    });
+
+    test('unwraps the tag and emits CLI-local output, not a user message', () {
+      final items = parseTranscriptChunk(stdoutEvent('<local-command-stdout>Set model to claude-fable-5[1m] (claude-fable-5)</local-command-stdout>')).items;
+      expect(items.whereType<UserMessage>(), isEmpty);
+      final msg = items.whereType<AssistantTextMessage>().single;
+      expect(msg.synthetic, isTrue);
+      // `[1m]` here is the 1M-context model suffix, not an escape — it stays.
+      expect(msg.text, 'Set model to claude-fable-5[1m] (claude-fable-5)');
+    });
+
+    test('strips real ANSI escape sequences from the output', () {
+      final items = parseTranscriptChunk(
+        stdoutEvent('<local-command-stdout>\x1b[1mSet model\x1b[22m to \x1b[38;5;208mopus\x1b[0m</local-command-stdout>'),
+      ).items;
+      expect(items.whereType<AssistantTextMessage>().single.text, 'Set model to opus');
+    });
+
+    test('the array content form is unwrapped too', () {
+      final items = parseTranscriptChunk(
+        stdoutEvent([
+          {'type': 'text', 'text': '<local-command-stdout>Login successful</local-command-stdout>'},
+        ]),
+      ).items;
+      expect(items.whereType<UserMessage>(), isEmpty);
+      expect(items.whereType<AssistantTextMessage>().single.text, 'Login successful');
+    });
+
+    test('an empty block emits nothing', () {
+      expect(parseTranscriptChunk(stdoutEvent('<local-command-stdout></local-command-stdout>')).items, isEmpty);
+    });
+
+    test('prose that merely mentions the tag stays a user message', () {
+      final items = parseTranscriptChunk(stdoutEvent('why does <local-command-stdout> show up in my pane?')).items;
+      expect(items.single, isA<UserMessage>());
+    });
+
+    test('localCommandStdout returns null for non-stdout text', () {
+      expect(localCommandStdout('hello'), isNull);
+      expect(localCommandStdout('  <local-command-stdout> x </local-command-stdout>\n'), 'x');
+    });
+  });
+
   group('TranscriptReader — append streaming (filesystem)', () {
     late Directory tempBase;
 

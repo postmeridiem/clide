@@ -65,6 +65,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   `claude auth login`.
 - **Images, drawings, icons and ticket pick-ups land in the Claude tab you're
   in** (T-295) — they always went to the primary tab.
+- **Slash-command output no longer shows up as your message** (T-509) — the
+  confirmation from commands like `/model` renders as a clide notice instead
+  of a raw `<local-command-stdout>` line under "you".
 - **Drawings open full-size on click, like images** (T-563) — click, or focus
   and press Enter, to open any drawing zoomable in the lightbox.
 - **API errors stand out in the conversation** (T-461) — a rate-limit,

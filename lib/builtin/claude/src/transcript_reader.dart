@@ -699,20 +699,41 @@ void _parseUserInto(
   // transcript. The view de-emphasises these (D-78).
   final injected = envelope['isSynthetic'] == true || envelope['isMeta'] == true;
 
-  if (content is String) {
-    if (content.isNotEmpty) {
+  // A slash command's output (/model → "Set model to …") arrives as a "user"
+  // record wrapped in <local-command-stdout>. It is the CLI talking, not the
+  // user: unwrap it and emit it as CLI-local output so it renders as the muted
+  // "clide" card rather than under the "you" stripe (T-509).
+  void addUserText(String text, {required String? toolUseId}) {
+    final stdout = localCommandStdout(text);
+    if (stdout == null) {
       out.add(
         UserMessage(
           uuid: uuid,
           timestamp: timestamp,
           isSidechain: isSidechain,
           parentUuid: parentUuid,
-          parentToolUseId: parentToolUseId,
-          text: content,
+          parentToolUseId: toolUseId,
+          text: text,
           injected: injected,
         ),
       );
+    } else if (stdout.isNotEmpty) {
+      out.add(
+        AssistantTextMessage(
+          uuid: uuid,
+          timestamp: timestamp,
+          isSidechain: isSidechain,
+          parentUuid: parentUuid,
+          parentToolUseId: parentToolUseId,
+          text: stdout,
+          synthetic: true,
+        ),
+      );
     }
+  }
+
+  if (content is String) {
+    if (content.isNotEmpty) addUserText(content, toolUseId: parentToolUseId);
     return;
   }
   if (content is! List) return;
@@ -742,9 +763,25 @@ void _parseUserInto(
         break;
     }
   }
-  if (textParts.isNotEmpty) {
-    out.add(UserMessage(uuid: uuid, timestamp: timestamp, isSidechain: isSidechain, parentUuid: parentUuid, text: textParts.join('\n'), injected: injected));
-  }
+  // The array form has never carried parentToolUseId on its joined text;
+  // kept as-is so sidechain prompt routing is unchanged.
+  if (textParts.isNotEmpty) addUserText(textParts.join('\n'), toolUseId: null);
+}
+
+final RegExp _localCommandStdout = RegExp(r'^\s*<local-command-stdout>([\s\S]*)</local-command-stdout>\s*$');
+
+/// ANSI/VT escape sequences: CSI (`ESC [ … final`), OSC (`ESC ] … BEL|ST`) and
+/// two-byte `ESC x` escapes. Only sequences that start with a real ESC byte —
+/// a literal `[1m]` (the 1M-context model suffix, `claude-fable-5[1m]`) is
+/// text and must survive.
+final RegExp _ansiEscape = RegExp(r'\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|[@-Z\\-_])');
+
+/// The unwrapped, ANSI-stripped, trimmed body of a `<local-command-stdout>`
+/// block (T-509), or null when [text] is not one. An empty block yields `''`.
+String? localCommandStdout(String text) {
+  final m = _localCommandStdout.firstMatch(text);
+  if (m == null) return null;
+  return m.group(1)!.replaceAll(_ansiEscape, '').trim();
 }
 
 /// The model marker on CLI-local output (forwarded local-command responses).
