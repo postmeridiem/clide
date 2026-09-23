@@ -85,12 +85,25 @@ class IpcServer {
   /// Orphaned sockets from crashed instances of OTHER workspaces are
   /// also swept from the runtime dir on startup (T-247), so the dir
   /// doesn't accumulate dead nodes.
-  Future<void> start() async {
+  ///
+  /// [handoffWait] is for a window that replaces one still shutting down
+  /// (the update relaunch, D-113): a live server on the path is waited out
+  /// for up to that long, polling, instead of refused at once.
+  Future<void> start({Duration handoffWait = Duration.zero}) async {
     if (isRunning) return;
     final path = workspaceSocketPath(workspaceRoot);
     await _prepareParentDir(path);
     await _sweepStaleSockets(path);
-    await _unlinkStale(path);
+    final deadline = DateTime.now().add(handoffWait);
+    while (true) {
+      try {
+        await _unlinkStale(path);
+        break;
+      } on StateError {
+        if (DateTime.now().isAfter(deadline)) rethrow;
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      }
+    }
     final socket = await ServerSocket.bind(InternetAddress(path, type: InternetAddressType.unix), 0);
     try {
       await _chmod(path, 0x180); // 0o600

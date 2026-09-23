@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io' show Platform, Process, ProcessStartMode;
 
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/src/ipc/paths.dart' show windowIdentityKeys, withoutWindowIdentity;
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart' show MissingPluginException;
 import 'package:flutter/widgets.dart';
@@ -41,18 +42,9 @@ class FileActions {
     );
   }
 
-  /// Variables that bind a process to ONE window's IPC server (T-215). They
-  /// reach this process's environment whenever clide itself was launched from
-  /// a clide-hosted terminal or agent.
-  static const windowIdentityKeys = {'CLIDE_SOCK', 'CLIDE_WORKSPACE'};
-
-  /// [parent] minus [windowIdentityKeys] — everything else (PATH, HOME,
-  /// display vars…) still passes through. Keys compare case-insensitively:
-  /// Windows environment names do.
-  static Map<String, String> newWindowEnvironment(Map<String, String> parent) => {
-    for (final e in parent.entries)
-      if (!windowIdentityKeys.contains(e.key.toUpperCase())) e.key: e.value,
-  };
+  /// [parent] without the variables that bind a process to one window's IPC
+  /// server ([windowIdentityKeys]) — see [withoutWindowIdentity].
+  static Map<String, String> newWindowEnvironment(Map<String, String> parent) => withoutWindowIdentity(parent);
 
   /// Close the current workspace (back to the welcome screen).
   void closeWorkspace() => services.project.close();

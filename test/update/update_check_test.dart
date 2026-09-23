@@ -3,9 +3,10 @@
 /// network). Flutter-free.
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:clide/builtin/menubar/src/update_check.dart';
+import 'package:clide/src/update/update_check.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -78,6 +79,30 @@ void main() {
     test('a fetch failure returns UpdateCheckFailed and never throws', () async {
       final r = await checkForUpdate(repositoryUrl: repo, currentVersion: '2.8.1', fetch: (_) => Future.error('offline'));
       expect(r, isA<UpdateCheckFailed>());
+    });
+
+    test('the linux bundle and its GitHub digest ride along with an available update (T-621)', () async {
+      String withAssets(List<Map<String, Object?>> assets) =>
+          jsonEncode({'tag_name': 'v2.9.0', 'html_url': 'https://github.com/postmeridiem/clide/releases/tag/v2.9.0', 'assets': assets});
+      const tarball = {
+        'name': 'clide-linux-x64-2.9.0.tar.gz',
+        'browser_download_url': 'https://github.com/postmeridiem/clide/releases/download/v2.9.0/clide-linux-x64-2.9.0.tar.gz',
+        'digest': 'sha256:ABC123',
+        'size': 42,
+      };
+      final r = await checkForUpdate(repositoryUrl: repo, currentVersion: '2.8.1', isLinux: true, fetch: (_) async => withAssets([tarball]));
+      final bundle = (r as UpdateAvailable).bundle!;
+      expect(bundle.name, 'clide-linux-x64-2.9.0.tar.gz');
+      expect(bundle.url, endsWith('/clide-linux-x64-2.9.0.tar.gz'));
+      expect(bundle.sha256, 'abc123');
+      expect(bundle.size, 42);
+
+      final noDigest = {...tarball}..remove('digest');
+      final unverifiable = await checkForUpdate(repositoryUrl: repo, currentVersion: '2.8.1', isLinux: true, fetch: (_) async => withAssets([noDigest]));
+      expect((unverifiable as UpdateAvailable).bundle, isNull, reason: 'no digest, nothing to verify against — not installable');
+
+      final elsewhere = await checkForUpdate(repositoryUrl: repo, currentVersion: '2.8.1', isLinux: false, fetch: (_) async => withAssets([tarball]));
+      expect((elsewhere as UpdateAvailable).bundle, isNull, reason: 'releases build no bundle for this platform');
     });
 
     test('an unrecognized repo URL or a tagless response fails cleanly', () async {

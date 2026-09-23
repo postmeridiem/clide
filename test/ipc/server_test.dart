@@ -146,6 +146,26 @@ void main() {
       expect(() async => other.start(), throwsA(isA<StateError>()));
     });
 
+    test('a handoff wait binds once the live listener goes away (D-113)', () async {
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      await server.start();
+      final successor = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      final bound = successor.start(handoffWait: const Duration(seconds: 5));
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      expect(successor.isRunning, isFalse, reason: 'still waiting on the old window');
+      await server.stop();
+      await bound;
+      expect(successor.isRunning, isTrue);
+      server = successor; // tearDown stops it
+    });
+
+    test('a handoff wait still refuses once it runs out', () async {
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      await server.start();
+      final other = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      await expectLater(other.start(handoffWait: const Duration(milliseconds: 300)), throwsA(isA<StateError>()));
+    });
+
     test('startup sweeps dead orphan sockets from the runtime dir, keeps live ones (T-247)', () async {
       final socketDir = Directory(File(workspaceSocketPath(workRoot)).parent.path);
       socketDir.createSync(recursive: true);

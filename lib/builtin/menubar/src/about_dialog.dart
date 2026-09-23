@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:clide/clide.dart' show clideName, clideTagline, clideVersion, clideRepository, clideCommit, clideDate;
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/src/update/update_check.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
 import 'licenses_loader.dart';
-import 'update_check.dart';
 
 /// The Help → About dialog (T-48): clide identity + build info, plus the
 /// bundled-dependency licenses parsed from `assets/licenses.yaml`.
@@ -101,10 +101,25 @@ class _UpdateCheckRowState extends State<_UpdateCheckRow> {
   UpdateCheckResult? _result;
   bool _checking = false;
 
+  // Install (T-621): driven through the `app.update` verb so the CLI and this
+  // button are one path (D-6); progress arrives as `app.update` events.
+  bool _installing = false;
+  String? _phase;
+  double? _fraction;
+  String? _installError;
+  StreamSubscription<DaemonEvent>? _progress;
+
+  @override
+  void dispose() {
+    unawaited(_progress?.cancel());
+    super.dispose();
+  }
+
   Future<void> _check() async {
     setState(() {
       _checking = true;
       _result = null;
+      _installError = null;
     });
     final r = await checkForUpdate(repositoryUrl: clideRepository, currentVersion: clideVersion, fetch: widget.fetch ?? githubGet);
     if (mounted) {
@@ -115,15 +130,61 @@ class _UpdateCheckRowState extends State<_UpdateCheckRow> {
     }
   }
 
+  Future<void> _install() async {
+    final kernel = ClideKernel.of(context);
+    setState(() {
+      _installing = true;
+      _installError = null;
+      _phase = 'downloading';
+      _fraction = null;
+    });
+    unawaited(_progress?.cancel());
+    _progress = kernel.events.on<DaemonEvent>().where((e) => e.subsystem == 'app' && e.kind == 'app.update').listen((e) {
+      if (!mounted) return;
+      setState(() {
+        _phase = e.data['phase'] as String?;
+        _fraction = (e.data['fraction'] as num?)?.toDouble();
+      });
+    });
+    final r = await kernel.ipc.request('app.update', args: {'install': true});
+    if (!mounted) return;
+    // On success the windows restart and this one goes away; stay on
+    // "Restarting…" until it does.
+    if (!r.ok) {
+      setState(() {
+        _installing = false;
+        _phase = null;
+        _installError = r.error?.message ?? 'unknown error';
+      });
+    }
+  }
+
   String _t(String key, String fallback) => ClideSettings.i18n.string(context, key, namespace: 'builtin.menubar', placeholder: fallback);
 
   @override
   Widget build(BuildContext context) {
+    final r = _result;
+    final canInstall = r is UpdateAvailable && r.bundle != null && !_installing;
     return Row(
       children: [
-        ClideButton(label: _t('about.checkUpdates', 'Check for updates'), onPressed: _checking ? null : _check),
+        ClideButton(label: _t('about.checkUpdates', 'Check for updates'), onPressed: _checking || _installing ? null : _check),
         const SizedBox(width: 12),
         Expanded(child: _status(context)),
+        if (canInstall) ...[
+          const SizedBox(width: 12),
+          Semantics(
+            excludeSemantics: true,
+            button: true,
+            label: ClideSettings.i18n.interpolated(
+              context,
+              'about.install.semantics',
+              namespace: 'builtin.menubar',
+              placeholder: 'Install clide {version} and restart every window. Running Claude turns and terminals stop; conversations resume.',
+              replacers: [I18nReplacer(from: '{version}', replace: r.latest)],
+            ),
+            child: ClideButton(key: const Key('about-install'), label: _t('about.install', 'Install and restart'), onPressed: _install),
+          ),
+        ],
       ],
     );
   }
@@ -131,6 +192,17 @@ class _UpdateCheckRowState extends State<_UpdateCheckRow> {
   Widget _status(BuildContext context) {
     final tokens = widget.tokens;
     if (_checking) return ClideText(_t('about.checking', 'Checking…'), fontSize: 12, color: tokens.globalTextMuted);
+    if (_installing) return ClideText(_phaseText(context), fontSize: 12, color: tokens.globalTextMuted);
+    final err = _installError;
+    if (err != null) {
+      return ClideText(
+        '${_t('about.installFailed', 'Update failed')} ($err)',
+        fontSize: 12,
+        color: tokens.statusError,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
     switch (_result) {
       case null:
         return const SizedBox.shrink();
@@ -164,6 +236,28 @@ class _UpdateCheckRowState extends State<_UpdateCheckRow> {
           color: tokens.statusError,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+        );
+    }
+  }
+
+  String _phaseText(BuildContext context) {
+    switch (_phase) {
+      case 'verifying':
+        return _t('about.phase.verifying', 'Verifying…');
+      case 'unpacking':
+        return _t('about.phase.unpacking', 'Unpacking…');
+      case 'installing':
+        return _t('about.phase.installing', 'Installing…');
+      case 'restarting':
+        return _t('about.phase.restarting', 'Restarting windows…');
+      default:
+        final f = _fraction;
+        return ClideSettings.i18n.interpolated(
+          context,
+          'about.phase.downloading',
+          namespace: 'builtin.menubar',
+          placeholder: 'Downloading… {percent}',
+          replacers: [I18nReplacer(from: '{percent}', replace: f == null ? '' : '${(f * 100).round()}%')],
         );
     }
   }

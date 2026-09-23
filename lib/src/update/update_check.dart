@@ -1,4 +1,5 @@
-/// Manual "check for updates" logic for the About dialog (T-47 P1, story T-46).
+/// Manual "check for updates" logic for the About dialog and `clide app update`
+/// (T-47 P1, story T-46; installing is `SelfUpdater`, T-621).
 ///
 /// POLICY-sensitive: this is clide's ONLY outbound HTTP call, and it runs ONLY
 /// on explicit user action (the About-box button) — never on a launch path, never
@@ -26,9 +27,46 @@ class UpdateUpToDate extends UpdateCheckResult {
 
 /// A newer release is available.
 class UpdateAvailable extends UpdateCheckResult {
-  const UpdateAvailable({required this.latest, required this.url});
+  const UpdateAvailable({required this.latest, required this.url, this.bundle});
   final String latest;
   final String url;
+
+  /// The release's installable bundle for this platform, with the SHA-256
+  /// GitHub recorded for it (T-621). Null when the release carries none (a
+  /// platform the release doesn't build, or a release without a digest).
+  final ReleaseBundle? bundle;
+}
+
+/// One release asset clide can install: the platform tarball the release
+/// workflow publishes (`clide-linux-x64-<version>.tar.gz`).
+class ReleaseBundle {
+  const ReleaseBundle({required this.name, required this.url, required this.sha256, required this.size});
+  final String name;
+  final String url;
+
+  /// Lower-case hex SHA-256 from the asset's `digest` (`sha256:<hex>`),
+  /// computed by GitHub at upload — the interim integrity check until
+  /// releases are signed (T-491).
+  final String sha256;
+  final int size;
+}
+
+/// The release asset name for [version] on this machine, or null where
+/// releases publish no bundle (only Linux x64 today — the Windows build is
+/// paused, macOS has none yet).
+String? bundleAssetName(String version, {bool? isLinux}) => (isLinux ?? Platform.isLinux) ? 'clide-linux-x64-$version.tar.gz' : null;
+
+ReleaseBundle? _bundleFrom(Object? assets, String version, {bool? isLinux}) {
+  final want = bundleAssetName(version, isLinux: isLinux);
+  if (want == null || assets is! List) return null;
+  for (final a in assets.whereType<Map<String, Object?>>()) {
+    if (a['name'] != want) continue;
+    final digest = a['digest'];
+    final url = a['browser_download_url'];
+    if (digest is! String || !digest.startsWith('sha256:') || url is! String) return null;
+    return ReleaseBundle(name: want, url: url, sha256: digest.substring(7).toLowerCase(), size: (a['size'] as num?)?.toInt() ?? 0);
+  }
+  return null;
 }
 
 /// The check couldn't complete (offline, API error, parse failure). The app is
@@ -61,7 +99,7 @@ Future<String> githubGet(Uri url) async {
 
 /// Fetch the latest GitHub Release for [repositoryUrl] and compare its version
 /// to [currentVersion]. Never throws — failures come back as [UpdateCheckFailed].
-Future<UpdateCheckResult> checkForUpdate({required String repositoryUrl, required String currentVersion, GithubFetch fetch = githubGet}) async {
+Future<UpdateCheckResult> checkForUpdate({required String repositoryUrl, required String currentVersion, GithubFetch fetch = githubGet, bool? isLinux}) async {
   final gh = parseGithubRepo(repositoryUrl);
   if (gh == null) return const UpdateCheckFailed('unrecognized repository URL');
   try {
@@ -71,7 +109,12 @@ Future<UpdateCheckResult> checkForUpdate({required String repositoryUrl, require
     final latest = tag.startsWith('v') ? tag.substring(1) : tag;
     if (latest.isEmpty) return const UpdateCheckFailed('no release version found');
     final url = (json['html_url'] as String?) ?? repositoryUrl;
-    return compareSemver(latest, currentVersion) > 0 ? UpdateAvailable(latest: latest, url: url) : UpdateUpToDate(currentVersion);
+    if (compareSemver(latest, currentVersion) <= 0) return UpdateUpToDate(currentVersion);
+    return UpdateAvailable(
+      latest: latest,
+      url: url,
+      bundle: _bundleFrom(json['assets'], latest, isLinux: isLinux),
+    );
   } catch (e) {
     return UpdateCheckFailed('$e');
   }

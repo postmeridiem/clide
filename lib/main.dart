@@ -35,11 +35,11 @@ import 'package:clide/builtin/vim/vim.dart';
 import 'package:clide/builtin/tickets/tickets.dart';
 import 'package:clide/builtin/todos/todos.dart';
 import 'package:clide/builtin/welcome/welcome.dart';
-import 'dart:io' show Directory, File, Platform, pid;
+import 'dart:io' show Directory, File, Platform, exit, pid;
 
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/builtin/claude/src/account_registry.dart';
-import 'package:clide/clide.dart' show clideCommit, clideDate, clideVersion;
+import 'package:clide/clide.dart' show clideCommit, clideDate, clideRepository, clideVersion;
 import 'package:clide/src/daemon/claude_account_commands.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
 import 'package:clide/src/daemon/env_path_commands.dart';
@@ -57,7 +57,9 @@ import 'package:clide/src/daemon/image_commands.dart';
 import 'package:clide/src/daemon/project_commands.dart';
 import 'package:clide/src/daemon/instance_command.dart';
 import 'package:clide/src/daemon/log_commands.dart';
+import 'package:clide/src/daemon/update_commands.dart';
 import 'package:clide/src/daemon/window_commands.dart';
+import 'package:clide/src/update/self_update.dart' show SelfUpdater, WindowRelauncher, kRelaunchEnv;
 import 'package:clide/src/daemon/pane_commands.dart';
 import 'package:clide/src/daemon/status_command.dart';
 import 'package:clide/src/daemon/ui_command.dart';
@@ -175,6 +177,9 @@ Future<void> main() async {
   // The kernel tray/window bridge, captured post-boot so `window.show|hide`
   // and `app.quit` reach the native window (D-110, T-590).
   TrayRegistry? kernelTray;
+  // Where this run's bundle is installed, read NOW: an update renames the
+  // install dir, after which /proc/self/exe names the `.old` copy (D-113).
+  final installDir = SelfUpdater.installDirOf(Platform.resolvedExecutable);
   // The kernel MessageBus, captured post-boot so `ui.open` can drive the GUI
   // readers (publish a 'selection') from the CLI — the drive-half of D-6 (T-231).
   MessageBus? kernelMessages;
@@ -259,7 +264,9 @@ Future<void> main() async {
     final server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot.path, log: ipcLog, events: daemonBus);
     ipcServer = server;
     try {
-      await server.start();
+      // A window restarted by an update replaces one still shutting down:
+      // wait for its socket rather than refuse to bind (D-113).
+      await server.start(handoffWait: Platform.environment[kRelaunchEnv] == '1' ? const Duration(seconds: 15) : Duration.zero);
     } catch (e, st) {
       ipcLog.error('ipc', 'server start failed', error: e, stackTrace: st);
       return;
@@ -364,6 +371,26 @@ Future<void> main() async {
     // `clide window show|hide`, `clide app quit [--all]` — the CLI half of the
     // tray menu and the window's close button (D-110, D-6).
     registerWindowCommands(dispatcher, () => kernelTray);
+    // `clide app update [--install]` — the About box's Check / Install
+    // (T-621, D-113). Installing swaps the bundle, then restarts every window
+    // on it: the others first, this one last.
+    final dir = installDir;
+    registerUpdateCommands(
+      dispatcher,
+      eventSink,
+      repositoryUrl: clideRepository,
+      currentVersion: clideVersion,
+      updater: dir == null ? null : SelfUpdater(installDir: dir, cliPath: SelfUpdater.installedCli(Platform.environment)),
+      restartWindows: () async {
+        if (dir == null) return;
+        final relauncher = WindowRelauncher(executable: '$dir/clide');
+        await relauncher.relaunchSiblings(ownSocket: workspaceSocketPath(workRoot.path));
+        await relauncher.launch(workRoot.path);
+        // The replacement waits for this window's socket — never leave it
+        // waiting on a quit the platform couldn't carry out.
+        if (await kernelTray?.quit(all: false) != true) exit(0);
+      },
+    );
     // Trusted read-only roots beyond the workspace: the global Claude
     // config dir (~/.claude), so the reader can open user-scope skill /
     // agent / command markdown the Config tab surfaces (D-80, T-195).

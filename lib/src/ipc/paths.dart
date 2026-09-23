@@ -54,6 +54,19 @@ String socketDirectory() {
   return '$base/clide';
 }
 
+/// Variables that bind a process to ONE window's IPC server (T-215). They
+/// reach clide's own environment whenever it was launched from a clide-hosted
+/// terminal or agent, so a window clide starts must not inherit them (T-421).
+const windowIdentityKeys = {'CLIDE_SOCK', 'CLIDE_WORKSPACE'};
+
+/// [parent] minus [windowIdentityKeys] — everything else (PATH, HOME,
+/// display vars…) passes through. Keys compare case-insensitively: Windows
+/// environment names do.
+Map<String, String> withoutWindowIdentity(Map<String, String> parent) => {
+  for (final e in parent.entries)
+    if (!windowIdentityKeys.contains(e.key.toUpperCase())) e.key: e.value,
+};
+
 /// Persistent per-platform directory for crash-survivable logs (T-425).
 ///
 ///   Linux:   `$XDG_STATE_HOME/clide/logs` (else `$HOME/.local/state/...`)

@@ -154,6 +154,7 @@ You might also want, project-permitting:
 - [D-110: A headless loader owns one shared tray icon; closing a window hides it](decisions/architecture.md#d-110-a-headless-loader-owns-one-shared-tray-icon-closing-a-window-hides-it) — _architecture_
 - [D-111: One window process per workspace; in-place switching is retired](decisions/architecture.md#d-111-one-window-process-per-workspace-in-place-switching-is-retired) — _architecture_
 - [D-112: IPC handlers do async file I/O; large operations offload to an isolate and report progress](decisions/architecture.md#d-112-ipc-handlers-do-async-file-io-large-operations-offload-to-an-isolate-and-report-progress) — _architecture_
+- [D-113: Self-update: verified download, rename swap of the install, windows restart onto it; the loader stays](decisions/architecture.md#d-113-self-update-verified-download-rename-swap-of-the-install-windows-restart-onto-it-the-loader-stays) — _architecture_
 
 ## Open questions
 
