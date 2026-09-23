@@ -23,6 +23,7 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 ### Fixed
 
 - pql calls ignore `PQL_*` variables inherited from the environment. An exported `PQL_VAULT` used to send clide's queries and plan edits to that vault instead of the workspace's (T-693).
+- The bundled tree-sitter library loads on Linux with glibc 2.28 or newer, such as Ubuntu 20.04 and Debian 10 and 11. It used to need glibc 2.34 (T-694).
 
 ## [2.19.0] — 2026-09-23
 

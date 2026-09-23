@@ -2276,3 +2276,67 @@ With the variable unset, both files pass (57 tests). A developer who exports `PQ
 - With the filter removed, both new tests fail.
 - If the spawn ignores the injected environment, the spawn test fails on its sentinel. That is what catches it in CI, where no `PQL_VAULT` is set.
 - With the helper unscrubbed, it leaks into the scratch vault again.', 'done', 'high', NULL, NULL, NULL, '2026-09-23 14:30:58.715', '2026-09-23 15:36:38.424', NULL, 'f9591fe927901c167cd629eb4274fc70', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXBACVJ4TMMNGH31VV6A8A0', 'bug', '06FB0TNQM6T6580D8ABDVTMNZW', 'Vendored libtree-sitter.so needs glibc 2.34; fails to load on older hosts', 'The vendored `native/linux-x64/libtree-sitter.so` is built on a recent distribution and needs glibc 2.34 or later: 11 of its symbols are versioned `GLIBC_2.34`. On a glibc 2.31 host (Ubuntu 20.04-based distributions), `DynamicLibrary.open` fails with ``version `GLIBC_2.34'' not found``. Two consequences on such hosts:
+- the native tree-sitter smoke test fails;
+- the desktop app cannot load tree-sitter.
+
+**Options:**
+- Rebuild against an older glibc baseline, for example in a manylinux-style build container. This follows D-63.
+- Or declare a minimum glibc, and state it in `BUILD.md` and the install docs.
+
+The web UI image has the same floor (Q-53 c).
+
+**Done when:**
+- The supported glibc floor is decided and written down.
+- The vendored library loads on it.
+- CI builds or tests on that floor.
+
+**Fixed (2026-09-23). Floor decided: glibc 2.28 (manylinux_2_28).**
+
+**How the library is built now.** `native/linux-x64/build.sh` rebuilds it in a digest-pinned `manylinux_2_28` container from pinned commits:
+- tree-sitter `v0.26.8` (`cd5b087c`);
+- wasmtime `v44.0.0` (`af382d7d`), now built from source under its `Cargo.lock` instead of taken from a prebuilt Homebrew archive.
+
+The script strips the result.
+
+**Evidence:**
+- Two clean runs produced identical bytes.
+- The library needs nothing newer than `GLIBC_2.28`.
+- `ci/verify_native.sh` now fails if a rebuild raises the floor. It failed on the old binary, which needed 2.34, and passes on the new one.
+- On a glibc 2.31 host, the native tree-sitter smoke test passes, and so does the full pre-push gate (`make push-check`: 4,971 tests, coverage 95.32%).
+
+**Size:** the binary is 37.0 MB against 24.9 MB before. The difference is wasmtime''s default C-API features, built from source.
+
+**Still open:** building it in CI, tracked as T-25.', 'backlog', 'medium', NULL, NULL, NULL, '2026-09-23 14:30:59.036', '2026-09-23 17:24:27.886', NULL, '050f75e7244b22c0e8fe4a0a8e3bb1f0', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXBACVJ4TMMNGH31VV6A8A0', 'bug', '06FB0TNQM6T6580D8ABDVTMNZW', 'Vendored libtree-sitter.so needs glibc 2.34; fails to load on older hosts', 'The vendored `native/linux-x64/libtree-sitter.so` is built on a recent distribution and needs glibc 2.34 or later: 11 of its symbols are versioned `GLIBC_2.34`. On a glibc 2.31 host (Ubuntu 20.04-based distributions), `DynamicLibrary.open` fails with ``version `GLIBC_2.34'' not found``. Two consequences on such hosts:
+- the native tree-sitter smoke test fails;
+- the desktop app cannot load tree-sitter.
+
+**Options:**
+- Rebuild against an older glibc baseline, for example in a manylinux-style build container. This follows D-63.
+- Or declare a minimum glibc, and state it in `BUILD.md` and the install docs.
+
+The web UI image has the same floor (Q-53 c).
+
+**Done when:**
+- The supported glibc floor is decided and written down.
+- The vendored library loads on it.
+- CI builds or tests on that floor.
+
+**Fixed (2026-09-23). Floor decided: glibc 2.28 (manylinux_2_28).**
+
+**How the library is built now.** `native/linux-x64/build.sh` rebuilds it in a digest-pinned `manylinux_2_28` container from pinned commits:
+- tree-sitter `v0.26.8` (`cd5b087c`);
+- wasmtime `v44.0.0` (`af382d7d`), now built from source under its `Cargo.lock` instead of taken from a prebuilt Homebrew archive.
+
+The script strips the result.
+
+**Evidence:**
+- Two clean runs produced identical bytes.
+- The library needs nothing newer than `GLIBC_2.28`.
+- `ci/verify_native.sh` now fails if a rebuild raises the floor. It failed on the old binary, which needed 2.34, and passes on the new one.
+- On a glibc 2.31 host, the native tree-sitter smoke test passes, and so does the full pre-push gate (`make push-check`: 4,971 tests, coverage 95.32%).
+
+**Size:** the binary is 37.0 MB against 24.9 MB before. The difference is wasmtime''s default C-API features, built from source.
+
+**Still open:** building it in CI, tracked as T-25.', 'done', 'medium', NULL, NULL, NULL, '2026-09-23 14:30:59.036', '2026-09-23 17:24:28.063', NULL, 'eb1985bff0e7cef7e5e1e8d5cd4e23fd', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

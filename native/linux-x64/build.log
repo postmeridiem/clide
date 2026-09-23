@@ -1,0 +1,17 @@
+# libtree-sitter.so build log
+image: quay.io/pypa/manylinux_2_28_x86_64@sha256:ae21cd1c8220f773f9b5934f3b845d677494d4cd4b8981c1e416f654e8afa74e
+glibc: ldd (GNU libc) 2.28
+gcc: gcc (GCC) 14.2.1 20250110 (Red Hat 14.2.1-11)
+cmake: cmake version 4.4.3
+rustc: rustc 1.92.0 (ded5c06cf 2025-12-08)
+wasmtime: https://github.com/bytecodealliance/wasmtime.git @ af382d7d946b3de82db4bb1f6065b565f97446ae (v44.0.0)
+tree-sitter: https://github.com/tree-sitter/tree-sitter.git @ cd5b087cd9f45ca6d93ab1954f6b7c8534f324d2 (v0.26.8)
+wasmtime: cmake -S crates/c-api -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=lib -DWASMTIME_USER_CARGO_BUILD_OPTIONS=--locked && cmake --build && cmake --install
+tree-sitter: cmake -S . -DTREE_SITTER_FEATURE_WASM=ON -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INCLUDE_PATH=<wasmtime>/include -DWASMTIME_LIBRARY=<wasmtime>/lib/libwasmtime.a && cmake --build
+sha256 before strip: 111dab85b479ecd5622c546aa1d92bf4b2c632ed40585dacf2da4a8eb626a5ad
+strip: GNU strip version 2.41-4.el8_10.1, --strip-unneeded
+newest glibc symbol version: 2.28 (floor 2.28)
+soname: libtree-sitter.so.0.26
+exports: 4 ts_wasm_*, 148 ts_* in .text
+size: 37033328
+sha256: a07053914c22e653bb8e18d9b1a268aa389f34aa4a42abb18f27145b3d991755

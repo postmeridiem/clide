@@ -2171,3 +2171,49 @@ With the variable unset, both files pass (57 tests). A developer who exports `PQ
 - If the spawn ignores the injected environment, the spawn test fails on its sentinel. That is what catches it in CI, where no `PQL_VAULT` is set.
 - With the helper unscrubbed, it leaks into the scratch vault again.', NULL, '2026-09-23 15:36:38', '2026-09-23 15:36:38.227', '2026-09-23 15:36:38.227', NULL, 'e029030991a41662da5443009f07ef89', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXBABKEB9RR65ZVQQJVJG0G', 'status', 'backlog', 'done', NULL, '2026-09-23 15:36:38', '2026-09-23 15:36:38.424', '2026-09-23 15:36:38.424', NULL, '77605a4b1af8905d81ab60d8958abe20', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXBACVJ4TMMNGH31VV6A8A0', 'description', 'The vendored `native/linux-x64/libtree-sitter.so` is built on a recent distribution and needs glibc 2.34 or later: 11 of its symbols are versioned `GLIBC_2.34`. On a glibc 2.31 host (Ubuntu 20.04-based distributions), `DynamicLibrary.open` fails with ``version `GLIBC_2.34'' not found``. Two consequences on such hosts:
+- the native tree-sitter smoke test fails;
+- the desktop app cannot load tree-sitter.
+
+**Options:**
+- Rebuild against an older glibc baseline, for example in a manylinux-style build container. This follows D-63.
+- Or declare a minimum glibc, and state it in `BUILD.md` and the install docs.
+
+The web UI image has the same floor (Q-53 c).
+
+**Done when:**
+- The supported glibc floor is decided and written down.
+- The vendored library loads on it.
+- CI builds or tests on that floor.', 'The vendored `native/linux-x64/libtree-sitter.so` is built on a recent distribution and needs glibc 2.34 or later: 11 of its symbols are versioned `GLIBC_2.34`. On a glibc 2.31 host (Ubuntu 20.04-based distributions), `DynamicLibrary.open` fails with ``version `GLIBC_2.34'' not found``. Two consequences on such hosts:
+- the native tree-sitter smoke test fails;
+- the desktop app cannot load tree-sitter.
+
+**Options:**
+- Rebuild against an older glibc baseline, for example in a manylinux-style build container. This follows D-63.
+- Or declare a minimum glibc, and state it in `BUILD.md` and the install docs.
+
+The web UI image has the same floor (Q-53 c).
+
+**Done when:**
+- The supported glibc floor is decided and written down.
+- The vendored library loads on it.
+- CI builds or tests on that floor.
+
+**Fixed (2026-09-23). Floor decided: glibc 2.28 (manylinux_2_28).**
+
+**How the library is built now.** `native/linux-x64/build.sh` rebuilds it in a digest-pinned `manylinux_2_28` container from pinned commits:
+- tree-sitter `v0.26.8` (`cd5b087c`);
+- wasmtime `v44.0.0` (`af382d7d`), now built from source under its `Cargo.lock` instead of taken from a prebuilt Homebrew archive.
+
+The script strips the result.
+
+**Evidence:**
+- Two clean runs produced identical bytes.
+- The library needs nothing newer than `GLIBC_2.28`.
+- `ci/verify_native.sh` now fails if a rebuild raises the floor. It failed on the old binary, which needed 2.34, and passes on the new one.
+- On a glibc 2.31 host, the native tree-sitter smoke test passes, and so does the full pre-push gate (`make push-check`: 4,971 tests, coverage 95.32%).
+
+**Size:** the binary is 37.0 MB against 24.9 MB before. The difference is wasmtime''s default C-API features, built from source.
+
+**Still open:** building it in CI, tracked as T-25.', NULL, '2026-09-23 17:24:27', '2026-09-23 17:24:27.886', '2026-09-23 17:24:27.886', NULL, '81e9d8264584dc124fef15e84260ae86', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXBACVJ4TMMNGH31VV6A8A0', 'status', 'backlog', 'done', NULL, '2026-09-23 17:24:28', '2026-09-23 17:24:28.064', '2026-09-23 17:24:28.064', NULL, '84d18f2397231ccc06447a77befd86f6', 2) ON CONFLICT(hash) DO NOTHING;

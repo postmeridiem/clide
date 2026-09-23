@@ -43,3 +43,30 @@ if [[ $fail -ne 0 ]]; then
   exit 1
 fi
 echo "==> native gate OK: all vendored artefacts match their recorded SHA-256"
+
+# glibc floor (T-694). A Linux library that needs a newer glibc than its
+# directory's floor fails to load on the older distributions clide supports,
+# and nothing else notices until it is run there.
+declare -A glibc_floor=([native/linux-x64]=2.28)
+if [[ "$(uname -s)" != Linux ]] || ! command -v objdump >/dev/null 2>&1; then
+  echo "==> native gate: glibc floor not checked here (it needs GNU objdump on Linux)"
+  exit 0
+fi
+floor_fail=0
+for dir in "${!glibc_floor[@]}"; do
+  floor="${glibc_floor[$dir]}"
+  for lib in "$dir"/*.so; do
+    need="$(objdump -T "$lib" | grep -o 'GLIBC_[0-9.]*' | sed 's/^GLIBC_//' | sort -V | tail -1)"
+    if [[ "$(printf '%s\n' "$need" "$floor" | sort -V | tail -1)" != "$floor" ]]; then
+      echo "==> native gate FAIL: $lib needs glibc $need; the floor for $dir is $floor." >&2
+      floor_fail=1
+    else
+      echo "==> native gate: $lib needs glibc ${need:-nothing} (floor $floor)"
+    fi
+  done
+done
+if [[ $floor_fail -ne 0 ]]; then
+  echo "    Rebuild with $dir/build.sh, which builds against the floor (see its BUILD.md)." >&2
+  exit 1
+fi
+echo "==> native gate OK: every Linux library loads on its glibc floor"
