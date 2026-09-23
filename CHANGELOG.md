@@ -83,6 +83,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - **Choosing a permission mode Claude refuses no longer shows it as active**
   (T-597) — picking bypass showed "bypass" while the session stayed in its
   old mode. A refused change now rolls back and says why.
+- **`clide files read` fails cleanly on unreadable files** (T-81) — a
+  non-UTF-8 file, a permissions error or a file deleted mid-read gives a tool
+  error, not an internal failure.
+- **Terminal commands skip non-executable files on PATH** (T-81) — a
+  same-named non-executable file or directory earlier on PATH no longer
+  shadows the real program.
 
 ## [2.14.1] — 2026-09-09
 

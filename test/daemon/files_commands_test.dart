@@ -178,6 +178,15 @@ void main() {
     expect(r.error!.message, contains('too large'));
   });
 
+  test('files.read of a non-UTF-8 file is a clean toolError, not a throw (T-81 #17)', () async {
+    File('${sandbox.path}/latin1.txt').writeAsBytesSync([0x63, 0x61, 0x66, 0xe9, 0xff, 0xfe]);
+    final r = await call('files.read', const {'path': 'latin1.txt'});
+    expect(r.ok, isFalse);
+    expect(r.error!.kind, IpcErrorKind.toolError);
+    expect(r.error!.message, startsWith('files.read failed'));
+    expect(r.error!.hint, 'latin1.txt');
+  });
+
   group('files.write', () {
     test('overwrites an existing file and reports the byte count', () async {
       final r = await call('files.write', const {'path': 'README.md', 'text': 'rewritten'});

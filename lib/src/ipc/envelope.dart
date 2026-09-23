@@ -64,11 +64,18 @@ class IpcResponse extends IpcMessage {
 
   factory IpcResponse.fromJson(Map<String, Object?> j) {
     final ok = j['ok'] as bool? ?? false;
+    final error = j['error'];
     return IpcResponse._(
       id: j['id']! as String,
       ok: ok,
       data: (j['data'] as Map?)?.cast<String, Object?>() ?? const {},
-      error: ok ? null : IpcError.fromJson((j['error'] as Map).cast<String, Object?>()),
+      error: ok
+          ? null
+          : error is Map
+          ? IpcError.fromJson(error.cast<String, Object?>())
+          // A failure with no error object is a malformed peer, not a reason
+          // to throw a TypeError at the caller (T-81 #28).
+          : IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'malformed IPC response: failure without an error object'),
     );
   }
 }

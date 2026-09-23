@@ -1,5 +1,6 @@
 // Unit tests for the PTY breadcrumb plumbing (T-434). Pure callback + file I/O
 // (no real PTY), so this is NOT tagged `pty` — it runs in the coverage pool.
+import 'dart:async';
 import 'dart:io';
 
 import 'package:clide/src/pty/pty_log.dart';
@@ -25,6 +26,26 @@ void main() {
     test('crumb swallows an exception thrown by onCrumb', () {
       final log = PtyLog(onCrumb: (_) => throw StateError('boom'));
       expect(() => log.crumb('x'), returnsNormally);
+    });
+  });
+
+  group('awaitReaderExit (T-81 #19)', () {
+    test('a reader that exits in time leaves no crumb', () async {
+      final got = <String>[];
+      await awaitReaderExit(Future<void>.value(), PtyLog(onCrumb: got.add), 'native: close pid=1');
+      expect(got, isEmpty);
+    });
+
+    test('a reader that outlives the timeout is reported, not swallowed', () async {
+      final got = <String>[];
+      final never = Completer<void>().future;
+      await awaitReaderExit(never, PtyLog(onCrumb: got.add), 'native: close pid=7', timeout: const Duration(milliseconds: 1));
+      expect(got, hasLength(1));
+      expect(got.single, startsWith('native: close pid=7: reader did not exit within 1ms'));
+    });
+
+    test('a timeout with the no-op log still returns normally', () async {
+      await expectLater(awaitReaderExit(Completer<void>().future, PtyLog.none, 'x', timeout: const Duration(milliseconds: 1)), completes);
     });
   });
 

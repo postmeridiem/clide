@@ -439,3 +439,32 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBJM6XXQZ3EMGRC13XRYVBEM', 'status', 'backlog', 'review', NULL, '2026-09-23 07:55:22', '2026-09-23 07:55:22.255', '2026-09-23 07:55:22.255', NULL, 'abd3117f68ca74c88d8c2c2c50dd7fc4', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM45BSF1B0R0JA1Z7FC', 'status', 'backlog', 'review', NULL, '2026-09-23 07:57:03', '2026-09-23 07:57:03.607', '2026-09-23 07:57:03.607', NULL, '34679ce06623836aa7ca48d2fb052550', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZDK216SJHEHNB1R0B97JWDR', 'status', 'backlog', 'review', NULL, '2026-09-23 07:57:42', '2026-09-23 07:57:42.473', '2026-09-23 07:57:42.473', NULL, '5d214af20ecbcb99ca29931a88cb8ce4', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM79CNBXJ2S3CFQR7VM', 'description', 'Catch-all for the medium-priority items from the PTY/IPC error-handling audit (T-18, see docs/audits/pty-ipc-error-handling-2026-05-05.md) that didn`t earn dedicated tickets:
+
+- **#17** — `files.read` `readAsStringSync` is unguarded; UTF-8 errors / permissions / mid-read deletion become 500-style dispatch errors. Wrap in try/catch and emit a clean `IpcResponse.err`.
+- **#19** — `PtySession.close` swallows the 500ms timeout silently (`onTimeout: () {}`). Log when the timeout fires so we know SIGKILL was needed.
+- **#20** — Reader isolate treats every negative `read()` return that isn`t EINTR as EOF. Distinguish EBADF/EIO (real EOF) from transient EAGAIN (recoverable) and log the latter.
+- **#21** — `scm_rights.dart` reads cmsg-data fd without verifying `dataOffset + 4 <= msgControllen`. Bounds check before deref so a malformed peer can`t feed garbage as an fd.
+- **#25** — `_gitError` in `lib/src/daemon/git_commands.dart` always reports `tool_error`; push rejections / merge conflicts should map to `IpcExitCode.conflict` when stderr matches known patterns.
+- **#27** — `pane.spawn` returns `ok` even when `registry.write(id, bytes)` returned `n == -1`. Distinguish the failure.
+- **#28** — `IpcResponse.fromJson` throws `TypeError` on a malformed peer response missing `error`. Graceful degrade.
+- **#29** — PATH resolution in `native_pty.dart` uses the first existing match without `X_OK` check; non-executable files shadow valid binaries further along PATH.
+
+Land each as a small focused commit; ticket closes when all items above are merged.
+
+Item status (2026-06-10 sweep): from the T-18 audit, #16 (git error kinds) landed via T-79 and #22 (logging) via T-80. #21 (scm_rights.dart bounds check) is OBSOLETE - fd-passing/recvmsg was removed, the file no longer exists; drop it. Spot-checked still-open: #17 files.read unguarded readAsStringSync (files_commands.dart), #28 IpcResponse.fromJson TypeError (envelope.dart), #29 PATH X_OK check (native_pty.dart). ~7 items remain.', 'Catch-all for the medium-priority items from the PTY/IPC error-handling audit (T-18, see docs/audits/pty-ipc-error-handling-2026-05-05.md) that didn`t earn dedicated tickets:
+
+- **#17** — `files.read` `readAsStringSync` is unguarded; UTF-8 errors / permissions / mid-read deletion become 500-style dispatch errors. Wrap in try/catch and emit a clean `IpcResponse.err`.
+- **#19** — `PtySession.close` swallows the 500ms timeout silently (`onTimeout: () {}`). Log when the timeout fires so we know SIGKILL was needed.
+- **#20** — Reader isolate treats every negative `read()` return that isn`t EINTR as EOF. Distinguish EBADF/EIO (real EOF) from transient EAGAIN (recoverable) and log the latter.
+- **#21** — `scm_rights.dart` reads cmsg-data fd without verifying `dataOffset + 4 <= msgControllen`. Bounds check before deref so a malformed peer can`t feed garbage as an fd.
+- **#25** — `_gitError` in `lib/src/daemon/git_commands.dart` always reports `tool_error`; push rejections / merge conflicts should map to `IpcExitCode.conflict` when stderr matches known patterns.
+- **#27** — `pane.spawn` returns `ok` even when `registry.write(id, bytes)` returned `n == -1`. Distinguish the failure.
+- **#28** — `IpcResponse.fromJson` throws `TypeError` on a malformed peer response missing `error`. Graceful degrade.
+- **#29** — PATH resolution in `native_pty.dart` uses the first existing match without `X_OK` check; non-executable files shadow valid binaries further along PATH.
+
+Land each as a small focused commit; ticket closes when all items above are merged.
+
+Item status (2026-06-10 sweep): from the T-18 audit, #16 (git error kinds) landed via T-79 and #22 (logging) via T-80. #21 (scm_rights.dart bounds check) is OBSOLETE - fd-passing/recvmsg was removed, the file no longer exists; drop it. Spot-checked still-open: #17 files.read unguarded readAsStringSync (files_commands.dart), #28 IpcResponse.fromJson TypeError (envelope.dart), #29 PATH X_OK check (native_pty.dart). ~7 items remain.
+
+Partial landing 2026-09-23: items #17 (files.read errors → tool error), #19 (PTY close logs a reader that outlives the 500ms wait, via PtyLog crumb), #28 (malformed IPC failure response → tool_error), #29 (PATH resolution takes the first executable regular file; stat mode bits, not access(2)). Remaining: #20, #25, #27. Ticket stays open.', NULL, '2026-09-23 07:58:38', '2026-09-23 07:58:38.923', '2026-09-23 07:58:38.923', NULL, '8f2937b72df608789ceea2deee8dc1bc', 2) ON CONFLICT(hash) DO NOTHING;

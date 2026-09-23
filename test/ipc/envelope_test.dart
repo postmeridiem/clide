@@ -66,6 +66,17 @@ void main() {
       expect(r.error!.message, 'race');
       expect(r.error!.hint, isNull);
     });
+
+    test('a failure with no error object degrades to a tool error (T-81 #28)', () {
+      for (final line in ['{"type":"response","id":"3","ok":false}', '{"type":"response","id":"3","ok":false,"error":"boom"}']) {
+        final r = IpcMessage.decode(line) as IpcResponse;
+        expect(r.ok, false, reason: line);
+        expect(r.id, '3');
+        expect(r.error!.code, IpcExitCode.toolError, reason: line);
+        expect(r.error!.kind, IpcErrorKind.toolError);
+        expect(r.error!.message, contains('malformed'));
+      }
+    });
   });
 
   group('IpcEvent', () {

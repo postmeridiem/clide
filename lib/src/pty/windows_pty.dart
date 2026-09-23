@@ -265,6 +265,9 @@ class WindowsPty implements PtySession {
   String? _crumbPath;
   bool _verbose = false;
 
+  /// Main-isolate breadcrumbs — close() reports a reader that outlived it.
+  PtyLog _log = PtyLog.none;
+
   @override
   Stream<Uint8List> get output => _out.stream;
 
@@ -425,7 +428,8 @@ class WindowsPty implements PtySession {
 
     final pty = WindowsPty._(hpc, hProcess, hThread, inWrite, outRead, inRead, outWrite, childPid)
       .._crumbPath = log.crumbPath
-      .._verbose = log.verbose;
+      .._verbose = log.verbose
+      .._log = log;
     log.crumb('conpty: spawned pid=$childPid');
     pty._spawnReader();
     pty._spawnWaiter();
@@ -635,7 +639,7 @@ class WindowsPty implements PtySession {
     _closeConsole();
 
     if (_readerExited != null) {
-      await _readerExited!.future.timeout(const Duration(milliseconds: 500), onTimeout: () {});
+      await awaitReaderExit(_readerExited!.future, _log, 'conpty: close pid=$pid');
     }
 
     _readerIsolate?.kill(priority: Isolate.immediate);

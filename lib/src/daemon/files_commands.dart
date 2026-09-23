@@ -108,14 +108,24 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
     // Cap response size so a single IPC call can't OOM the UI on a
     // multi-gigabyte log file. Caller can paginate / stream via a
     // future range-read variant when that ships.
-    final length = file.lengthSync();
-    if (length > _filesReadMaxBytes) {
+    final String content;
+    try {
+      final length = file.lengthSync();
+      if (length > _filesReadMaxBytes) {
+        return IpcResponse.err(
+          id: req.id,
+          error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'file too large: $path ($length bytes; cap $_filesReadMaxBytes)'),
+        );
+      }
+      content = file.readAsStringSync();
+    } on FileSystemException catch (e) {
+      // Not UTF-8, unreadable, or deleted between the exists check and the
+      // read — a clean tool error rather than a dispatch crash (T-81 #17).
       return IpcResponse.err(
         id: req.id,
-        error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'file too large: $path ($length bytes; cap $_filesReadMaxBytes)'),
+        error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'files.read failed: ${e.message}', hint: path),
       );
     }
-    final content = file.readAsStringSync();
     return IpcResponse.ok(id: req.id, data: {'path': path, 'content': content});
   }, schema: _pathArg);
 

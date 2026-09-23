@@ -18,7 +18,7 @@ library;
 
 import 'dart:async';
 import 'dart:ffi' as ffi;
-import 'dart:io' show File, Platform;
+import 'dart:io' show FileStat, FileSystemEntityType, Platform;
 import 'dart:isolate';
 import 'dart:typed_data';
 
@@ -159,7 +159,10 @@ class NativePty implements PtySession {
   final String? _crumbPath;
   final bool _verbose;
 
-  NativePty._(this._fd, this.pid, this._crumbPath, this._verbose);
+  /// Main-isolate breadcrumbs — close() reports a reader that outlived it.
+  final PtyLog _log;
+
+  NativePty._(this._fd, this.pid, this._crumbPath, this._verbose, this._log);
 
   /// Byte stream of data produced by the child.
   @override
@@ -167,6 +170,35 @@ class NativePty implements PtySession {
 
   @override
   bool get isClosed => _dead;
+
+  /// Resolve a bare command name against the environment's PATH, taking the
+  /// first candidate that is an executable regular file. A non-executable
+  /// file (or a directory) of the same name earlier on PATH must not shadow
+  /// the real binary further along (T-81 #29) — that is what execvp does too.
+  /// Names containing a `/` and names found nowhere are returned unchanged,
+  /// leaving posix_spawn to report the failure.
+  ///
+  /// [isExecutable] overrides the on-disk probe for tests; production passes
+  /// the default. Public for that reason, like the Windows backend's.
+  static String resolveExecutable(String executable, Map<String, String> environment, {bool Function(String path)? isExecutable}) {
+    if (executable.contains('/')) return executable;
+    final probe = isExecutable ?? _isExecutableFile;
+    final path = environment['PATH'] ?? Platform.environment['PATH'] ?? '';
+    for (final dir in path.split(':')) {
+      if (dir.isEmpty) continue;
+      final candidate = '$dir/$executable';
+      if (probe(candidate)) return candidate;
+    }
+    return executable;
+  }
+
+  /// A regular file (after following symlinks) with any execute bit set.
+  /// The mode bits stand in for access(X_OK): close enough to skip the
+  /// shadowing case without another libc binding.
+  static bool _isExecutableFile(String path) {
+    final stat = FileStat.statSync(path);
+    return stat.type == FileSystemEntityType.file && stat.mode & 0x49 != 0;
+  }
 
   /// Spawn a new PTY running [executable] with [arguments].
   ///
@@ -189,17 +221,7 @@ class NativePty implements PtySession {
     // Resolve bare command names via PATH (posix_spawn requires an absolute
     // or relative path — posix_spawnp would search PATH for us but we want
     // resolution to be visible/debuggable from Dart).
-    if (!executable.contains('/')) {
-      final path = environment['PATH'] ?? Platform.environment['PATH'] ?? '';
-      for (final dir in path.split(':')) {
-        if (dir.isEmpty) continue;
-        final candidate = '$dir/$executable';
-        if (File(candidate).existsSync()) {
-          executable = candidate;
-          break;
-        }
-      }
-    }
+    executable = resolveExecutable(executable, environment);
 
     // ---- Open the pty master ------------------------------------------
     final masterFd = _posixOpenpt(_kORdwr | _kONoctty);
@@ -328,7 +350,7 @@ class NativePty implements PtySession {
 
     freeAllInputs();
 
-    final pty = NativePty._(masterFd, pid, log.crumbPath, log.verbose);
+    final pty = NativePty._(masterFd, pid, log.crumbPath, log.verbose, log);
     pty._spawnReader();
     return pty;
   }
@@ -512,7 +534,7 @@ class NativePty implements PtySession {
     // Wait for the isolate to send `null` (EOF) — confirms it has
     // exited its poll loop and won't touch the fd again.
     if (_readerExited != null) {
-      await _readerExited!.future.timeout(const Duration(milliseconds: 500), onTimeout: () {});
+      await awaitReaderExit(_readerExited!.future, _log, 'native: close pid=$pid');
     }
 
     _nativeClose(_fd);

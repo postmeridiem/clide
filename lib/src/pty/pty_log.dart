@@ -56,6 +56,17 @@ class PtyLog {
   }
 }
 
+/// Wait up to [timeout] for a backend's reader isolate to confirm it has left
+/// its read loop ([exited]), as `close()` does before releasing the fd/handles.
+///
+/// Giving up is survivable — close() goes on to kill the isolate — but it
+/// means the reader was stuck, which is exactly the wedge the T-434 crumbs
+/// exist to name. So the timeout is no longer silent (T-81 #19): it drops a
+/// crumb tagged with [what]. Never throws.
+Future<void> awaitReaderExit(Future<void> exited, PtyLog log, String what, {Duration timeout = const Duration(milliseconds: 500)}) {
+  return exited.timeout(timeout, onTimeout: () => log.crumb('$what: reader did not exit within ${timeout.inMilliseconds}ms; killing its isolate'));
+}
+
 /// An append-only breadcrumb file for use INSIDE a spawned isolate, where no
 /// [Logger] is reachable. Opens [path] once and flushSync per line so a wedge
 /// leaves its last crumb on disk. Bounded: truncates back to empty once it
