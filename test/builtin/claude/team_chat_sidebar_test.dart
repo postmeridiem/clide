@@ -1,6 +1,8 @@
 /// Widget tests for TeamChatSidebar and TeamChatPane (T-180).
 library;
 
+import 'dart:async';
+
 import 'package:clide/builtin/claude/src/team_broker.dart';
 import 'package:clide/builtin/claude/src/team_chat_model.dart';
 import 'package:clide/builtin/claude/src/team_chat_sidebar.dart';
@@ -519,4 +521,49 @@ void main() {
       expect(find.text('shared message'), findsNWidgets(2));
     });
   });
+
+  // T-637 (#18): rows were keyed by `at.microsecondsSinceEpoch`, and an agent
+  // broadcast emits one message per recipient in the same microsecond, so
+  // the sidebar's Column threw on duplicate keys.
+  testWidgets('messages sharing a timestamp render without a key collision', (tester) async {
+    final fake = _StampedBroker();
+    final m = TeamChatModel(broker: fake);
+    addTearDown(m.dispose);
+    addTearDown(fake.dispose);
+    final at = DateTime(2026, 9, 23, 12);
+    fake.emit(TeamMessage(from: 'lead', text: 'to tyre', at: at, broadcast: true));
+    fake.emit(TeamMessage(from: 'lead', text: 'to rim', at: at, broadcast: true));
+    await tester.pumpWidget(
+      harness(
+        f,
+        SizedBox(
+          width: 220,
+          height: 400,
+          child: TeamChatSidebar(model: m, broker: fake, onPopOut: () {}),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(find.text('to tyre'), findsOneWidget);
+    expect(find.text('to rim'), findsOneWidget);
+  });
+}
+
+/// A broker whose message stream the test drives, so two messages can
+/// carry the exact same timestamp.
+class _StampedBroker extends TeamBroker {
+  _StampedBroker() : super(deliver: (_, _) {});
+  final _ctl = StreamController<TeamMessage>.broadcast(sync: true);
+
+  void emit(TeamMessage m) => _ctl.add(m);
+
+  @override
+  Stream<TeamMessage> get messages => _ctl.stream;
+
+  @override
+  void dispose() {
+    _ctl.close();
+    super.dispose();
+  }
 }

@@ -155,7 +155,9 @@ class _TeamChatSidebarState extends State<TeamChatSidebar> {
           ],
         ),
         const SizedBox(height: 4),
-        // Last 5 messages (compact feed).
+        // Last 5 messages (compact feed). Rows are keyed by message identity:
+        // a broadcast yields one message per recipient in the same µs, so a
+        // timestamp key collides (T-637).
         if (messages.isEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
@@ -167,7 +169,7 @@ class _TeamChatSidebarState extends State<TeamChatSidebar> {
           )
         else
           for (final msg in messages.length > 5 ? messages.sublist(messages.length - 5) : messages)
-            _ChatRow(key: ValueKey(msg.at.microsecondsSinceEpoch), message: msg, tokens: tokens),
+            _ChatRow(key: ObjectKey(msg), message: msg, tokens: tokens),
         const SizedBox(height: 6),
         // Quick-post composer.
         ClideTypeahead(
@@ -337,7 +339,7 @@ class _TeamChatPaneState extends State<TeamChatPane> {
                   controller: _scrollController,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   itemCount: messages.length,
-                  itemBuilder: (_, i) => _ChatRow(key: ValueKey(messages[i].at.microsecondsSinceEpoch), message: messages[i], tokens: tokens),
+                  itemBuilder: (_, i) => _ChatRow(key: ObjectKey(messages[i]), message: messages[i], tokens: tokens),
                 ),
         ),
         // Composer + interrupt tickbox.
