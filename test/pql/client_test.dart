@@ -167,15 +167,31 @@ void main() {
 
     // A fake `pql` whose body is [body]; a fresh `$0.n` counter file per test
     // lets a script "recover" after N invocations.
-    Future<PqlClient> fakePql(String body) async {
+    Future<PqlClient> fakePql(String body, {Duration timeout = PqlClient.defaultTimeout}) async {
       final f = File('${tmp.path}/pql');
       await f.writeAsString('#!/bin/sh\n$body\n');
       await Process.run('chmod', ['+x', f.path]);
       return PqlClient(
         workDir: Directory.current,
         toolchain: ToolchainView.resolved(ResolvedPaths(pql: f.path)),
+        timeout: timeout,
       );
     }
+
+    // T-637 (#16): the transient check matched any stderr containing
+    // "locked", so "unlocked" was retried like a busy database.
+    test('an error that merely contains "locked" is not retried', () async {
+      final p = await fakePql(r'c="$0.n"; n=$(cat "$c" 2>/dev/null || echo 0); echo $((n+1)) > "$c"; echo "vault unlocked, bad query" >&2; exit 1');
+      await expectLater(p.files(), throwsA(isA<PqlException>().having((e) => e.exitCode, 'exitCode', 1)));
+      expect(File('${tmp.path}/pql.n').readAsStringSync().trim(), '1');
+    });
+
+    test('a pql that hangs is killed at the timeout and reported', () async {
+      final p = await fakePql('exec sleep 30', timeout: const Duration(milliseconds: 300));
+      final sw = Stopwatch()..start();
+      await expectLater(p.files(), throwsA(isA<PqlException>().having((e) => e.message, 'message', contains('timed out'))));
+      expect(sw.elapsed, lessThan(const Duration(seconds: 10)));
+    });
 
     test('a genuine (non-busy) error surfaces immediately', () async {
       final p = await fakePql('exit 2');

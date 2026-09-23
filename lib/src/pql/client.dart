@@ -5,6 +5,7 @@
 /// [PqlException] with the stderr diagnostics attached.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -21,10 +22,17 @@ class PqlException implements Exception {
 }
 
 class PqlClient {
-  PqlClient({required this.workDir, required this.toolchain});
+  PqlClient({required this.workDir, required this.toolchain, this.timeout = defaultTimeout});
 
   final Directory workDir;
   final ToolchainView toolchain;
+
+  /// How long one pql invocation may run before it is killed. Generous —
+  /// a first query can build the index — but bounded, so a wedged pql
+  /// can't hang its caller forever (T-637).
+  final Duration timeout;
+
+  static const Duration defaultTimeout = Duration(seconds: 60);
 
   Future<List<Map<String, Object?>>> files({String? glob, int? limit}) async {
     final args = ['files'];
@@ -153,13 +161,8 @@ class PqlClient {
 
   Future<Object?> _run(List<String> args) async {
     for (var attempt = 1; attempt <= _kMaxAttempts; attempt++) {
-      final ProcessResult r;
-      try {
-        r = await Process.run(toolchain.pql, args, workingDirectory: workDir.path);
-      } on ProcessException catch (e) {
-        throw PqlException('pql ${args.first}: ${e.message}', exitCode: e.errorCode, stderr: e.toString());
-      }
-      final stderr = (r.stderr as String).trim();
+      final r = await _runOnce(args);
+      final stderr = r.stderr.trim();
       // pql 1.5+ returns exit 0 with an empty `[]` for zero matches, so any
       // non-zero exit is a real error (older pql used exit 2 for empty).
       if (r.exitCode != 0) {
@@ -174,7 +177,7 @@ class PqlClient {
         }
         throw PqlException('pql ${args.first} failed', exitCode: r.exitCode, stderr: stderr);
       }
-      final stdout = (r.stdout as String).trim();
+      final stdout = r.stdout.trim();
       if (stdout.isEmpty) return null;
       return jsonDecode(stdout);
     }
@@ -182,11 +185,39 @@ class PqlClient {
     throw StateError('pql retry loop exhausted without a result');
   }
 
+  /// One pql invocation, killed after [timeout]. Both pipes drain while it
+  /// runs, so a chatty pql can't block on a full pipe.
+  Future<({int exitCode, String stdout, String stderr})> _runOnce(List<String> args) async {
+    final Process p;
+    try {
+      p = await Process.start(toolchain.pql, args, workingDirectory: workDir.path);
+    } on ProcessException catch (e) {
+      throw PqlException('pql ${args.first}: ${e.message}', exitCode: e.errorCode, stderr: e.toString());
+    }
+    final out = p.stdout.transform(utf8.decoder).join();
+    final err = p.stderr.transform(utf8.decoder).join();
+    final int code;
+    try {
+      code = await p.exitCode.timeout(timeout);
+    } on TimeoutException {
+      p.kill(ProcessSignal.sigkill);
+      // Let the pipes close so the drains don't outlive the call.
+      await p.exitCode;
+      throw PqlException('pql ${args.first} timed out after ${timeout.inSeconds}s', exitCode: _kTimeoutExitCode);
+    }
+    return (exitCode: code, stdout: await out, stderr: await err);
+  }
+
+  /// Exit code reported for a pql killed at [timeout] (coreutils `timeout`).
+  static const int _kTimeoutExitCode = 124;
+
   /// Whether a non-zero pql exit looks like a transient db-busy / not-yet-ready
   /// condition worth retrying, vs. a genuine error to surface immediately.
+  /// Matches SQLite's own wording only — a bare "locked" also caught
+  /// "unlocked" and retried real errors (T-637).
   static bool _isTransient(int exitCode, String stderr) {
     if (exitCode == _kBusyExitCode) return true;
     final s = stderr.toLowerCase();
-    return s.contains('database is locked') || s.contains('db busy') || s.contains('database busy') || s.contains('locked');
+    return s.contains('database is locked') || s.contains('database table is locked') || s.contains('db busy') || s.contains('database busy');
   }
 }
