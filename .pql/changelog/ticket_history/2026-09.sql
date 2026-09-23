@@ -1020,3 +1020,85 @@ Fix direction:
 Follow the ui-design skill for control geometry and tokens. Add a golden for a 1-line and a 3-line queued row.
 
 Acceptance: in a 1-line row, the tag, the text and the icon centres sit on one line; in a 3-line row they align with the first line; the editing state keeps the same alignment.', NULL, '2026-09-23 08:25:02', '2026-09-23 08:25:02.345', '2026-09-23 08:25:02.345', NULL, '3ff8054a1fed5105bf87661033e63109', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCTR7FJJV64Z9V3VFCV4ZK3C', 'description', 'Scan findings L1–L16 (L3 → T-613, L12/L17 → T-608), one small fix each; see the local report for detail. L1 MCP lock file: create 0600 atomically, constant-time token compare, fail closed. L2 IPC input bounds: max line/body size, cap connections, drop slow subscribers. L4 confine image show / icon show / draw --file / SVG image href to the workspace; decode with a size cap. L5 pass -- (or reject leading dashes) on pql arguments. L6 chmod via fchmod or /bin/chmod, not PATH. L7 C client: error instead of silently truncating large args/stdin. L8 Windows path normalisation must handle forward slashes (bash_tail_source.dart). L9 Windows socket dir: fail closed when LOCALAPPDATA/USERPROFILE are unset. L10 SVG parser: invalid code points → U+FFFD, depth cap, parse once. L11 canvas parser: type-check JSON, never stuck loading. L13 Windows dev-VM scripts: verify downloads. L14 add SECURITY.md + enable GitHub private vulnerability reporting. L15 licenses.yaml: transitive runtime Dart packages + bundle font OFL texts. L16 .githooks: guard sourcing .pql/hooks/* on existence. Info items worth folding in: Lua loader sandbox requirements when it lands (manifest entry validation, stripped loaders, limits); d2 spawn timeout + cwd; check whether flutter_widget_from_html_core is unused and drop it.', 'Scan findings L1–L16 (L3 → T-615, L12/L17 → T-608), one small fix each; see the local report for detail. L1 MCP lock file: create 0600 atomically, constant-time token compare, fail closed. L2 IPC input bounds: max line/body size, cap connections, drop slow subscribers. L4 confine image show / icon show / draw --file / SVG image href to the workspace; decode with a size cap. L5 pass -- (or reject leading dashes) on pql arguments. L6 chmod via fchmod or /bin/chmod, not PATH. L7 C client: error instead of silently truncating large args/stdin. L8 Windows path normalisation must handle forward slashes (bash_tail_source.dart). L9 Windows socket dir: fail closed when LOCALAPPDATA/USERPROFILE are unset. L10 SVG parser: invalid code points → U+FFFD, depth cap, parse once. L11 canvas parser: type-check JSON, never stuck loading. L13 Windows dev-VM scripts: verify downloads. L14 add SECURITY.md + enable GitHub private vulnerability reporting. L15 licenses.yaml: transitive runtime Dart packages + bundle font OFL texts. L16 .githooks: guard sourcing .pql/hooks/* on existence. Info items worth folding in: Lua loader sandbox requirements when it lands (manifest entry validation, stripped loaders, limits); d2 spawn timeout + cwd; check whether flutter_widget_from_html_core is unused and drop it.', NULL, '2026-09-23 08:28:06', '2026-09-23 08:28:06.439', '2026-09-23 08:28:06.439', NULL, '320d9925271a97d319dfb4dd898635bb', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGVCY4M0ZK72HZT2FSZF968W', 'description', 'GitHub Releases exist but carry no downloadable packages — no per-platform bundles are attached. clide''s self-update download/apply (T-47 P2/P3) and any future binary install need signed, checksummed artifacts on each Release. `.github/workflows` is empty today; this stands up the release channel.
+
+## Scope
+1. CI workflow (.github/workflows) triggered on a release — the `release vX.Y.Z` tag (T-393 already wires `make release` + back-tags + the pre-push regex) or the GitHub ''release published'' event — that builds the per-platform bundles:
+   - Linux: `make build-linux` -> a bundle matching the `make install` layout (~/.local/lib/clide + the `clide` C client).
+   - macOS: `make build-macos` -> clide.app + the C client. Notarization/quarantine is a known wrinkle (see T-47 P4) — v1 may ship unnotarized with a documented Gatekeeper step, or notarize if signing creds are available.
+   - Windows: out of scope until it ships.
+2. Package each into a versioned archive (tar.gz / zip) + a SHA-256 checksum.
+3. SIGN each artifact (POLICY.md: ''behavior is determined by the SIGNED release artifact''). Scheme TBD — minisign or cosign; the public key is vendored in-repo for provenance. Key custody (a CI secret for the private key) + the vendored-pubkey location are decisions to make.
+4. Attach the archives + .sha256 + signatures to the GitHub Release as assets.
+5. (Optional) a machine-readable latest manifest — though the GitHub Releases API (/releases/latest) already returns the latest version + its asset list, which the T-47 check consumes.
+
+## Acceptance
+1. Cutting a release (the `release vX.Y.Z` tag / `make release`) triggers CI that builds the Linux + macOS bundles.
+2. Each GitHub Release carries, per platform: the archive, its .sha256, and its signature.
+3. The signature verifies against the vendored public key; a tampered artifact fails verification.
+4. The packaged layout matches `make install` so the updater (T-47 P2/P3) can swap it in place.
+
+## Decisions to surface
+- Signing scheme: minisign vs cosign (lean minisign — tiny, no infra, vendored pubkey).
+- Key custody: private key as a CI secret; public key committed in-repo (provenance).
+- macOS notarization for v1: notarize vs documented-Gatekeeper-step.
+
+## Relationship to T-47
+This is the P0 release-channel prerequisite called out in T-47. T-47 P1 (the manual ''Check for updates'' About button) does NOT depend on this — Releases already exist for the version check. T-47 P2 (download + verify) and P3 (apply + relaunch) DO depend on signed package assets, so block those on this story. Also unblocks the cross-platform installer epic (T-46).
+
+Decision 2026-09-23 (user): minisign; macOS ships unnotarized with a documented right-click → Open step for v1. Private key as a CI secret, public key committed in-repo. Implementation note: the updater (T-47 P2) must verify ed25519 minisign signatures — check whether that needs a new dependency (D-42/prefer-zero-deps) or a small in-house verifier before committing to it.', 'GitHub Releases exist but carry no downloadable packages — no per-platform bundles are attached. clide''s self-update download/apply (T-47 P2/P3) and any future binary install need signed, checksummed artifacts on each Release. `.github/workflows` is empty today; this stands up the release channel.
+
+## Scope
+1. CI workflow (.github/workflows) triggered on a release — the `release vX.Y.Z` tag (T-393 already wires `make release` + back-tags + the pre-push regex) or the GitHub ''release published'' event — that builds the per-platform bundles:
+   - Linux: `make build-linux` -> a bundle matching the `make install` layout (~/.local/lib/clide + the `clide` C client).
+   - macOS: `make build-macos` -> clide.app + the C client. Notarization/quarantine is a known wrinkle (see T-47 P4) — v1 may ship unnotarized with a documented Gatekeeper step, or notarize if signing creds are available.
+   - Windows: out of scope until it ships.
+2. Package each into a versioned archive (tar.gz / zip) + a SHA-256 checksum.
+3. SIGN each artifact (POLICY.md: ''behavior is determined by the SIGNED release artifact''). Scheme TBD — minisign or cosign; the public key is vendored in-repo for provenance. Key custody (a CI secret for the private key) + the vendored-pubkey location are decisions to make.
+4. Attach the archives + .sha256 + signatures to the GitHub Release as assets.
+5. (Optional) a machine-readable latest manifest — though the GitHub Releases API (/releases/latest) already returns the latest version + its asset list, which the T-47 check consumes.
+
+## Acceptance
+1. Cutting a release (the `release vX.Y.Z` tag / `make release`) triggers CI that builds the Linux + macOS bundles.
+2. Each GitHub Release carries, per platform: the archive, its .sha256, and its signature.
+3. The signature verifies against the vendored public key; a tampered artifact fails verification.
+4. The packaged layout matches `make install` so the updater (T-47 P2/P3) can swap it in place.
+
+## Decisions to surface
+- Signing scheme: minisign vs cosign (lean minisign — tiny, no infra, vendored pubkey).
+- Key custody: private key as a CI secret; public key committed in-repo (provenance).
+- macOS notarization for v1: notarize vs documented-Gatekeeper-step.
+
+## Relationship to T-47
+This is the P0 release-channel prerequisite called out in T-47. T-47 P1 (the manual ''Check for updates'' About button) does NOT depend on this — Releases already exist for the version check. T-47 P2 (download + verify) and P3 (apply + relaunch) DO depend on signed package assets, so block those on this story. Also unblocks the cross-platform installer epic (T-46).
+
+Decision 2026-09-23 (user): minisign; macOS ships unnotarized with a documented right-click → Open step for v1. Private key as a CI secret, public key committed in-repo. Implementation note: the updater (T-47 P2) must verify ed25519 minisign signatures — check whether that needs a new dependency (D-42/prefer-zero-deps) or a small in-house verifier before committing to it.
+
+Security scan 2026-09-23 (H7, see T-601/T-608): correction — .github/workflows is NOT empty; release.yml already builds and publishes, just unsigned and without checksums. Build signing onto the existing workflow. Workflow hardening (pinned Flutter, tests gate releases, SHA256SUMS, least privilege) is T-608.', NULL, '2026-09-23 08:28:08', '2026-09-23 08:28:08.100', '2026-09-23 08:28:08.100', NULL, '5c24b2bdc62c55dd9c7f77312e1e48d3', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCTRADYM8J1D4XKA81PAE5X8', 'description', 'placeholder', NULL, NULL, '2026-09-23 08:28:23', '2026-09-23 08:28:23.841', '2026-09-23 08:28:23.841', NULL, 'a3855a92c3aa56308544e9f3391ab3a6', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCTRADYM8J1D4XKA81PAE5X8', 'description', NULL, 'User request 2026-09-23: queued messages take very long to arrive. A message typed while Claude works waits until the whole turn ends, and with long agentic turns that can be many minutes. The user wants their message woven into the running work, like an inline "also, the user messaged this:" note, instead of waiting for the end or interrupting.
+
+## Today
+
+`StreamJsonSession.send` (T-587) holds a message in clide''s own queue while a turn is busy, and `_flushQueued()` writes it to claude''s stdin only once the turn''s `result` arrives. So clide adds the whole remaining turn as latency.
+
+## Direction
+
+Claude Code''s own TUI already does what''s asked. Input typed during a turn is queued inside the CLI and attached at the next tool-call boundary as a "the user sent a message while you were working" note, so the model sees it mid-turn and can adjust without being stopped. So the likely fix is to stop holding: write the message to stdin right away and let the CLI inject it at its next step.
+
+Step 1 is a probe, because stream-json headless mode may behave differently from the TUI. Start `claude -p --input-format stream-json --output-format stream-json`, send a prompt that runs a few slow tool calls, and write a second user message on stdin partway through. Record whether:
+- (a) the second message reaches the model inside the same turn (before `result`; visible in the transcript as a queued-command attachment or system-reminder), or
+- (b) it''s processed as a separate turn afterwards, or
+- (c) it breaks the turn.
+
+- **If (a):** send immediately by default. The queue dock changes meaning. A message stays editable and dismissable only until it''s written; after that it shows "delivered, reaches Claude at its next step" until it appears in the conversation. Keep today''s hold-until-turn-end as a per-message or setting option ("hold for the next turn").
+- **If (b) or (c):** the CLI won''t do it headless. Then weigh having clide deliver it itself, for example through a PostToolUse/UserPromptSubmit-style hook that reads a clide-owned inbox and returns the note as additionalContext. Hooks are the documented way to inject context mid-turn. This needs a D-record because it puts clide into Claude''s hook chain.
+
+## Notes
+
+- Mid-turn delivery only happens at tool boundaries. A turn that is one long text generation still delivers at its end.
+- Interaction with T-587''s edit-pauses-sending: editing must still stop delivery, but once a message is written to stdin it can''t be pulled back. The UI must make that moment visible.
+- D-6: `clide claude queue` verbs (T-588) must reflect the new states.
+
+Acceptance: a message sent during a long multi-tool turn reaches Claude within one tool step (not at turn end) and shows up in the conversation where it was delivered; the user can still choose to hold a message for the next turn.', NULL, '2026-09-23 08:28:24', '2026-09-23 08:28:24.218', '2026-09-23 08:28:24.218', NULL, '7791aacc54038a90836e81e626021adb', 2) ON CONFLICT(hash) DO NOTHING;
