@@ -184,6 +184,31 @@ void main() {
       expect(r.outputs.last, '\x1b[A');
     });
 
+    // T-637 (#12): IRM was stored and never consulted — typing overwrote.
+    test('insert mode (CSI 4 h) shifts the line right instead of overwriting', () {
+      final t = _Recorder().build();
+      String row() => [for (var i = 0; i < 5; i++) t.buffer.lines[0].getCodePoint(i)].where((c) => c != 0).map(String.fromCharCode).join();
+      t.write('abc\r');
+      t.write('\x1b[4h'); // IRM on
+      t.write('X');
+      expect(row(), 'Xabc');
+      t.write('\x1b[4l'); // IRM off: replace again
+      t.write('Y');
+      expect(row(), 'XYbc');
+    });
+
+    // T-637 (#12): ?1004 was stored but focus changes were never reported.
+    test('focus reporting (CSI ?1004 h) emits CSI I / CSI O on focus changes', () {
+      final r = _Recorder();
+      final t = r.build();
+      t.reportFocus(true);
+      expect(r.outputs, isEmpty, reason: 'off by default');
+      t.write('\x1b[?1004h');
+      t.reportFocus(true);
+      t.reportFocus(false);
+      expect(r.outputs, ['\x1b[I', '\x1b[O']);
+    });
+
     test('the keypad mode alone does not switch the arrow keys', () {
       final r = _Recorder();
       final t = r.build();

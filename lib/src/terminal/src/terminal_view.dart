@@ -180,18 +180,32 @@ class TerminalViewState extends State<TerminalView> {
   @override
   void initState() {
     _focusNode = widget.focusNode ?? FocusNode();
+    _focusNode.addListener(_onFocusChange);
     _controller = widget.controller ?? TerminalController();
     _shortcutManager = ShortcutManager(shortcuts: widget.shortcuts ?? defaultTerminalShortcuts);
     super.initState();
   }
 
+  /// Last focus state reported, so a listener firing without a real
+  /// change doesn't send a duplicate `CSI I` / `CSI O`.
+  bool _reportedFocus = false;
+
+  void _onFocusChange() {
+    final focused = _focusNode.hasFocus;
+    if (focused == _reportedFocus) return;
+    _reportedFocus = focused;
+    widget.terminal.reportFocus(focused);
+  }
+
   @override
   void didUpdateWidget(TerminalView oldWidget) {
     if (oldWidget.focusNode != widget.focusNode) {
+      _focusNode.removeListener(_onFocusChange);
       if (oldWidget.focusNode == null) {
         _focusNode.dispose();
       }
       _focusNode = widget.focusNode ?? FocusNode();
+      _focusNode.addListener(_onFocusChange);
     }
     if (oldWidget.controller != widget.controller) {
       if (oldWidget.controller == null) {
@@ -205,6 +219,7 @@ class TerminalViewState extends State<TerminalView> {
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChange);
     if (widget.focusNode == null) {
       _focusNode.dispose();
     }

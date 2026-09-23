@@ -732,6 +732,14 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _reportFocusMode = enabled;
   }
 
+  /// Tell the app the terminal gained or lost focus — `CSI I` / `CSI O` —
+  /// when it enabled focus reporting (`CSI ?1004 h`). The view calls this
+  /// on every focus change; with the mode off it is a no-op (T-637).
+  void reportFocus(bool focused) {
+    if (!_reportFocusMode) return;
+    onOutput?.call(focused ? '\x1b[I' : '\x1b[O');
+  }
+
   @override
   void setMouseReportMode(MouseReportMode mode) {
     _mouseReportMode = mode;

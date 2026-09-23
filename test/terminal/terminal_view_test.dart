@@ -448,6 +448,20 @@ void main() {
       expect(focus.hasFocus, isTrue);
     });
 
+    testWidgets('focus changes are reported to an app that asked for them (T-637)', (tester) async {
+      final r = _OutputRecorder();
+      final t = r.build();
+      final focus = FocusNode();
+      addTearDown(focus.dispose);
+      await tester.pumpWidget(_host(TerminalView(t, hardwareKeyboardOnly: true, focusNode: focus)));
+      t.write('\x1b[?1004h');
+      focus.requestFocus();
+      await tester.pump();
+      focus.unfocus();
+      await tester.pump();
+      expect(r.outputs, containsAllInOrder(['\x1b[I', '\x1b[O']));
+    });
+
     testWidgets('single-char IME insert routes through keyInput when the char maps to a TerminalKey', (tester) async {
       final r = _OutputRecorder();
       final t = r.build();

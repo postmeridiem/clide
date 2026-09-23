@@ -120,6 +120,12 @@ class Buffer {
     }
 
     final line = currentLine;
+    // IRM (CSI 4 h): shift the rest of the line right to make room rather
+    // than overwrite (T-637). A wide char's trailing placeholder (width 0)
+    // lands in the room its lead already made.
+    if (terminal.insertMode && cellWidth > 0) {
+      line.insertCells(_cursorX, cellWidth, terminal.cursor);
+    }
     line.setCell(_cursorX, codePoint, cellWidth, terminal.cursor);
 
     if (_cursorX < viewWidth) {
