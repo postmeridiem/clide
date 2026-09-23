@@ -30,13 +30,25 @@ class SchedulerTick extends ClideEvent {
 }
 
 class SchedulerService {
-  SchedulerService(this._events);
+  SchedulerService(this._events, {this.stagger = const Duration(milliseconds: 500)});
   final DaemonBus _events;
+
+  /// Gap between the staggered first ticks on project open.
+  final Duration stagger;
 
   Isolate? _isolate;
   ReceivePort? _port;
   StreamSubscription<dynamic>? _sub;
   StreamSubscription<dynamic>? _projectSub;
+  StreamSubscription<dynamic>? _closedSub;
+
+  /// The staggered first-tick timers, cancelled on stop so no tick fires
+  /// after the project closed (T-633).
+  final List<Timer> _initialTicks = [];
+
+  /// First-tick timers still waiting to fire.
+  @visibleForTesting
+  int get pendingInitialTicks => _initialTicks.where((t) => t.isActive).length;
 
   /// Tracks the spawn future so [_stopTicker] can await it before
   /// killing — otherwise a stop racing a still-spawning isolate
@@ -47,9 +59,15 @@ class SchedulerService {
 
   /// Listen for project lifecycle events. The periodic ticker only runs
   /// while a project is open — no wasted cycles on the welcome screen.
+  ///
+  /// Idempotent: a second call replaces the subscriptions rather than adding
+  /// another pair — the close one used to be dropped on the floor and piled up
+  /// on every start (T-633).
   void start() {
+    _projectSub?.cancel();
+    _closedSub?.cancel();
     _projectSub = _events.on<ProjectOpened>().listen((_) => _startTicker());
-    _events.on<ProjectClosed>().listen((_) => _stopTicker());
+    _closedSub = _events.on<ProjectClosed>().listen((_) => _stopTicker());
   }
 
   /// Start the periodic ticker and fire an immediate first cycle so
@@ -58,13 +76,11 @@ class SchedulerService {
     await _stopTicker();
 
     // Stagger the initial ticks to avoid a rebuild storm on project open.
-    var delay = 0;
+    var delay = Duration.zero;
     for (final tier in SchedulerTier.values) {
       if (tier == SchedulerTier.midnight) continue;
-      Timer(Duration(milliseconds: delay), () {
-        _events.emit(SchedulerTick(tier: tier));
-      });
-      delay += 500;
+      _initialTicks.add(Timer(delay, () => _events.emit(SchedulerTick(tier: tier))));
+      delay += stagger;
     }
 
     // Then start the periodic isolate.
@@ -80,6 +96,10 @@ class SchedulerService {
   }
 
   Future<void> _stopTicker() async {
+    for (final t in _initialTicks) {
+      t.cancel();
+    }
+    _initialTicks.clear();
     // Await any in-flight spawn so we never miss killing an isolate
     // that's mid-creation — see _isolateReady.
     if (_isolateReady != null) {
@@ -117,7 +137,10 @@ class SchedulerService {
   }
 
   Future<void> dispose() async {
-    _projectSub?.cancel();
+    await _projectSub?.cancel();
+    await _closedSub?.cancel();
+    _projectSub = null;
+    _closedSub = null;
     await _stopTicker();
   }
 }

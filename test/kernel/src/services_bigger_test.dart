@@ -209,15 +209,42 @@ void main() {
       expect(ticks, isNotEmpty);
     });
 
-    test('ProjectClosed stops the ticker without throwing', () async {
+    test('ProjectClosed cancels the staggered first ticks still pending (T-633)', () async {
       final bus = DaemonBus();
-      final s = SchedulerService(bus);
+      final s = SchedulerService(bus, stagger: const Duration(hours: 1));
       addTearDown(s.dispose);
       s.start();
       bus.emit(const ProjectOpened(path: '/tmp/x'));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await pumpEventQueue();
+      expect(s.pendingInitialTicks, 3, reason: 'first tick fires at once; three wait an hour apart');
       bus.emit(const ProjectClosed());
-      // Smoke — no throw.
+      await pumpEventQueue();
+      expect(s.pendingInitialTicks, 0, reason: 'no first tick may fire after the project closed');
+    });
+
+    test('start() twice does not double the listeners (T-633)', () async {
+      final bus = DaemonBus();
+      final s = SchedulerService(bus, stagger: const Duration(hours: 1));
+      addTearDown(s.dispose);
+      s.start();
+      s.start();
+      final ticks = <SchedulerTier>[];
+      final sub = bus.on<SchedulerTick>().listen((e) => ticks.add(e.tier));
+      addTearDown(sub.cancel);
+      bus.emit(const ProjectOpened(path: '/tmp/x'));
+      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
+      expect(ticks, [SchedulerTier.oneMinute], reason: 'one immediate first tick, not one per start()');
+    });
+
+    test('after dispose, a project opening starts nothing (T-633)', () async {
+      final bus = DaemonBus();
+      final s = SchedulerService(bus, stagger: const Duration(hours: 1));
+      s.start();
+      await s.dispose();
+      bus.emit(const ProjectOpened(path: '/tmp/x'));
+      await pumpEventQueue();
+      expect(s.pendingInitialTicks, 0);
     });
 
     test('dispose immediately after ProjectOpened awaits the in-flight spawn (T-106)', () async {
