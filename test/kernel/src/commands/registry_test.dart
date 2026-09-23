@@ -37,5 +37,28 @@ void main() {
       r.unregister('x');
       expect(r.get('x'), isNull);
     });
+
+    // T-637 (#14): a second register used to overwrite silently, and the
+    // first owner's unregister then removed the second owner's command.
+    test('registering a taken id throws and keeps the first owner', () {
+      final r = CommandRegistry();
+      final first = _cmd('dup', () async => IpcResponse.ok(id: '', data: const {}));
+      r.register(first);
+      expect(() => r.register(_cmd('dup', () async => IpcResponse.ok(id: '', data: const {}))), throwsStateError);
+      expect(r.get('dup'), same(first));
+    });
+
+    test('unregister with an owner leaves a different registration alone', () {
+      final r = CommandRegistry();
+      final stale = _cmd('y', () async => IpcResponse.ok(id: '', data: const {}));
+      final current = _cmd('y', () async => IpcResponse.ok(id: '', data: const {}));
+      r.register(stale);
+      r.unregister('y', owner: stale);
+      r.register(current);
+      r.unregister('y', owner: stale);
+      expect(r.get('y'), same(current));
+      r.unregister('y', owner: current);
+      expect(r.get('y'), isNull);
+    });
   });
 }

@@ -247,9 +247,7 @@ class ExtensionManager extends ChangeNotifier {
         }
         panels.contribute(c);
       case CommandContribution cmd:
-        if (commands.get(cmd.command) != null) {
-          throw StateError('duplicate command id: ${cmd.command}');
-        }
+        // register() throws on a duplicate id, rolling activation back.
         commands.register(cmd);
         final binding = cmd.defaultBinding;
         if (binding != null) {
@@ -280,7 +278,7 @@ class ExtensionManager extends ChangeNotifier {
       case ToolbarButtonContribution _:
         panels.uncontribute(c.id);
       case CommandContribution cmd:
-        commands.unregister(cmd.command);
+        commands.unregister(cmd.command, owner: cmd);
         final binding = cmd.defaultBinding;
         if (binding != null) {
           keybindings.unbind(Keybinding.parse(binding));
