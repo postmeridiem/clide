@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **`clide pane list` names what a detail pane shows** (T-246) — the open
+  ticket, decision, or editor file comes back as `subject`.
+
 ### Changed
 
 ### Fixed

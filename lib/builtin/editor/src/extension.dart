@@ -57,6 +57,7 @@ class EditorExtension extends ClideExtension {
       titleKey: 'tab.title',
       i18nNamespace: id,
       priority: 80, // between Claude (90) and welcome (-100)
+      subjectSource: id, // the active buffer's path, supplied by the host
       build: (_) => const EditorView(),
     ),
   ];

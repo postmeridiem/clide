@@ -62,5 +62,55 @@ void main() {
     test('empty when no tabs are contributed', () {
       expect(snapshotViewPanes(panels, arrangement), isEmpty);
     });
+
+    // T-246: detail tabs report what they show, from the reader-nav selection
+    // (tickets/decisions) or the active editor buffer.
+    group('subject', () {
+      late MessageBus bus;
+      late ReaderNavRegistry navs;
+
+      setUp(() {
+        bus = MessageBus();
+        navs = ReaderNavRegistry(bus);
+        panels.registerSlot(const SlotDefinition(id: Slots.contextPanel, position: SlotPosition.right));
+      });
+
+      tearDown(() {
+        navs.dispose();
+        bus.dispose();
+      });
+
+      TabContribution detail(String id, SlotId slot, String source) =>
+          TabContribution(id: id, slot: slot, title: 'Detail', subjectSource: source, build: (_) => const SizedBox.shrink());
+
+      test('carries the reader-nav selection and the editor path; omits it elsewhere', () async {
+        panels.contribute(detail('tickets.detail', Slots.contextPanel, 'builtin.tickets'));
+        panels.contribute(detail('decisions.detail', Slots.contextPanel, 'builtin.decisions'));
+        panels.contribute(detail('editor.active', Slots.workspace, 'builtin.editor'));
+        panels.contribute(_tab('files', Slots.sidebar));
+        navs.navFor('builtin.tickets', dataKey: 'id');
+        navs.navFor('builtin.decisions', dataKey: 'id');
+        // Selections travel the bus exactly as a sidebar click publishes them.
+        bus.publish('builtin.tickets', 'selection', {'id': 'T-244'});
+        bus.publish('builtin.decisions', 'selection', {'id': 'D-6'});
+        await pumpEventQueue();
+
+        final subjects = {...navs.currentByReader, 'builtin.editor': '/repo/lib/main.dart'};
+        final byId = {for (final v in snapshotViewPanes(panels, arrangement, subjects: subjects)) v.id: v};
+        expect(byId['tickets.detail']!.subject, 'T-244');
+        expect(byId['decisions.detail']!.subject, 'D-6');
+        expect(byId['editor.active']!.subject, '/repo/lib/main.dart');
+        expect(byId['files']!.subject, isNull, reason: 'no subjectSource');
+        expect(byId['tickets.detail']!.toJson()['subject'], 'T-244');
+        expect(byId['files']!.toJson().containsKey('subject'), isFalse);
+      });
+
+      test('a declared source with nothing loaded yet has no subject', () {
+        panels.contribute(detail('tickets.detail', Slots.contextPanel, 'builtin.tickets'));
+        final pane = snapshotViewPanes(panels, arrangement, subjects: navs.currentByReader).single;
+        expect(pane.subject, isNull);
+        expect(pane.toJson().containsKey('subject'), isFalse);
+      });
+    });
   });
 }

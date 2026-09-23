@@ -14,13 +14,28 @@ import 'package:clide/src/panes/view_pane.dart';
 /// Build a [ViewPane] for every tab in every slot the [panels] registry knows,
 /// tagging the active tab per slot and whether its slot is currently visible
 /// (read from [arrangement]).
-List<ViewPane> snapshotViewPanes(PanelRegistry panels, LayoutArrangement arrangement) {
+///
+/// [subjects] maps a subject source to what it currently holds — the
+/// reader-nav selections (`builtin.tickets` → `T-244`) plus the active editor
+/// buffer (`builtin.editor` → path). A tab declaring a
+/// `TabContribution.subjectSource` gets that entry as its `subject` (T-246).
+List<ViewPane> snapshotViewPanes(PanelRegistry panels, LayoutArrangement arrangement, {Map<String, String> subjects = const {}}) {
   final out = <ViewPane>[];
   for (final slot in panels.slots) {
     final activeId = panels.activeTabIn(slot.id);
     final visible = arrangement.isVisible(slot.id);
     for (final tab in panels.tabsFor(slot.id)) {
-      out.add(ViewPane(id: tab.id, slot: slot.id.value, title: tab.title, active: tab.id == activeId, visible: visible));
+      final source = tab.subjectSource;
+      out.add(
+        ViewPane(
+          id: tab.id,
+          slot: slot.id.value,
+          title: tab.title,
+          active: tab.id == activeId,
+          visible: visible,
+          subject: source == null ? null : subjects[source],
+        ),
+      );
     }
   }
   return out;

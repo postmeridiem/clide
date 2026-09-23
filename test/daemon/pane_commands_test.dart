@@ -236,6 +236,7 @@ void main() {
         viewPanes: () => const [
           ViewPane(id: 'claude', slot: 'workspace', title: 'Claude', active: true, visible: true),
           ViewPane(id: 'files', slot: 'sidebar', title: 'Files', active: false, visible: true),
+          ViewPane(id: 'tickets.detail', slot: 'context', title: 'Ticket', active: true, visible: true, subject: 'T-244'),
         ],
       );
     });
@@ -247,7 +248,7 @@ void main() {
     test('lists the live UI tabs with stable ids, slot, title, focus state', () async {
       final r = await call('pane.list', const {});
       final panes = (r.data['panes'] as List).cast<Map>();
-      expect(panes, hasLength(2));
+      expect(panes, hasLength(3));
       final claude = panes.firstWhere((p) => p['id'] == 'claude');
       expect(claude['source'], 'ui');
       expect(claude['kind'], 'view');
@@ -257,15 +258,22 @@ void main() {
       expect(panes.firstWhere((p) => p['id'] == 'files')['active'], isFalse);
     });
 
+    test('a detail tab carries the subject it shows; others omit the key (T-246)', () async {
+      final r = await call('pane.list', const {});
+      final panes = (r.data['panes'] as List).cast<Map>();
+      expect(panes.firstWhere((p) => p['id'] == 'tickets.detail')['subject'], 'T-244');
+      expect(panes.firstWhere((p) => p['id'] == 'claude').containsKey('subject'), isFalse);
+    });
+
     test('merges PTY panes and UI tabs in one list', () async {
       await call('pane.spawn', {
         'argv': const ['/bin/cat'],
       });
       final r = await call('pane.list', const {});
       final panes = (r.data['panes'] as List).cast<Map>();
-      // one PTY pane (source absent) + two UI tabs (source: ui).
-      expect(panes, hasLength(3));
-      expect(panes.where((p) => p['source'] == 'ui'), hasLength(2));
+      // one PTY pane (source absent) + three UI tabs (source: ui).
+      expect(panes, hasLength(4));
+      expect(panes.where((p) => p['source'] == 'ui'), hasLength(3));
       expect(panes.where((p) => p['id'].toString().startsWith('p_')), hasLength(1));
     });
   });

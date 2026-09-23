@@ -338,10 +338,6 @@ Future<void> main() async {
         return applyPathPreset(base, presetDirsFrom((k) => settings.get<Object>(k), presetLookupRoot(cwd, workRoot.path)));
       },
     );
-    // D-6 parity (T-219, D-83): make the tabs the user sees in the GUI
-    // visible to `pane list` by snapshotting the kernel PanelRegistry +
-    // LayoutArrangement at request time — no mirrored state to drift.
-    registerPaneCommands(dispatcher, paneRegistry, viewPanes: () => snapshotViewPanes(panels, arrangement));
     // `clide instance` — this instance's identity (version/pid/workspace/socket)
     // so `clide instances` can list every live instance and a human/agent can
     // tell which one a socket belongs to (T-247).
@@ -378,6 +374,17 @@ Future<void> main() async {
     registerSearchCommands(dispatcher, searchService);
     final editorRegistry = EditorRegistry(events: eventSink, workspaceRoot: workRoot);
     registerEditorCommands(dispatcher, editorRegistry);
+    // What each detail tab currently shows (T-246): the reader-nav selections
+    // plus the active editor buffer, keyed by the `subjectSource` a tab declares.
+    Map<String, String> viewSubjects() {
+      final editorPath = editorRegistry.active?.path;
+      return {...?kernelReaderNav?.currentByReader, 'builtin.editor': ?editorPath};
+    }
+
+    // D-6 parity (T-219, D-83): make the tabs the user sees in the GUI
+    // visible to `pane list` by snapshotting the kernel PanelRegistry +
+    // LayoutArrangement at request time — no mirrored state to drift.
+    registerPaneCommands(dispatcher, paneRegistry, viewPanes: () => snapshotViewPanes(panels, arrangement, subjects: viewSubjects()));
     final gitClient = GitClient(toolchain: tc, workDir: workRoot);
     registerGitCommands(dispatcher, gitClient, eventSink);
     // `clide project new <name>` (T-487): create + git-init a new project dir.
@@ -529,7 +536,7 @@ Future<void> main() async {
             : {'id': editorActive.id, 'path': editorActive.path, 'selection': editorActive.selection.toJson(), 'dirty': editorActive.dirty},
         'readers': kernelReaderNav?.currentByReader ?? const <String, String>{},
         'focusedFile': editorActive?.path,
-        'panes': [for (final v in snapshotViewPanes(panels, arrangement)) v.toJson()],
+        'panes': [for (final v in snapshotViewPanes(panels, arrangement, subjects: viewSubjects())) v.toJson()],
         'layout': {
           'focusMode': arrangement.focusModeSlot?.value,
           'slots': [

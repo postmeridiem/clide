@@ -34,6 +34,7 @@ class TabContribution extends ContributionPoint {
     this.listenable,
     this.titleKey,
     this.i18nNamespace,
+    this.subjectSource,
   });
 
   @override
@@ -56,6 +57,12 @@ class TabContribution extends ContributionPoint {
   /// The i18n namespace to look up [titleKey] in. Extensions usually
   /// pass their own `id`. Required when [titleKey] is set.
   final String? i18nNamespace;
+
+  /// Where the thing this tab currently shows is recorded, so `pane list`
+  /// can report it (T-246, D-6): a `ReaderNav` publisher id (e.g.
+  /// `builtin.tickets` → the open `T-NNN`), or `builtin.editor` for the
+  /// active editor buffer's path. Null for tabs with no loaded subject.
+  final String? subjectSource;
 }
 
 /// A status-bar item. Order is determined by [priority] within each

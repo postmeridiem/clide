@@ -55,6 +55,7 @@ class TicketsExtension extends ClideExtension {
       titleKey: 'tab.detail.title',
       i18nNamespace: id,
       icon: PhosphorIcons.byName('ticket'),
+      subjectSource: id,
       build: (_) => const TicketDetailView(),
     ),
   ];
