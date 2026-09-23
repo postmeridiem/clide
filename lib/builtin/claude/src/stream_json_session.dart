@@ -352,6 +352,10 @@ class StreamJsonSession {
   /// [kFallbackModels]).
   List<ModelOption> get availableModels => _availableModels;
 
+  /// What the `default` model entry resolves to (`models[].resolvedModel` in
+  /// the `initialize` response), e.g. `claude-opus-5-5`. Null until then.
+  String? _defaultResolvedModel;
+
   final _modelErrorCtl = StreamController<String>.broadcast();
 
   /// Errors from rejected `set_model` requests (e.g. an unknown model name),
@@ -1054,9 +1058,10 @@ class StreamJsonSession {
         'request': {'subtype': 'set_model', 'model': model},
       }),
     );
-    // `default` resolves to a model only the CLI knows — leave the status to
-    // the next assistant event in that case.
-    if (model != 'default') _mergeStatus(SessionStatus(model: model));
+    // `default` resolves to a model only the CLI knows — show what the
+    // handshake said it resolves to, else leave it to the next assistant event.
+    final shown = model == 'default' ? _defaultResolvedModel : model;
+    if (shown != null) _mergeStatus(SessionStatus(model: shown));
   }
 
   /// A `control_response` to one of our requests: capture the initialize
@@ -1080,7 +1085,25 @@ class StreamJsonSession {
                 description: m['description'] as String? ?? '',
               ),
         ]);
+        for (final m in models) {
+          // Drop the `[1m]` context-variant suffix: assistant events carry the
+          // bare id, so keeping it would make the label change on the first turn.
+          if (m is Map && m['value'] == 'default' && m['resolvedModel'] is String) {
+            _defaultResolvedModel = (m['resolvedModel'] as String).replaceFirst(RegExp(r'\[.*\]$'), '');
+          }
+        }
       }
+      // The `init` event that normally carries model + mode only arrives with
+      // the first turn, so a session nobody has talked to yet showed an empty
+      // status line. Seed both from the handshake — only where nothing better
+      // (a resumed transcript, an optimistic set_model) is already known.
+      final mode = result is Map ? result['current_permission_mode'] : null;
+      _mergeStatus(
+        SessionStatus(
+          model: _status.model == null ? _defaultResolvedModel : null,
+          permissionMode: _status.permissionMode == null && mode is String ? mode : null,
+        ),
+      );
       return;
     }
     if (_pendingSetModel.containsKey(rid)) {

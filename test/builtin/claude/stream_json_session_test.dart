@@ -217,6 +217,62 @@ void main() {
       expect(s.availableModels[1].displayName, 'Sonnet');
       expect(s.availableModels[1].description, isEmpty);
     });
+
+    // The `init` event only arrives with the first turn, so without this the
+    // status bar showed no model until the user had talked to claude.
+    String initResponse(Object? rid, {String? mode = 'default'}) => jsonEncode({
+      'type': 'control_response',
+      'response': {
+        'subtype': 'success',
+        'request_id': rid,
+        'response': {
+          'models': [
+            {'value': 'default', 'resolvedModel': 'claude-opus-5-5[1m]', 'displayName': 'Default'},
+            {'value': 'sonnet', 'resolvedModel': 'claude-sonnet-5', 'displayName': 'Sonnet'},
+          ],
+          'current_permission_mode': ?mode,
+        },
+      },
+    });
+
+    test('the initialize response seeds model + permission mode before any turn', () async {
+      final p = _FakeProc();
+      final s = StreamJsonSession(p);
+      addTearDown(s.dispose);
+      s.start();
+      p.emit(initResponse((jsonDecode(p.writes.single) as Map)['request_id'], mode: 'plan'));
+      await pumpEventQueue();
+      // The [1m] variant suffix is dropped so the label doesn't change once
+      // assistant events (bare id) arrive.
+      expect(s.status.model, 'claude-opus-5-5');
+      expect(s.status.permissionMode, 'plan');
+    });
+
+    test('the handshake never overwrites a model already known', () async {
+      final p = _FakeProc();
+      final s = StreamJsonSession(p);
+      addTearDown(s.dispose);
+      s.start();
+      final rid = (jsonDecode(p.writes.single) as Map)['request_id'];
+      s.setModel('sonnet'); // new-session default applied before the response
+      p.emit(initResponse(rid, mode: null));
+      await pumpEventQueue();
+      expect(s.status.model, 'sonnet');
+      expect(s.status.permissionMode, isNull);
+    });
+
+    test('setModel(default) shows what the handshake says default resolves to', () async {
+      final p = _FakeProc();
+      final s = StreamJsonSession(p);
+      addTearDown(s.dispose);
+      s.start();
+      p.emit(initResponse((jsonDecode(p.writes.single) as Map)['request_id']));
+      await pumpEventQueue();
+      s.setModel('sonnet');
+      s.setModel('default');
+      await pumpEventQueue();
+      expect(s.status.model, 'claude-opus-5-5');
+    });
   });
 
   group('setModel (T-408)', () {
@@ -230,7 +286,7 @@ void main() {
       expect(statuses.last.model, 'sonnet');
     });
 
-    test('setModel(default) does not guess the resolved model', () async {
+    test('setModel(default) does not guess the resolved model before the handshake', () async {
       session.setModel('default');
       await pumpEventQueue();
       expect(statuses, isEmpty, reason: 'only the CLI knows what default resolves to');

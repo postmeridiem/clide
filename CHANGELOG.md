@@ -22,6 +22,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **The status bar shows the model and mode before you've talked to Claude**
+  (T-586) — seeded from the session handshake instead of waiting for the
+  first turn.
+
 ## [2.14.1] — 2026-09-09
 
 ### Fixed
