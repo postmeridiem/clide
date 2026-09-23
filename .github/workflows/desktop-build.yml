@@ -1,0 +1,72 @@
+name: desktop-build
+
+# macOS + Windows desktop bundles. Neither platform is built anywhere else in
+# CI, so this is where their runner code (the Dock and notification-area tray,
+# T-592 / T-593) is compiled at all. Runs on changes to the platform runners,
+# on demand, and from release.yml, which attaches the bundles to a release as
+# untested previews.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'macos/**'
+      - 'windows/**'
+      - 'native/clide-cli/**'
+      - '.github/workflows/desktop-build.yml'
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Commit or tag to build'
+        type: string
+        required: true
+      version:
+        description: 'Version stamped into the bundle file names'
+        type: string
+        required: true
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - id: fvm   # the Flutter pin lives in .fvmrc — never float on `stable`
+        shell: bash
+        run: echo "flutter=$(jq -r .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: '${{ steps.fvm.outputs.flutter }}', channel: stable }
+      - run: make build            # gen-build-info + clide-cli + flutter build macos
+      # Copying the C client into Contents/MacOS breaks the build's ad-hoc
+      # signature seal; re-sign ad-hoc so the bundle still launches. There is
+      # no Developer ID, so a downloaded copy needs its quarantine cleared.
+      - run: codesign --force --deep --sign - build/macos/Build/Products/Release/clide.app
+      - name: package
+        run: ditto -c -k --keepParent build/macos/Build/Products/Release/clide.app clide-macos-${{ inputs.version || 'dev' }}.zip
+      - uses: actions/upload-artifact@v4
+        with: { name: macos, path: clide-macos-*.zip }
+
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - id: fvm
+        run: echo "flutter=$(jq -r .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: '${{ steps.fvm.outputs.flutter }}', channel: stable }
+      - run: command -v make || choco install make -y --no-progress
+      - run: make build            # gen-build-info + clide-cli (MSVC) + flutter build windows
+      - name: package
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath clide-windows-x64-${{ inputs.version || 'dev' }}.zip
+      - uses: actions/upload-artifact@v4
+        with: { name: windows, path: clide-windows-x64-*.zip }

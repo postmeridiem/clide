@@ -22,6 +22,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   Claude → Agents lists commands (like `make test`, or `flutter test *`)
   a Claude session may start in a pane without the confirm. Agents also
   type into and close panes they started themselves freely.
+- **macOS and Windows preview builds** (T-55) — each release now
+  attaches untested macOS and Windows bundles alongside the Linux one,
+  for trying the Dock and tray integration.
 
 ### Changed
 

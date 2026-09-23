@@ -14,8 +14,10 @@ name: release
 # Manual runs can pass `tag` to (re)build an existing release tag from that
 # tag's own tree — used to backfill releases the old tag check skipped.
 #
-# Windows is out of the release for now (not yet built or tested since 2.8.1);
-# it returns once the Windows port is exercised (see windows.yml).
+# macOS and Windows bundles ship as untested previews so the tray/Dock work
+# (T-592, T-593) can be exercised on real machines. They never gate the Linux
+# release: publish needs only build-linux to succeed, and attaches whatever
+# preview bundles built. The in-app updater only ever fetches the Linux asset.
 
 on:
   workflow_run:
@@ -84,9 +86,18 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: linux, path: clide-linux-x64-*.tar.gz }
 
-  publish:
-    needs: [version, build-linux]
+  desktop:
+    needs: version
     if: needs.version.outputs.fresh == 'true'
+    uses: ./.github/workflows/desktop-build.yml
+    with:
+      ref: ${{ needs.version.outputs.ref }}
+      version: ${{ needs.version.outputs.version }}
+
+  publish:
+    needs: [version, build-linux, desktop]
+    # always() so a failed preview build doesn't skip the Linux release.
+    if: always() && needs.version.outputs.fresh == 'true' && needs.build-linux.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
