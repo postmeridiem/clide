@@ -131,6 +131,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _cursorVisibleMode = true;
 
+  TerminalCursorType? _cursorShape;
+
+  bool _cursorShapeBlink = true;
+
   bool _appKeypadMode = false;
 
   bool _reportFocusMode = false;
@@ -181,6 +185,14 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   bool get cursorVisibleMode => _cursorVisibleMode;
+
+  /// The cursor shape the program asked for with DECSCUSR (T-397), or null
+  /// when it hasn't (or reset it with `Ps` = 0) and the view's default applies.
+  TerminalCursorType? get cursorShape => _cursorShape;
+
+  /// Whether the DECSCUSR request was a blinking variant. Recorded only —
+  /// the cursor isn't drawn blinking yet, so blink variants paint steady.
+  bool get cursorShapeBlink => _cursorShapeBlink;
 
   @override
   bool get appKeypadMode => _appKeypadMode;
@@ -626,6 +638,12 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void unknownCSI(int finalByte) {
     // no-op
+  }
+
+  @override
+  void setCursorShape(TerminalCursorType? shape, {required bool blink}) {
+    _cursorShape = shape;
+    _cursorShapeBlink = blink;
   }
 
   /* Modes */

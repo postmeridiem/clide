@@ -23,6 +23,17 @@ TerminalPainter _make({TerminalTheme? theme, TerminalStyle? style, TextScaler? s
 
 Canvas _canvas() => Canvas(PictureRecorder());
 
+/// Records the endpoints of every drawLine; anything else is a no-op.
+class _LineCanvas implements Canvas {
+  final lines = <(Offset, Offset)>[];
+
+  @override
+  void drawLine(Offset p1, Offset p2, Paint paint) => lines.add((p1, p2));
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+
 void main() {
   group('TerminalPainter — construction + cellSize', () {
     test('cellSize is non-zero after construction', () {
@@ -99,6 +110,25 @@ void main() {
         _make().paintCursor(_canvas(), const Offset(0, 0), cursorType: c);
       });
     }
+
+    // DECSCUSR (T-397) made these shapes reachable; they used to ignore the
+    // cursor's row and draw at the top of the view.
+    test('underline sits on the bottom edge of the cursor cell, not the view', () {
+      final p = _make();
+      final canvas = _LineCanvas();
+      const at = Offset(30, 100);
+      p.paintCursor(canvas, at, cursorType: TerminalCursorType.underline);
+      final y = at.dy + p.cellSize.height - 1;
+      expect(canvas.lines.single, (Offset(at.dx, y), Offset(at.dx + p.cellSize.width, y)));
+    });
+
+    test('vertical bar spans the cursor cell, not the first row', () {
+      final p = _make();
+      final canvas = _LineCanvas();
+      const at = Offset(30, 100);
+      p.paintCursor(canvas, at, cursorType: TerminalCursorType.verticalBar);
+      expect(canvas.lines.single, (at, Offset(at.dx, at.dy + p.cellSize.height)));
+    });
 
     test('unfocused (hasFocus=false) draws a stroked rect regardless of cursor type', () {
       // Should hit the early-return-with-stroke branch, not the switch.

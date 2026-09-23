@@ -391,7 +391,9 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       }
 
       if (_shouldShowCursor) {
-        _painter.paintCursor(canvas, offset + cursorOffset, cursorType: _cursorType, hasFocus: _focusNode.hasFocus);
+        // A program's DECSCUSR choice (vim insert = bar) wins over the
+        // view's default shape (T-397).
+        _painter.paintCursor(canvas, offset + cursorOffset, cursorType: _terminal.cursorShape ?? _cursorType, hasFocus: _focusNode.hasFocus);
       }
     }
 

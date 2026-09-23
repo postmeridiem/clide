@@ -2,6 +2,10 @@
 
 import 'package:clide/src/terminal/src/core/cell.dart';
 
+/// The shape the cursor is drawn in. The view picks a default; a program can
+/// override it with DECSCUSR (`CSI Ps SP q`, T-397).
+enum TerminalCursorType { block, underline, verticalBar }
+
 class CursorStyle {
   int foreground;
 

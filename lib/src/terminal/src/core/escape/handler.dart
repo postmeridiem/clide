@@ -1,5 +1,6 @@
 // Based on xterm.dart v4.0.0 by xuty (MIT). See LICENSE in this directory.
 
+import 'package:clide/src/terminal/src/core/cursor.dart';
 import 'package:clide/src/terminal/src/core/mouse/mode.dart';
 
 abstract class EscapeHandler {
@@ -104,6 +105,11 @@ abstract class EscapeHandler {
   void insertBlankChars(int amount);
 
   void unknownCSI(int finalByte);
+
+  /// DECSCUSR (`CSI Ps SP q`): the program picks the cursor's shape. A null
+  /// [shape] (`Ps` = 0) hands it back to the view's default. Not to be
+  /// confused with [resetCursorStyle], which is the SGR pen.
+  void setCursorShape(TerminalCursorType? shape, {required bool blink});
 
   /* Modes */
 

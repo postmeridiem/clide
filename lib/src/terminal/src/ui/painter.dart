@@ -96,10 +96,14 @@ class TerminalPainter {
         paint.style = PaintingStyle.fill;
         canvas.drawRect(offset & _cellSize, paint);
         return;
+      // Both line shapes are placed relative to the cursor cell's [offset];
+      // until DECSCUSR (T-397) made them reachable they drew at the top of
+      // the view regardless of the cursor row.
       case TerminalCursorType.underline:
-        return canvas.drawLine(Offset(offset.dx, _cellSize.height - 1), Offset(offset.dx + _cellSize.width, _cellSize.height - 1), paint);
+        final y = offset.dy + _cellSize.height - 1;
+        return canvas.drawLine(Offset(offset.dx, y), Offset(offset.dx + _cellSize.width, y), paint);
       case TerminalCursorType.verticalBar:
-        return canvas.drawLine(Offset(offset.dx, 0), Offset(offset.dx, _cellSize.height), paint);
+        return canvas.drawLine(offset, Offset(offset.dx, offset.dy + _cellSize.height), paint);
     }
   }
 

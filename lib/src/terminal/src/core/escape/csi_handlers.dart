@@ -413,4 +413,25 @@ mixin _CsiHandlers on _EscapeParserBase {
 
     handler.insertBlankChars(amount);
   }
+
+  /// `ESC [ Ps SP q` Set Cursor Style (DECSCUSR)
+  ///
+  /// https://terminalguide.namepad.de/seq/csi_sq_t_space/
+  ///
+  /// 0 = the view's default, 1/2 = block, 3/4 = underline, 5/6 = bar; odd
+  /// values blink. Editors use it to show insert vs normal mode (T-397).
+  void _csiHandleSetCursorShape() {
+    final ps = _csi.params.isEmpty ? 0 : _csi.params.first;
+    if (_csi.prefix != null || ps > 6) {
+      handler.unknownCSI(_csi.finalByte);
+      return;
+    }
+    final shape = switch (ps) {
+      1 || 2 => TerminalCursorType.block,
+      3 || 4 => TerminalCursorType.underline,
+      5 || 6 => TerminalCursorType.verticalBar,
+      _ => null,
+    };
+    handler.setCursorShape(shape, blink: ps == 0 || ps.isOdd);
+  }
 }

@@ -1,6 +1,7 @@
 // Based on xterm.dart v4.0.0 by xuty (MIT). See LICENSE in this directory.
 
 import 'package:clide/src/terminal/src/core/color.dart';
+import 'package:clide/src/terminal/src/core/cursor.dart';
 import 'package:clide/src/terminal/src/core/mouse/mode.dart';
 import 'package:clide/src/terminal/src/core/escape/handler.dart';
 import 'package:clide/src/terminal/src/utils/ascii.dart';
@@ -218,10 +219,15 @@ class EscapeParser extends _EscapeParserBase with _CsiHandlers, _ModeHandlers, _
     if (!consumed) return false;
 
     // An intermediate byte changes the meaning of the final byte
-    // (`CSI 5 SP @` is scroll-left, not insert-blank). None of the
-    // intermediate forms are implemented, so report them as unknown
-    // rather than mis-dispatching on the bare final byte.
-    final csiHandler = _csi.intermediates.isEmpty ? _csiHandlers[_csi.finalByte] : null;
+    // (`CSI 5 SP @` is scroll-left, not insert-blank), so intermediate
+    // forms never fall through to the bare-final table. DECSCUSR is the
+    // only one implemented; the rest report as unknown.
+    if (_csi.intermediates.isNotEmpty) {
+      _dispatchIntermediateCsi();
+      return true;
+    }
+
+    final csiHandler = _csiHandlers[_csi.finalByte];
 
     if (csiHandler == null) {
       handler.unknownCSI(_csi.finalByte);
@@ -230,6 +236,17 @@ class EscapeParser extends _EscapeParserBase with _CsiHandlers, _ModeHandlers, _
     }
 
     return true;
+  }
+
+  /// Dispatch a CSI carrying intermediate bytes, keyed on the
+  /// (intermediates, final byte) pair. A plain check until a second form
+  /// lands (DECSTR, `CSI ! p`, would be next).
+  void _dispatchIntermediateCsi() {
+    final i = _csi.intermediates;
+    if (i.length == 1 && i[0] == Ascii.space && _csi.finalByte == Ascii.q) {
+      return _csiHandleSetCursorShape();
+    }
+    handler.unknownCSI(_csi.finalByte);
   }
 
   /// Parse a CSI from the head of the queue. Return false if the CSI isn't

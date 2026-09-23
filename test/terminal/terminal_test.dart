@@ -9,6 +9,7 @@ library;
 import 'dart:convert' show utf8;
 
 import 'package:clide/src/terminal/src/core/buffer/cell_offset.dart';
+import 'package:clide/src/terminal/src/core/cursor.dart';
 import 'package:clide/src/terminal/src/core/input/keys.dart';
 import 'package:clide/src/terminal/src/core/mouse/button.dart';
 import 'package:clide/src/terminal/src/core/mouse/button_state.dart';
@@ -614,6 +615,28 @@ void main() {
       expect(t.altBufferMouseScrollMode, isTrue);
       t.setBracketedPasteMode(true);
       expect(t.bracketedPasteMode, isTrue);
+    });
+  });
+
+  group('Terminal — DECSCUSR cursor shape (T-397)', () {
+    test('starts with no program-chosen shape, so the view default applies', () {
+      final t = _Recorder().build();
+      expect(t.cursorShape, isNull);
+    });
+
+    test('vim-style insert/normal switching lands on the model and notifies', () {
+      final t = _Recorder().build();
+      var notified = 0;
+      t.addListener(() => notified++);
+      t.write('\x1b[6 q'); // insert mode: steady bar
+      expect(t.cursorShape, TerminalCursorType.verticalBar);
+      expect(t.cursorShapeBlink, isFalse);
+      expect(notified, 1);
+      t.write('\x1b[1 q'); // blinking block
+      expect(t.cursorShape, TerminalCursorType.block);
+      expect(t.cursorShapeBlink, isTrue);
+      t.write('\x1b[0 q'); // back to the view default
+      expect(t.cursorShape, isNull);
     });
   });
 

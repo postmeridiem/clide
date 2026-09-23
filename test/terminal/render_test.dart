@@ -127,6 +127,23 @@ void main() {
   });
 
   group('RenderTerminal — paint paths', () {
+    testWidgets('a DECSCUSR shape from the program overrides the view default cursor (T-397)', (tester) async {
+      final t = Terminal(maxLines: 100, onOutput: (_) {});
+      await tester.pumpWidget(_host(TerminalView(t, autofocus: true)));
+      await tester.pump();
+      final r = tester.state<TerminalViewState>(find.byType(TerminalView)).renderTerminal;
+      // Default block cursor is a filled rect — no line strokes at all.
+      expect(r, isNot(paints..line()));
+
+      t.write('\x1b[6 q'); // vim insert mode: steady bar
+      await tester.pump();
+      expect(r, paints..line());
+
+      t.write('\x1b[0 q'); // hand it back to the view's default
+      await tester.pump();
+      expect(r, isNot(paints..line()));
+    });
+
     testWidgets('composingText paints over the cursor without throwing', (tester) async {
       final t = Terminal(maxLines: 100, onOutput: (_) {});
       await tester.pumpWidget(_host(TerminalView(t, autofocus: true)));

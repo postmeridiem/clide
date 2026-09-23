@@ -30,6 +30,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - **Auto permission mode** (T-597) — a safety check reviews each action
   instead of asking you. It's in the mode picker when your model supports it,
   and new sessions now start in it.
+- **The terminal cursor follows the program** (T-397) — vim, Claude Code and
+  other TUIs can switch between a bar and a block cursor.
 - **Resizable output dock** (T-261) — drag its top edge, or focus it and use
   the arrow keys; the height is remembered per project.
 - **Compacting shows progress** (T-244) — a "Compacting context…" strip in the

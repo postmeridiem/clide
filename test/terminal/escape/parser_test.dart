@@ -7,6 +7,7 @@
 /// manipulation, and incomplete-sequence rollback.
 library;
 
+import 'package:clide/src/terminal/src/core/cursor.dart';
 import 'package:clide/src/terminal/src/core/escape/emitter.dart';
 import 'package:clide/src/terminal/src/core/escape/handler.dart';
 import 'package:clide/src/terminal/src/core/escape/parser.dart';
@@ -124,6 +125,8 @@ class _RecordingHandler implements EscapeHandler {
   void insertBlankChars(int amount) => calls.add(_Call("insertBlankChars", [amount]));
   @override
   void unknownCSI(int finalByte) => calls.add(_Call("unknownCSI", [finalByte]));
+  @override
+  void setCursorShape(TerminalCursorType? shape, {required bool blink}) => calls.add(_Call("setCursorShape", [shape, blink]));
   @override
   void setInsertMode(bool enabled) => calls.add(_Call("setInsertMode", [enabled]));
   @override
@@ -809,10 +812,11 @@ void main() {
       expect(f.h.named('unknownCSI').first.args, ['@'.codeUnitAt(0)]);
     });
 
-    test('CSI 4 SP q (DECSCUSR) routes to unknownCSI, not a bare-q handler', () {
+    test('CSI 4 SP q (DECSCUSR) dispatches setCursorShape, not a bare-q handler', () {
       final f = _newParser();
       f.parser.write('\x1b[4 q');
-      expect(f.h.named('unknownCSI').first.args, ['q'.codeUnitAt(0)]);
+      expect(f.h.named('unknownCSI'), isEmpty);
+      expect(f.h.named('setCursorShape').single.args, [TerminalCursorType.underline, false]);
     });
 
     test('CSI ! p (DECSTR) routes to unknownCSI', () {
@@ -826,6 +830,47 @@ void main() {
       f.parser.write('\x1b[5 @'); // intermediate form → unknownCSI
       f.parser.write('\x1b[3@'); // plain form must dispatch normally again
       expect(f.h.named('insertBlankChars').first.args, [3]);
+    });
+  });
+
+  group('EscapeParser — DECSCUSR cursor shape (T-397)', () {
+    const cases = <String, List<Object?>>{
+      '\x1b[ q': [null, true], // no param = 0 = the view's default
+      '\x1b[0 q': [null, true],
+      '\x1b[1 q': [TerminalCursorType.block, true],
+      '\x1b[2 q': [TerminalCursorType.block, false],
+      '\x1b[3 q': [TerminalCursorType.underline, true],
+      '\x1b[4 q': [TerminalCursorType.underline, false],
+      '\x1b[5 q': [TerminalCursorType.verticalBar, true],
+      '\x1b[6 q': [TerminalCursorType.verticalBar, false],
+    };
+    for (final MapEntry(key: seq, value: args) in cases.entries) {
+      test('${seq.substring(1)} → setCursorShape$args', () {
+        final f = _newParser();
+        f.parser.write(seq);
+        expect(f.h.named('setCursorShape').single.args, args);
+      });
+    }
+
+    test('an out-of-range Ps (7) is unknown, not a shape change', () {
+      final f = _newParser();
+      f.parser.write('\x1b[7 q');
+      expect(f.h.named('setCursorShape'), isEmpty);
+      expect(f.h.named('unknownCSI').single.args, ['q'.codeUnitAt(0)]);
+    });
+
+    test('a private-prefixed form (CSI ? 2 SP q) is unknown', () {
+      final f = _newParser();
+      f.parser.write('\x1b[?2 q');
+      expect(f.h.named('setCursorShape'), isEmpty);
+      expect(f.h.named('unknownCSI').single.args, ['q'.codeUnitAt(0)]);
+    });
+
+    test('a different intermediate before q (CSI 2 ! q) is unknown', () {
+      final f = _newParser();
+      f.parser.write('\x1b[2!q');
+      expect(f.h.named('setCursorShape'), isEmpty);
+      expect(f.h.named('unknownCSI').single.args, ['q'.codeUnitAt(0)]);
     });
   });
 
