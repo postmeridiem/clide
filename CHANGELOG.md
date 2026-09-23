@@ -57,6 +57,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   and restarts the session on the new credentials. Account sign-in ran
   `claude login`, which the CLI treats as a prompt; it now runs
   `claude auth login`.
+- **Images, drawings, icons and ticket pick-ups land in the Claude tab you're
+  in** (T-295) — they always went to the primary tab.
 - **Choosing a permission mode Claude refuses no longer shows it as active**
   (T-597) — picking bypass showed "bypass" while the session stayed in its
   old mode. A refused change now rolls back and says why.

@@ -32,9 +32,17 @@ void main() {
   late List<Map<String, Object?>> statusCalls;
   late List<Message> changed;
   late StreamSubscription<Message> changedSub;
+  late List<_FakeProc> procs;
 
   setUp(() {
-    orch = ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => _FakeProc());
+    procs = [];
+    orch = ClaudeSessionOrchestrator(
+      processFactory: ({required sessionArgs, required cwd, env}) async {
+        final p = _FakeProc();
+        procs.add(p);
+        return p;
+      },
+    );
     ipc = FakeDaemonClient(log: Logger(), events: DaemonBus());
     messages = MessageBus();
     statusCalls = [];
@@ -103,6 +111,44 @@ void main() {
       messages: messages,
     );
     expect(statusCalls, hasLength(1));
+  });
+
+  test('lands in the tab the user is in, not primary (T-295)', () async {
+    await orch.spawn(SpawnSpec(id: 'primary', role: 'primary', sessionId: 'p-uuid', cwd: '/repo'));
+    await orch.spawn(SpawnSpec(id: 'secondary-1', role: 'secondary', sessionId: 's-uuid', cwd: '/repo'));
+    final [primary, second] = procs;
+    orch.activeSessionId = 'secondary-1';
+
+    await applyTicketPickUp(payload(), orchestrator: orch, ipc: ipc, messages: messages);
+
+    expect(second.writes.join(), contains('pick this up'));
+    expect(primary.writes.join(), isNot(contains('pick this up')));
+  });
+
+  group('activeSession (T-295)', () {
+    test('prefers the active tab', () async {
+      await orch.spawn(SpawnSpec(id: 'primary', role: 'primary', sessionId: 'p-uuid', cwd: '/repo'));
+      await orch.spawn(SpawnSpec(id: 'secondary-1', role: 'secondary', sessionId: 's-uuid', cwd: '/repo'));
+      orch.activeSessionId = 'secondary-1';
+      expect(orch.activeSession?.id, 'secondary-1');
+    });
+
+    test('falls back to primary when unset or stale', () async {
+      await orch.spawn(SpawnSpec(id: 'primary', role: 'primary', sessionId: 'p-uuid', cwd: '/repo'));
+      expect(orch.activeSession?.id, 'primary');
+      orch.activeSessionId = 'secondary-7'; // its tab was closed
+      expect(orch.activeSession?.id, 'primary');
+    });
+
+    test('falls back to the first visible session without a primary', () async {
+      await orch.spawn(SpawnSpec(id: 'secondary-1', role: 'secondary', sessionId: 's-uuid', cwd: '/repo', visible: false));
+      await orch.spawn(SpawnSpec(id: 'secondary-2', role: 'secondary', sessionId: 't-uuid', cwd: '/repo'));
+      expect(orch.activeSession?.id, 'secondary-2');
+    });
+
+    test('is null with no sessions', () {
+      expect(orch.activeSession, isNull);
+    });
   });
 
   test('an empty prompt is ignored entirely', () async {

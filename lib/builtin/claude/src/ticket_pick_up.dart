@@ -14,8 +14,9 @@ import 'package:clide/kernel/kernel.dart';
 /// or reopens it (T-339).
 const kPickUpStartableStatuses = {'backlog', 'ready'};
 
-/// Inject a picked-up ticket's prompt into the active session (the `primary`
-/// lead, else the first visible one) and, on acceptance from a not-yet-started
+/// Inject a picked-up ticket's prompt into the active session (the tab the
+/// user is in, else the `primary` lead, else the first visible one — T-295)
+/// and, on acceptance from a not-yet-started
 /// ticket, advance it to `in_progress` and publish a `changed` so the sidebar
 /// refreshes (T-327/T-339). Returns whether a live session accepted the prompt.
 ///
@@ -29,7 +30,7 @@ Future<bool> applyTicketPickUp(
 }) async {
   final prompt = data['prompt'] as String?;
   if (prompt == null || prompt.isEmpty) return false;
-  final target = orchestrator?.byId('primary') ?? orchestrator?.visibleSessions.firstOrNull;
+  final target = orchestrator?.activeSession;
   if (target == null) return false; // no live session → quiet no-op, no state change
   orchestrator!.injectMessage(target.id, prompt);
 

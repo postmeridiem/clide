@@ -286,6 +286,20 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
 
   ManagedSession? byId(String id) => _sessions[id];
 
+  /// Orchestrator id of the Claude tab the user is looking at, set by the
+  /// session host as tabs switch (T-295). A plain field, not a notifier: it
+  /// only steers where out-of-band content lands, nothing renders from it.
+  String? activeSessionId;
+
+  /// Where content that isn't addressed to a session goes — `clide image
+  /// show`/`draw`/`icon show` cards and sidebar ticket pick-ups (T-295): the
+  /// active tab, else the `primary` lead, else the first visible session. A
+  /// stale [activeSessionId] (its tab was closed) falls through to primary.
+  ManagedSession? get activeSession {
+    final id = activeSessionId;
+    return (id == null ? null : _sessions[id]) ?? _sessions['primary'] ?? visibleSessions.firstOrNull;
+  }
+
   /// Spawn and register a session. Idempotent on [SpawnSpec.id] *within a
   /// workspace* — a repeat call for the same [SpawnSpec.cwd] returns the
   /// existing session rather than starting a second process (the fast path that

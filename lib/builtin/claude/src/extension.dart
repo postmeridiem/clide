@@ -656,7 +656,7 @@ class ClaudeExtension extends ClideExtension {
       );
       return;
     }
-    final target = _orchestrator?.byId('primary') ?? _orchestrator?.visibleSessions.firstOrNull;
+    final target = _orchestrator?.activeSession;
     if (target == null) return;
     target.conversation.inject(
       ImageMessage(
@@ -691,7 +691,7 @@ class ClaudeExtension extends ClideExtension {
       );
     }
     if (entries.isEmpty) return;
-    final target = _orchestrator?.byId('primary') ?? _orchestrator?.visibleSessions.firstOrNull;
+    final target = _orchestrator?.activeSession;
     if (target == null) return;
     target.conversation.inject(
       IconMessage(
@@ -710,7 +710,7 @@ class ClaudeExtension extends ClideExtension {
   void _onDrawShow(Message m) {
     final svg = m.data['svg'] as String?;
     if (svg == null || svg.isEmpty) return;
-    final target = _orchestrator?.byId('primary') ?? _orchestrator?.visibleSessions.firstOrNull;
+    final target = _orchestrator?.activeSession;
     if (target == null) return;
     target.conversation.inject(
       DrawingMessage(

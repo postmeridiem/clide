@@ -505,3 +505,14 @@ Want: a CHILDREN section under the description, listing the direct children as t
 Data: pql already supports `pql ticket show <id> --with-children` (returns a `children` array: id/type/title/status/priority). Check whether the clide `pql.tickets.show` wrapper (lib/src/pql/) passes it through with `withContext`, or add a `withChildren` arg. Wrap, don''t duplicate (D-3).
 
 Acceptance: opening T-276 lists its children; clicking one navigates to it and Back returns; a leaf ticket shows no children section; done children are de-emphasised or collapsed; covered by controller + widget tests.', 'review', 'medium', NULL, NULL, 'D-3', '2026-09-23 07:21:42.490', '2026-09-23 07:49:46.740', NULL, 'e7bd80196b79f6067aadb1992c107d9f', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM5DM43Q9HX352STN3M', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'clide image show is not tab-aware — opens in primary tab', '`clide image show <path>` (T-249 image card) renders the image into the PRIMARY tab regardless of which tab/pane is active. It should target the active tab (or otherwise be tab-aware), not hijack the primary one.
+
+Repro:
+- Have a non-primary tab focused.
+- Run `clide image show <path>`.
+- Observed: image card appears in the primary tab.
+- Expected: image card appears in the active/intended tab.
+
+Notes:
+- Surfaced while showing a Frame0 wireframe export during T-294.
+- Likely the image-show dispatch resolves a fixed/primary slot instead of the active tab context. Audit the target-resolution path for the image-show command.', 'review', 'medium', NULL, NULL, NULL, '2026-06-09 15:26:00', '2026-09-23 07:50:08.554', NULL, 'c59bef4cbfca183f66a7a608eeb6832e', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

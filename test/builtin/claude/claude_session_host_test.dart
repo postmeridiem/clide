@@ -8,6 +8,7 @@
 library;
 
 import 'package:clide/builtin/claude/src/claude_session_host.dart';
+import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -73,6 +74,30 @@ void main() {
     f.services.events.emit(const ProjectOpened(path: '/repo-b'));
     await tester.pump();
     expect(state.tabIds, ['primary', 'secondary-1']);
+  });
+
+  testWidgets('tracks the active tab on the orchestrator (T-295)', (tester) async {
+    final orch = ClaudeSessionOrchestrator(
+      processFactory: ({required sessionArgs, required cwd, env}) async => throw UnsupportedError('no spawn in this test'),
+    );
+    activeSessionOrchestrator = orch;
+    addTearDown(() {
+      activeSessionOrchestrator = null;
+      orch.dispose();
+    });
+    final key = GlobalKey<ClaudeSessionHostState>();
+    await tester.pumpWidget(_host(f, key));
+    await tester.pump();
+    final state = key.currentState!;
+    expect(orch.activeSessionId, 'primary');
+
+    state.addSecondary(); // a new tab activates itself
+    await tester.pump();
+    expect(orch.activeSessionId, 'secondary-1');
+
+    // Resolve the panes' "wait for project" so no timer outlives the tree.
+    f.services.events.emit(const ProjectOpened(path: '/repo-a'));
+    await tester.pump();
   });
 
   testWidgets('re-opening the same workspace is not a switch (no reset) (T-269)', (tester) async {

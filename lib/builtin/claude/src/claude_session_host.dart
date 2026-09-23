@@ -5,6 +5,7 @@ import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
 import 'claude_pane.dart';
+import 'session_orchestrator.dart';
 
 /// Hosts the primary Claude pane plus N user-spawned secondary
 /// sessions per D-41. Uses [MultitabPane] for the tab strip
@@ -42,8 +43,14 @@ class ClaudeSessionHostState extends State<ClaudeSessionHost> {
           reorderable: false,
         ),
       ],
-    );
+    )..addListener(_syncActiveSession);
+    _syncActiveSession();
   }
+
+  /// Tell the orchestrator which tab the user is in, so `clide image show` and
+  /// friends land there rather than always in primary (T-295). Tab ids double
+  /// as orchestrator ids (`primary`, `secondary-N`), so no mapping is needed.
+  void _syncActiveSession() => activeSessionOrchestrator?.activeSessionId = _controller.activeId;
 
   @override
   void didChangeDependencies() {
