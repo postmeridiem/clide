@@ -41,6 +41,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - **This repo's committed Claude settings are narrower** (T-616) — specific
   `dart`, `flutter` and `make` commands instead of wildcards, no
   `git config`, and more force-push and discard forms denied.
+- **clide asks before an agent runs code through it** (T-602) — spawning
+  processes, typing into panes, pushing, switching accounts and similar
+  commands from a Claude session now open a confirm showing the exact
+  command. Allow it once or for that session; your own terminal use is
+  never interrupted.
 - **clide's MCP tools can't run code** (T-602) — commands that run code or
   change trust are no longer offered to an `/ide`-connected Claude, and
   calling one by name is refused too; previously a hidden tool could still

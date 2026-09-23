@@ -267,6 +267,20 @@ class EditorRegistry {
     return resolveUnderRootFollowingSymlinks(workspaceRoot, repoRelative.replaceAll('/', sep));
   }
 
+  /// Whether saving buffer [id] would write under `.git/` or `.claude/`
+  /// (D-115). The editor still saves those for the user; the command layer
+  /// asks before an agent does. False for an unknown buffer or a path that
+  /// no longer resolves (the save itself reports that).
+  bool writesProtectedPath(String id) {
+    final buf = _buffers[id];
+    if (buf == null) return false;
+    try {
+      return isProtectedWritePath(workspaceRoot, _writePathOf(buf.path));
+    } on PathOutsideRoot {
+      return false;
+    }
+  }
+
   /// The save target for a buffer path (T-610). The read resolver above lets a
   /// file that doesn't exist yet through unresolved, so a new file under a
   /// symlinked-out directory would be written outside the workspace; the write

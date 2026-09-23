@@ -35,5 +35,11 @@
   "contextMenu.searchWeb": { "translation": "Zoeken op internet" },
   "contextMenu.share": { "translation": "Delen" },
   "contextMenu.liveTextInput": { "translation": "Tekst scannen" },
-  "contextMenu.custom": { "translation": "Actie" }
+  "contextMenu.custom": { "translation": "Actie" },
+  "escalation.title": { "translation": "Mag een agent dit uitvoeren?" },
+  "escalation.body": { "translation": "{agent} wil uitvoeren:" },
+  "escalation.warning": { "translation": "Dit kan code uitvoeren of veranderen wat clide vertrouwt. Sta het alleen toe als je het verwachtte." },
+  "escalation.deny": { "translation": "Weigeren" },
+  "escalation.once": { "translation": "Eén keer toestaan" },
+  "escalation.session": { "translation": "Toestaan voor deze sessie" }
 }

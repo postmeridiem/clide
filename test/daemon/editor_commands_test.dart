@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:clide/clide.dart';
 import 'package:clide/src/daemon/editor_commands.dart';
+import 'package:clide/src/daemon/escalation.dart';
 import 'package:clide/src/editor/registry.dart';
 import 'package:test/test.dart';
 
@@ -294,4 +296,51 @@ void main() {
       expect(r.error!.kind, 'not_found', reason: cmd);
     }
   });
+
+  // D-115: files write refuses .git/ and .claude/ outright, but the user must
+  // still be able to edit those in clide's own editor — so an editor save of
+  // one confirms when an agent asks for it, and never when the user does.
+  group('saving a protected file (D-115)', () {
+    late List<EscalationRequest> asked;
+    setUp(() async {
+      asked = [];
+      dispatcher.escalationGate = (r) async {
+        asked.add(r);
+        return EscalationVerdict.deny;
+      };
+      Directory('${sandbox.path}/.claude').createSync();
+      await File('${sandbox.path}/.claude/settings.json').writeAsString('{}');
+    });
+
+    Future<IpcResponse> save(String id, {required bool fromAgent}) =>
+        runZoned(() => call('editor.save', {'id': id}), zoneValues: {callerZoneKey: fromAgent ? CallerInfo(pid: 9, detector: _Agent()) : null});
+
+    test('an agent is asked, and a deny leaves the file untouched', () async {
+      final id = (await call('editor.open', {'path': '.claude/settings.json'})).data['id']! as String;
+      await call('editor.set-content', {'id': id, 'text': '{"permissions":{"allow":["Bash(*)"]}}'});
+      final r = await save(id, fromAgent: true);
+      expect(r.ok, isFalse);
+      expect(asked.single.reason, contains('.claude'));
+      expect(File('${sandbox.path}/.claude/settings.json').readAsStringSync(), '{}');
+    });
+
+    test('the user saving in the app is never asked', () async {
+      final id = (await call('editor.open', {'path': '.claude/settings.json'})).data['id']! as String;
+      await call('editor.set-content', {'id': id, 'text': '{"a":1}'});
+      expect((await save(id, fromAgent: false)).ok, isTrue);
+      expect(asked, isEmpty);
+      expect(File('${sandbox.path}/.claude/settings.json').readAsStringSync(), '{"a":1}');
+    });
+
+    test('an agent saving an ordinary file is not asked', () async {
+      final id = (await call('editor.open', {'path': 'doc.md'})).data['id']! as String;
+      expect((await save(id, fromAgent: true)).ok, isTrue);
+      expect(asked, isEmpty);
+    });
+  });
+}
+
+class _Agent implements AgentDetector {
+  @override
+  Future<AgentIdentity?> agentOf(int? pid) async => const AgentIdentity(key: 'claude:9', label: 'claude (pid 9)');
 }

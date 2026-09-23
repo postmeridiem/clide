@@ -42,6 +42,7 @@ import 'package:clide/builtin/claude/src/account_registry.dart';
 import 'package:clide/clide.dart' show clideCommit, clideDate, clideRepository, clideVersion;
 import 'package:clide/src/daemon/claude_account_commands.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
+import 'package:clide/src/daemon/escalation.dart';
 import 'package:clide/src/daemon/env_path_commands.dart';
 import 'package:clide/src/daemon/draw_commands.dart';
 import 'package:clide/src/draw/compare_template.dart' show compareTemplateHandler;
@@ -68,6 +69,7 @@ import 'package:clide/src/daemon/panel_commands.dart';
 import 'package:clide/src/daemon/panel_resizer_kernel.dart';
 import 'package:clide/src/daemon/pql_commands.dart';
 import 'package:clide/src/daemon/search_commands.dart';
+import 'package:clide/src/shell/escalation_confirm.dart';
 import 'package:clide/src/editor/registry.dart' show EditorRegistry;
 import 'package:clide/src/git/client.dart';
 import 'package:clide/src/cli/argv_dispatch.dart';
@@ -196,6 +198,9 @@ Future<void> main([List<String> args = const []]) async {
   // The kernel clipboard, captured post-boot so `clipboard.set` can put text
   // on the user's paste buffer from the CLI — the drive-half of D-6 (T-584).
   ClideClipboard? kernelClipboard;
+  // The dialog router, captured post-boot so an agent's escalating call can
+  // wait on the user's confirm (D-115). Until then such calls are refused.
+  DialogRouter? kernelDialog;
   // The canvas extension's open documents, captured post-activation so the
   // `canvas.*` verbs edit the same document the pane renders (T-570).
   CanvasDocuments? canvasDocuments;
@@ -332,6 +337,11 @@ Future<void> main([List<String> args = const []]) async {
     Logger? log,
   }) {
     final dispatcher = DaemonDispatcher();
+    // D-115: an agent's escalating call over the socket waits on the user.
+    dispatcher.escalationGate = (req) async {
+      final dialog = kernelDialog;
+      return dialog == null ? EscalationVerdict.deny : confirmEscalation(dialog, req);
+    };
     final eventSink = _BusEventSink(events);
     // FFI breadcrumbs (T-434): route PTY crumbs to the kernel Logger (source
     // 'conpty', an eager FileLogSink source) and a sendable crumb file the
@@ -667,6 +677,7 @@ Future<void> main([List<String> args = const []]) async {
   kernelMessages = services.messages;
   kernelFilterStates = services.filterStates;
   kernelClipboard = services.clipboard;
+  kernelDialog = services.dialog;
   kernelSettings = services.settings;
   // T-479: the account registry is now resolvable (kernelSettings is set), so
   // re-sync the /ide discovery locks to pick up any account bound to this

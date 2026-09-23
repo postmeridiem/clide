@@ -48,7 +48,7 @@ void registerEditorCommands(DaemonDispatcher d, EditorRegistry registry) {
   d.register('editor.replace-selection', (req) => _replace(req, registry));
   d.register('editor.set-selection', (req) => _setSelection(req, registry));
   d.register('editor.set-content', (req) => _setContent(req, registry));
-  d.register('editor.save', (req) => _save(req, registry), schema: _idArg);
+  d.register('editor.save', (req) => _save(req, registry, d), schema: _idArg);
   d.register('editor.close', (req) => _close(req, registry), schema: _idArg);
   d.register(
     'editor.goto-line',
@@ -203,9 +203,15 @@ Future<IpcResponse> _setContent(IpcRequest req, EditorRegistry r) async {
   return IpcResponse.ok(id: req.id, data: {'id': id, 'length': content.length});
 }
 
-Future<IpcResponse> _save(IpcRequest req, EditorRegistry r) async {
+Future<IpcResponse> _save(IpcRequest req, EditorRegistry r, DaemonDispatcher d) async {
   final id = _resolveId(req, r);
   if (id == null) return _notFound(req.id, 'no active buffer');
+  // An agent writing git hooks/config or Claude's settings is an escalation
+  // even through the editor; the user saving in the app is not (D-115).
+  if (r.writesProtectedPath(id)) {
+    final refusal = await d.checkEscalation(req, reason: 'writes under .git/ or .claude/');
+    if (refusal != null) return refusal;
+  }
   final bool ok;
   try {
     ok = await r.save(id);

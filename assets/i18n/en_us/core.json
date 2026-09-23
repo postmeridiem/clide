@@ -35,5 +35,11 @@
   "contextMenu.searchWeb": { "translation": "Search web" },
   "contextMenu.share": { "translation": "Share" },
   "contextMenu.liveTextInput": { "translation": "Scan text" },
-  "contextMenu.custom": { "translation": "Action" }
+  "contextMenu.custom": { "translation": "Action" },
+  "escalation.title": { "translation": "Allow an agent to run this?" },
+  "escalation.body": { "translation": "{agent} wants to run:" },
+  "escalation.warning": { "translation": "This can run code or change what clide trusts. Allow it only if you expected it." },
+  "escalation.deny": { "translation": "Deny" },
+  "escalation.once": { "translation": "Allow once" },
+  "escalation.session": { "translation": "Allow for this session" }
 }

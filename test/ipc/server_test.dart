@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:clide/kernel/src/log.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
+import 'package:clide/src/daemon/escalation.dart';
 import 'package:clide/src/daemon/risk_tiers.dart';
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/paths.dart';
@@ -310,6 +311,24 @@ void main() {
       expect(server.isRunning, isFalse);
     });
 
+    // D-115: the server identifies the connecting process, so an escalating
+    // command from an agent reaches the confirm with the right caller.
+    test('a socket request carries its caller\'s pid to the escalation check', () async {
+      final seen = <int?>[];
+      final asked = <EscalationRequest>[];
+      dispatcher.register('pane.spawn', (req) async => IpcResponse.ok(id: req.id, data: const {}));
+      dispatcher.escalationGate = (r) async {
+        asked.add(r);
+        return EscalationVerdict.deny;
+      };
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir, agentDetector: _RecordingDetector(seen));
+      await server.start();
+      final reply = await _roundTrip(server.socketPath, IpcRequest(id: 'e', cmd: 'pane.spawn'));
+      expect(reply.ok, isFalse);
+      expect(asked.single.command, 'pane.spawn');
+      if (Platform.isLinux || Platform.isMacOS) expect(seen.single, pid, reason: 'the peer is this very process');
+    });
+
     test('prepareParentDir creates the parent directory if it does not exist', () async {
       // The per-test socket dir doesn't exist until start() makes it.
       final parent = Directory(sockDir);
@@ -337,6 +356,18 @@ void main() {
 }
 
 Logger _silentLog() => Logger(minLevel: LogLevel.error, sinks: const []);
+
+/// Treats every caller as an agent and records the pids it was asked about.
+class _RecordingDetector implements AgentDetector {
+  _RecordingDetector(this.seen);
+  final List<int?> seen;
+
+  @override
+  Future<AgentIdentity?> agentOf(int? pid) async {
+    seen.add(pid);
+    return const AgentIdentity(key: 'claude:test', label: 'claude (test)');
+  }
+}
 
 Future<IpcResponse> _roundTrip(String socketPath, IpcRequest req) async {
   final c = await Socket.connect(InternetAddress(socketPath, type: InternetAddressType.unix), 0);

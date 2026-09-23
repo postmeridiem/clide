@@ -9,8 +9,10 @@ import 'package:clide/kernel/src/log.dart';
 import 'package:clide/src/cli/argv_dispatch.dart';
 import 'package:clide/src/cli/argv_to_request.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
+import 'package:clide/src/daemon/escalation.dart';
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/paths.dart';
+import 'package:clide/src/ipc/peer.dart';
 import 'package:clide/src/ipc/schema_v1.dart';
 
 /// Unix-domain IPC server for the running Flutter app.
@@ -31,7 +33,12 @@ class IpcServer {
     this.replayDepth = 16,
     this.eventLogDepth = 1024,
     this.socketDir,
-  });
+    AgentDetector? agentDetector,
+  }) : agentDetector = agentDetector ?? ProcessTreeAgentDetector();
+
+  /// Decides whether a connection's process descends from an agent, for
+  /// the escalation confirm (D-115).
+  final AgentDetector agentDetector;
 
   final DaemonDispatcher dispatcher;
   final String workspaceRoot;
@@ -189,10 +196,15 @@ class IpcServer {
   /// requests interleaved mid-handler, the shared StringBuffer could
   /// re-frame while an await was in flight, and per-chunk decode corrupted
   /// runes split across reads.
+  ///
+  /// Every request runs in a Zone carrying the connection's [CallerInfo],
+  /// so the dispatcher can tell an agent's escalating call from the user's
+  /// (D-115) — nested dispatches (the `_argv` unwrap) inherit it.
   Future<void> _serveClient(Socket client) async {
+    final caller = CallerInfo(pid: peerPid(client), detector: agentDetector);
     try {
       await for (final line in client.cast<List<int>>().transform(const Utf8Decoder(allowMalformed: true)).transform(const LineSplitter())) {
-        await _handleLine(client, line);
+        await runZoned(() => _handleLine(client, line), zoneValues: {callerZoneKey: caller});
       }
     } catch (e) {
       log.warn('ipc', 'client read error: $e');

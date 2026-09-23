@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:clide/clide.dart' show clideCommit, clideDate, clideVersion;
+import 'package:clide/src/daemon/escalation.dart';
 import 'package:clide/src/daemon/risk_tiers.dart';
 import 'package:clide/src/ipc/command_schema.dart';
 import 'package:clide/src/ipc/envelope.dart';
@@ -96,13 +99,77 @@ class DaemonDispatcher {
         ),
       );
     }
+    var validated = req;
     final schema = _schemas[req.cmd];
-    if (schema == null) return h(req);
-    final result = schema.validate(schema.normalize(req.args));
-    if (!result.isOk) {
-      return schemaError(req.id, result.error!);
+    if (schema != null) {
+      final result = schema.validate(schema.normalize(req.args));
+      if (!result.isOk) {
+        return schemaError(req.id, result.error!);
+      }
+      validated = IpcRequest(id: req.id, cmd: req.cmd, args: result.values!);
     }
-    return h(IpcRequest(id: req.id, cmd: req.cmd, args: result.values!));
+    // After validation, so the tier and the confirm see the args the
+    // handler will actually run with.
+    if (_risk[req.cmd]!.tierFor(validated.args) == RiskTier.escalate) {
+      final refusal = await checkEscalation(validated);
+      if (refusal != null) return refusal;
+    }
+    return h(validated);
+  }
+
+  /// Asks the user before an escalating call from an agent (D-115).
+  /// Unset (headless, most tests) means such a call is refused.
+  EscalationGate? escalationGate;
+
+  /// "Allow for this session" answers: agent + exact command + args.
+  final Set<String> _sessionApprovals = {};
+
+  /// Null when [req] may run; else the refusal to return. Runs for every
+  /// escalate-tier call, and a handler calls it itself for a call its tier
+  /// doesn't cover (an editor save that would write a protected file),
+  /// passing the [reason] the confirm shows. Calls with no socket caller
+  /// (the app's own UI) and calls from a person never ask.
+  Future<IpcResponse?> checkEscalation(IpcRequest req, {String? reason}) async {
+    final caller = currentCaller();
+    if (caller == null) return null;
+    final agent = await caller.agent();
+    if (agent == null) return null;
+    final key = '${agent.key}\u0000${req.cmd}\u0000${_canonicalJson(req.args)}';
+    if (_sessionApprovals.contains(key)) return null;
+    final gate = escalationGate;
+    if (gate == null) {
+      return _refused(req.id, '${req.cmd} needs your confirmation in clide, and none can be shown here');
+    }
+    final verdict = await gate(EscalationRequest(command: req.cmd, args: req.args, agent: agent, reason: reason));
+    switch (verdict) {
+      case EscalationVerdict.deny:
+        return _refused(req.id, '${req.cmd} was declined by the user');
+      case EscalationVerdict.once:
+        return null;
+      case EscalationVerdict.session:
+        _sessionApprovals.add(key);
+        return null;
+    }
+  }
+
+  static IpcResponse _refused(String id, String message) => IpcResponse.err(
+    id: id,
+    error: IpcError(
+      code: IpcExitCode.userError,
+      kind: IpcErrorKind.userError,
+      message: message,
+      hint: 'this command runs code or changes trust, so clide asks before an agent runs it (D-115)',
+    ),
+  );
+
+  /// JSON with map keys sorted, so equal args always make the same key.
+  static String _canonicalJson(Object? v) {
+    Object? sort(Object? x) => switch (x) {
+      Map() => {for (final k in (x.keys.map((k) => '$k').toList()..sort())) k: sort(x[k])},
+      List() => [for (final e in x) sort(e)],
+      _ => x,
+    };
+    return jsonEncode(sort(v), toEncodable: (o) => '$o');
   }
 
   Future<IpcResponse> _ping(IpcRequest req) async =>
