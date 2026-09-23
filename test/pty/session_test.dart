@@ -243,6 +243,33 @@ void main() {
       expect(ptmxCount(), baseline);
     });
 
+    // T-637 (#17): EOF means the slave side closed, not that the child has
+    // exited. A single WNOHANG waitpid at EOF missed a child that outlived
+    // its tty fds, and nothing ever collected it — a zombie for the app's life.
+    // Caveat: while any dart:io Process is running, the VM's own exit-code
+    // handler waitpid(-1)s every child, which can mask the bug in a runner
+    // that has live subprocesses. It reproduces reliably in a quiet VM.
+    test('a child that exits after EOF is still reaped', tags: ['pty'], () async {
+      final s = NativePty.start(
+        executable: '/bin/sh',
+        // Ignores SIGHUP (like nohup), so closing the master doesn't kill it.
+        arguments: ['-c', "trap '' HUP; exec </dev/null >/dev/null 2>&1; sleep 0.3"],
+        columns: 80,
+        rows: 24,
+        workingDirectory: '/',
+        environment: {...Platform.environment, 'TERM': 'xterm-256color'},
+      );
+      addTearDown(s.close);
+      await s.output.drain<void>().timeout(ioTimeout, onTimeout: () => fail('no EOF after the child dropped its tty'));
+
+      final stat = File('/proc/${s.pid}/stat');
+      final deadline = DateTime.now().add(const Duration(seconds: 5));
+      while (stat.existsSync() && DateTime.now().isBefore(deadline)) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+      expect(stat.existsSync(), isFalse, reason: 'child ${s.pid} left unreaped: ${stat.existsSync() ? stat.readAsStringSync() : ''}');
+    }, skip: Platform.isLinux ? false : 'reads /proc/<pid>');
+
     test('resize on a live PTY does not throw', () async {
       final s = NativePty.start(
         executable: '/bin/sh',

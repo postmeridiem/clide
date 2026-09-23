@@ -521,10 +521,25 @@ class NativePty implements PtySession {
     // short-circuits on _dead, so skipping this leaks the fd and its pty
     // device for the life of the app on every natural child exit (T-360).
     _nativeClose(_fd);
-    final s = calloc<ffi.Int32>();
-    _waitpid(pid, s, _kWnohang);
-    calloc.free(s);
+    _collectChild();
   }
+
+  /// Reap the child without blocking. EOF means the slave side closed, not
+  /// that the child has exited: it may still be tearing down, or have
+  /// dropped its tty and ignored the SIGHUP (nohup). A single WNOHANG
+  /// waitpid missed those and left a zombie for the app's life, so poll
+  /// with backoff until waitpid collects it or reports it isn't ours (T-637).
+  void _collectChild([Duration delay = const Duration(milliseconds: 10)]) {
+    final s = calloc<ffi.Int32>();
+    final rc = _waitpid(pid, s, _kWnohang);
+    final errno = rc < 0 ? libc.errno : 0;
+    calloc.free(s);
+    if (rc > 0 || (rc < 0 && errno != PosixErrno.eintr)) return;
+    final next = delay * 2;
+    Timer(delay, () => _collectChild(next > _kMaxReapDelay ? _kMaxReapDelay : next));
+  }
+
+  static const Duration _kMaxReapDelay = Duration(seconds: 1);
 
   /// Kill the child and release resources.
   ///
