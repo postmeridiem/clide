@@ -227,14 +227,29 @@ class GitClient {
     if (reverse) args.add('--reverse');
     args.addAll(['--unidiff-zero', '-']);
 
-    final proc = await Process.start(toolchain.git, args, workingDirectory: workDir.path, environment: toolchain.gitEnv);
-    proc.stdin.write(patch);
-    await proc.stdin.close();
-    final exitCode = await proc.exitCode;
-    if (exitCode != 0) {
-      final stderr = await proc.stderr.transform(const SystemEncoding().decoder).join();
-      throw GitException('git apply failed', stderr: stderr);
+    final Process proc;
+    try {
+      proc = await Process.start(toolchain.git, args, workingDirectory: workDir.path, environment: toolchain.gitEnv);
+    } on ProcessException catch (e) {
+      // Wrapped like _run, so a missing git surfaces as a tool error (T-636).
+      throw GitException('git apply: ${e.message}', stderr: e.toString());
     }
+    // Drain both pipes while git runs: read only after the exit, a large
+    // stderr fills the pipe, git blocks on the write, and the exit never
+    // comes (T-636).
+    final stdout = proc.stdout.drain<void>();
+    final stderr = proc.stderr.transform(const SystemEncoding().decoder).join();
+    try {
+      proc.stdin.write(patch);
+      await proc.stdin.close();
+    } on Object {
+      // git exited without reading the patch (a broken pipe): its exit code
+      // and stderr below say why.
+    }
+    final exitCode = await proc.exitCode;
+    await stdout;
+    final err = await stderr;
+    if (exitCode != 0) throw GitException('git apply failed', stderr: err);
   }
 }
 

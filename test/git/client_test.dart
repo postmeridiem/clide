@@ -221,6 +221,30 @@ void main() {
       }
     });
 
+    // T-636: hunk staging goes through Process.start (it pipes the patch in).
+    test('a bad git binary path makes hunk staging throw GitException, not ProcessException', () async {
+      final t = ToolchainView.resolved(const ResolvedPaths(git: '/tmp/clide-no-such-git-binary'));
+      final dir = await Directory.systemTemp.createTemp('clide-git-bad-');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final git = GitClient(toolchain: t, workDir: dir);
+      await expectLater(git.stageHunk('patch'), throwsA(isA<GitException>().having((e) => e.toString(), 'message', contains('apply'))));
+      await expectLater(git.unstageHunk('patch'), throwsA(isA<GitException>()));
+    });
+
+    test('a git apply that floods stderr neither hangs nor loses the message (T-636)', () async {
+      // Far more than a pipe buffer holds: reading stderr only after the exit
+      // left git blocked on the write and the exit never came.
+      final dir = await Directory.systemTemp.createTemp('clide-git-flood-');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final fake = File('${dir.path}/git')
+        ..writeAsStringSync('#!/bin/sh\ncat >/dev/null\nhead -c 1000000 /dev/zero | tr "\\000" x >&2\necho "patch does not apply" >&2\nexit 1\n');
+      await Process.run('chmod', ['755', fake.path]);
+      final git = GitClient(toolchain: ToolchainView.resolved(ResolvedPaths(git: fake.path)), workDir: dir);
+      final err = await git.stageHunk('patch').then<Object?>((_) => null, onError: (Object e) => e).timeout(const Duration(seconds: 20));
+      expect(err, isA<GitException>());
+      expect((err! as GitException).stderr, endsWith('patch does not apply\n'));
+    }, testOn: 'linux || mac-os');
+
     test('queries return empty fallbacks when git exits non-zero', () async {
       // workDir is a temp dir that's NOT a git repo — every command exits
       // non-zero. Each query method returns its empty fallback.

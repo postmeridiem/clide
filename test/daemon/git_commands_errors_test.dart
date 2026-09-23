@@ -45,11 +45,9 @@ void main() {
     ),
     ('git.stage-all', const <String, Object?>{}),
     ('git.unstage', const <String, Object?>{}),
-    // git.stage-hunk / git.unstage-hunk go through GitClient._applyPatch
-    // which uses Process.start (not Process.run) — that throws
-    // ProcessException directly without wrapping in GitException.
-    // Leaving them out so the fault-injection harness stays clean;
-    // separate ticket if we ever want to catch + rewrap there.
+    // Through GitClient._applyPatch (Process.start) — wrapped since T-636.
+    ('git.stage-hunk', const {'patch': 'x'}),
+    ('git.unstage-hunk', const {'patch': 'x'}),
     (
       'git.discard',
       const {
