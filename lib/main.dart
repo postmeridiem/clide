@@ -95,8 +95,9 @@ import 'package:flutter/widgets.dart';
 
 Future<void> main([List<String> args = const []]) async {
   // Started by an update's window restart (D-113): reopen the cwd repo and
-  // wait for the old window's socket.
-  final relaunched = startedByRelaunch = isRelaunch(args, Platform.environment);
+  // wait for the old window's socket. A browser never relaunches, and reading
+  // the environment there throws before anything paints (T-577).
+  final relaunched = startedByRelaunch = !kIsWeb && isRelaunch(args, Platform.environment);
   final binding = WidgetsFlutterBinding.ensureInitialized();
 
   // Test mode: skip the full app, run the test harness instead.
@@ -189,7 +190,8 @@ Future<void> main([List<String> args = const []]) async {
   final claudeExtension = ClaudeExtension();
   // Where this run's bundle is installed, read NOW: an update renames the
   // install dir, after which /proc/self/exe names the `.old` copy (D-113).
-  final installDir = SelfUpdater.installDirOf(Platform.resolvedExecutable);
+  // A browser has no install to update, and no executable to read (T-577).
+  final installDir = kIsWeb ? null : SelfUpdater.installDirOf(Platform.resolvedExecutable);
   // The kernel MessageBus, captured post-boot so `ui.open` can drive the GUI
   // readers (publish a 'selection') from the CLI — the drive-half of D-6 (T-231).
   MessageBus? kernelMessages;

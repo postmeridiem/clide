@@ -86,9 +86,11 @@ class KeymapService extends ChangeNotifier {
       _preset = null;
     }
 
-    // User file overlay.
-    final userFile = File('${_appDir.path}/$kKeymapUserFile');
-    if (await userFile.exists()) {
+    // User file overlay. A browser has no app dir to read it from, so there the
+    // preset and settings layers are the whole keymap (T-577) until the web
+    // host serves the file (T-670).
+    final userFile = kIsWeb ? null : File('${_appDir.path}/$kKeymapUserFile');
+    if (userFile != null && await userFile.exists()) {
       try {
         _userFile = KeymapLayer.fromYaml(await userFile.readAsString(), nameOverride: 'user-file');
       } on FormatException {

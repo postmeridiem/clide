@@ -5,6 +5,7 @@ import 'package:clide/src/daemon/env_path_commands.dart' show envPathChannel;
 import 'package:clide/src/env/path_preset.dart';
 import 'package:clide/src/env/shell_env.dart' show loginShellPathOrNull;
 import 'package:clide/widgets/widgets.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 
 const _ns = 'builtin.tools-settings';
@@ -194,7 +195,9 @@ class _PathPresetControlState extends State<PathPresetControl> {
 
   Widget _row(BuildContext context, KernelServices services, String cwd, SurfaceTokens tokens, List<String> dirs, int index) {
     final dir = dirs[index];
-    final exists = Directory(dir).existsSync();
+    // A browser has no local dirs to check, so no row is marked missing there
+    // rather than the build throwing (T-577). The host answers it (T-670).
+    final exists = kIsWeb || Directory(dir).existsSync();
     final removeLabel = _s(context, 'path.remove', 'Remove');
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),

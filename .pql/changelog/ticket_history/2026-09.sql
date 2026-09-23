@@ -2217,3 +2217,223 @@ The script strips the result.
 
 **Still open:** building it in CI, tracked as T-25.', NULL, '2026-09-23 17:24:27', '2026-09-23 17:24:27.886', '2026-09-23 17:24:27.886', NULL, '81e9d8264584dc124fef15e84260ae86', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXBACVJ4TMMNGH31VV6A8A0', 'status', 'backlog', 'done', NULL, '2026-09-23 17:24:28', '2026-09-23 17:24:28.064', '2026-09-23 17:24:28.064', NULL, '84d18f2397231ccc06447a77befd86f6', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06G64PCW3KDVCV1X83543FA5JC', 'status', 'backlog', 'in_progress', NULL, '2026-09-23 17:52:17', '2026-09-23 17:52:17.947', '2026-09-23 17:52:17.947', NULL, '781c08addd224a8b7dfd14398415553c', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXB9P1XVWRZ68QGCPY31SZR', 'status', 'backlog', 'in_progress', NULL, '2026-09-23 17:52:17', '2026-09-23 17:52:17.983', '2026-09-23 17:52:17.983', NULL, 'df05f94c0bea721d47280cd7b3e71d3c', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06G64PCW3KDVCV1X83543FA5JC', 'description', 'Spike write-up: `docs/spikes/web-target-2026-09-02.md`. Built `flutter build web --wasm` at v2.12.0, served it, loaded it in Chrome, read the console and access log.
+
+**The build succeeds and the app boots surprisingly far** — WASM, all fonts, all 12 themes, i18n catalogs, extension registration, keymap — then throws `Unsupported operation: _Namespace` and never paints. That''s `dart:io`''s filesystem layer, which has no web implementation.
+
+## The finding that matters
+
+D-100 fences `dart:ffi` and adds a `flutter build web --wasm` CI step "so the fence can''t silently rot". **That gate proves the tree compiles; it cannot prove the tree boots** — and those two came apart. This is a D-108 case in the wild: a negative check ("it didn''t fail to compile") standing in for a positive one, so compiling got mistaken for working.
+
+Two holes, found only by running it:
+
+1. **`main.dart:114`** — `resolveWorkspaceRoot(Directory.current)` sits six lines ABOVE the `if (!kIsWeb)` guard protecting everything after it. Constructing a `Directory` is inert on web; resolving one is not. **Fixed in the spike commit** (one line); took the boot from "themes loaded" to "extensions registered".
+2. **A second `_Namespace`** during extension activation — NOT fixed. Twelve files on the activation path call existsSync/createSync/listSync/readAsStringSync: terminal_pane, conversation_view, path_preset_control, agent_bootstrap, account_registry, claude_pane, claude_config, cli_install, watchdog, toolchain_paths, file_log_sink, tree_sitter_ffi.
+
+## Scope of THIS ticket
+
+Keep it to making the fence honest — not porting the app:
+
+- Plug hole 2 (and any it reveals) so the app paints.
+- **Make the CI web job boot the bundle and assert first paint**, not merely compile it. Without that the next hole lands the same silent way. The harness exists (`tools/ui/`, D-26) and is already ticketed as **T-443**; it is currently dead — the Playwright browser isn''t even installed locally, which is how this went unnoticed.
+- Quieten the i18n fallback probe: it emits ~20 404s + red engine errors per clean boot (probing `assets/i18n/en/*` before `en_us`), burying real errors exactly when you need to read them.
+
+## Explicitly NOT this ticket
+
+There is no IPC client on web at all — `main.dart:561` passes `daemonClientFactory: kIsWeb ? null : …`. Even with every hole plugged the UI would paint and do nothing, because the transport is a Unix socket a browser can''t open. That''s an absent layer, not a bug, and it''s a product decision (D-100 says web is a UI/e2e surface, not a functional replacement).
+
+**If that decision is ever revisited, sequence it behind T-399.** "RemoteExecutionContext seam — subsystems stop calling Process.run/File directly" is verbatim the refactor a web backend needs; the web port and the SSH-remote epic (T-336) are the same work with a different pipe on the end. Doing them independently builds the same seam twice.
+
+Note also that with such a seam the terminal is NOT a blocker: xterm.dart renders fine in a browser, and only the *spawn* is native. D-100''s "no PTY/terminal on web" is true of a standalone build, not of a front end to a host that owns the pty.
+
+Re-parented 2026-09-23 under the web UI initiative (T-648), Epic B (T-650): D-116 makes web a real target. The ''Explicitly NOT this ticket'' boundary stands; the transport is Epic C (T-651). The advice to sequence web work behind T-399 is reviewed in Q-52(a).
+
+**Refinement (2026-09-23)**
+
+**Current references:** hole 1 is fixed at `lib/main.dart:130`. The transport gap is at `lib/main.dart:646` (it was `:561`). Nothing since 2026-09-02 has touched the web fence.
+
+**False leads among the twelve files:**
+- `file_log_sink.dart`, `watchdog.dart` and `toolchain_paths.dart` are only called inside `if (!kIsWeb)` blocks in `main.dart`.
+- `tree_sitter_ffi.dart` already sits behind D-100''s conditional import.
+
+**Reachable on web once extensions activate, and unguarded. Fix all three:**
+- `lib/builtin/claude/src/claude_config.dart:456`, in `_startWatchers`, reached from the Claude extension''s `activate()`.
+- `lib/builtin/claude/src/conversation_view.dart:489`, in `resolveWorkspaceFilePath`. This runs while building every rendered message, and T-589 now restores the previous conversation at boot, so it runs on every boot.
+- `lib/builtin/tools_settings/src/path_preset_control.dart:197`, only when a settings tab is restored.
+
+**Probably unreached:** `account_registry.dart` and `agent_bootstrap.dart` look unreached on web, because their I/O sits behind agent spawns, which need the transport. Confirm that, then leave them alone.
+
+**Platform check:** `lib/builtin/cli_install/src/extension.dart:36` gates on `Platform.isLinux || Platform.isMacOS`, and `dart:io`''s `Platform` throws on web. Verify in the browser; if it throws, check `kIsWeb` first.
+
+**Fix shape:** a `kIsWeb` guard at function entry: `_startWatchers()`, `resolveWorkspaceFilePath()` and the preset row. Not a guard per call site, and not new facades. T-670 later replaces those same boundaries with transport calls.
+
+**i18n:**
+- `lib/kernel/src/i18n/fallback_chain.dart:22-31` puts bare `en` ahead of the shipped `en_us` when the locale has no country code, which is the web default.
+- `lib/kernel/src/i18n/catalog_loader.dart:39-54` then fetches each candidate.
+- Resolve the chain against the bundled asset manifest instead of probing.
+
+**Sequencing:** this lands before T-443, which is now blocked on it.', 'Spike write-up: `docs/spikes/web-target-2026-09-02.md`. Built `flutter build web --wasm` at v2.12.0, served it, loaded it in Chrome, read the console and access log.
+
+**The build succeeds and the app boots surprisingly far** — WASM, all fonts, all 12 themes, i18n catalogs, extension registration, keymap — then throws `Unsupported operation: _Namespace` and never paints. That''s `dart:io`''s filesystem layer, which has no web implementation.
+
+## The finding that matters
+
+D-100 fences `dart:ffi` and adds a `flutter build web --wasm` CI step "so the fence can''t silently rot". **That gate proves the tree compiles; it cannot prove the tree boots** — and those two came apart. This is a D-108 case in the wild: a negative check ("it didn''t fail to compile") standing in for a positive one, so compiling got mistaken for working.
+
+Two holes, found only by running it:
+
+1. **`main.dart:114`** — `resolveWorkspaceRoot(Directory.current)` sits six lines ABOVE the `if (!kIsWeb)` guard protecting everything after it. Constructing a `Directory` is inert on web; resolving one is not. **Fixed in the spike commit** (one line); took the boot from "themes loaded" to "extensions registered".
+2. **A second `_Namespace`** during extension activation — NOT fixed. Twelve files on the activation path call existsSync/createSync/listSync/readAsStringSync: terminal_pane, conversation_view, path_preset_control, agent_bootstrap, account_registry, claude_pane, claude_config, cli_install, watchdog, toolchain_paths, file_log_sink, tree_sitter_ffi.
+
+## Scope of THIS ticket
+
+Keep it to making the fence honest — not porting the app:
+
+- Plug hole 2 (and any it reveals) so the app paints.
+- **Make the CI web job boot the bundle and assert first paint**, not merely compile it. Without that the next hole lands the same silent way. The harness exists (`tools/ui/`, D-26) and is already ticketed as **T-443**; it is currently dead — the Playwright browser isn''t even installed locally, which is how this went unnoticed.
+- Quieten the i18n fallback probe: it emits ~20 404s + red engine errors per clean boot (probing `assets/i18n/en/*` before `en_us`), burying real errors exactly when you need to read them.
+
+## Explicitly NOT this ticket
+
+There is no IPC client on web at all — `main.dart:561` passes `daemonClientFactory: kIsWeb ? null : …`. Even with every hole plugged the UI would paint and do nothing, because the transport is a Unix socket a browser can''t open. That''s an absent layer, not a bug, and it''s a product decision (D-100 says web is a UI/e2e surface, not a functional replacement).
+
+**If that decision is ever revisited, sequence it behind T-399.** "RemoteExecutionContext seam — subsystems stop calling Process.run/File directly" is verbatim the refactor a web backend needs; the web port and the SSH-remote epic (T-336) are the same work with a different pipe on the end. Doing them independently builds the same seam twice.
+
+Note also that with such a seam the terminal is NOT a blocker: xterm.dart renders fine in a browser, and only the *spawn* is native. D-100''s "no PTY/terminal on web" is true of a standalone build, not of a front end to a host that owns the pty.
+
+Re-parented 2026-09-23 under the web UI initiative (T-648), Epic B (T-650): D-116 makes web a real target. The ''Explicitly NOT this ticket'' boundary stands; the transport is Epic C (T-651). The advice to sequence web work behind T-399 is reviewed in Q-52(a).
+
+**Refinement (2026-09-23)**
+
+**Current references:** hole 1 is fixed at `lib/main.dart:130`. The transport gap is at `lib/main.dart:646` (it was `:561`). Nothing since 2026-09-02 has touched the web fence.
+
+**False leads among the twelve files:**
+- `file_log_sink.dart`, `watchdog.dart` and `toolchain_paths.dart` are only called inside `if (!kIsWeb)` blocks in `main.dart`.
+- `tree_sitter_ffi.dart` already sits behind D-100''s conditional import.
+
+**Reachable on web once extensions activate, and unguarded. Fix all three:**
+- `lib/builtin/claude/src/claude_config.dart:456`, in `_startWatchers`, reached from the Claude extension''s `activate()`.
+- `lib/builtin/claude/src/conversation_view.dart:489`, in `resolveWorkspaceFilePath`. This runs while building every rendered message, and T-589 now restores the previous conversation at boot, so it runs on every boot.
+- `lib/builtin/tools_settings/src/path_preset_control.dart:197`, only when a settings tab is restored.
+
+**Probably unreached:** `account_registry.dart` and `agent_bootstrap.dart` look unreached on web, because their I/O sits behind agent spawns, which need the transport. Confirm that, then leave them alone.
+
+**Platform check:** `lib/builtin/cli_install/src/extension.dart:36` gates on `Platform.isLinux || Platform.isMacOS`, and `dart:io`''s `Platform` throws on web. Verify in the browser; if it throws, check `kIsWeb` first.
+
+**Fix shape:** a `kIsWeb` guard at function entry: `_startWatchers()`, `resolveWorkspaceFilePath()` and the preset row. Not a guard per call site, and not new facades. T-670 later replaces those same boundaries with transport calls.
+
+**i18n:**
+- `lib/kernel/src/i18n/fallback_chain.dart:22-31` puts bare `en` ahead of the shipped `en_us` when the locale has no country code, which is the web default.
+- `lib/kernel/src/i18n/catalog_loader.dart:39-54` then fetches each candidate.
+- Resolve the chain against the bundled asset manifest instead of probing.
+
+**Sequencing:** this lands before T-443, which is now blocked on it.
+
+**Fixed (2026-09-23). The web build paints.** The Welcome view renders at 1920×1080 in Chromium, and there are no page errors or console errors.
+
+**What actually stopped it.** It wasn''t the spike''s list. Code added since the spike reached `dart:io` earlier in boot. Each hole was found by running the build and reading a stack symbolized with `--no-strip-wasm`:
+1. `lib/main.dart:99`: the relaunch check read `Platform.environment` on main''s first line (D-113/T-589). Now `!kIsWeb && …`.
+2. `lib/main.dart:193`: the self-update install dir read `Platform.resolvedExecutable`. Now null on web.
+3. `KeymapService.load`: `exists()` on the user keymap file. That file is skipped on web.
+
+**Guarded as refined, all at function entry:**
+- `resolveWorkspaceFilePath`, which runs during every message build;
+- `ClaudeConfig.load`, `refresh` and `setProjectDir`;
+- the preset row''s existence check;
+- the CLI-install platform check, which now tests `kIsWeb` first.
+
+**i18n.** `AssetCatalogLoader` reads the asset manifest once and skips catalogs clide doesn''t ship. No more 404s per namespace. The new test was mutation-checked: without the skip, it fails.
+
+**Harness.** `tools/ui/driver.ts` now uses a dispatched click on Flutter''s semantics placeholder. Playwright refuses to click it with `force` because it sits outside the viewport.
+
+The CI gate that proves this stays true is T-443, now unblocked.', NULL, '2026-09-23 19:48:00', '2026-09-23 19:48:00.643', '2026-09-23 19:48:00.643', NULL, '895e7075a0ec22024a99bdac8b78d169', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06G64PCW3KDVCV1X83543FA5JC', 'status', 'in_progress', 'done', NULL, '2026-09-23 19:48:00', '2026-09-23 19:48:00.821', '2026-09-23 19:48:00.821', NULL, 'b17638dbf6837a30649c1b1e305f10d7', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCQZ47MAN835B215GSSMRV8W', 'description', 'Follow-up from T-438 (the `dart:ffi` web fence, D-100): with `flutter build web --wasm` compiling again and a compile gate in CI, restore the *full* web-WASM Playwright e2e — the remaining slice of T-438''s acceptance.
+
+**What''s already done (T-438).** The web build compiles; `.github/workflows/test.yml` has a `web-wasm` job that runs `flutter build web --wasm` (the anti-rot compile gate); `make ui-dev` (build + serve) works.
+
+**What this ticket adds.** The actual browser e2e, which needs runner provisioning the compile gate doesn''t:
+- `make test-e2e` / `make ui-smoke` run green locally and in CI (build → serve `localhost:4280` → Playwright smoke → teardown).
+- A GitHub Actions job: `setup-node`, `npm install` + `npx playwright install --with-deps` in `tools/ui/`, then `make test-e2e`. Add it to `.github/workflows/test.yml` (replacing the compile-only `web-wasm` job, or as a second job that `needs` it).
+- Confirm the Playwright driver (D-26) still matches the current web entrypoint after the fence (degraded web build: no terminal/native-git/highlighting — the smoke should assert what *does* render, e.g. the shell boots and a pane mounts).
+
+**Acceptance.** `make test-e2e` and `make ui-smoke` pass locally; a CI job runs the Playwright smoke against the wasm build on every push/PR; D-26/D-32 reflect the restored e2e job.
+
+**Refs:** T-438 (compile fence + gate), D-100 / Q-50 (fence decision), D-26 (Playwright driver), D-32 (CI; the withheld e2e job).
+
+Re-parented 2026-09-23 under Epic B (T-650) of the web UI initiative (T-648, D-116). The boot-and-first-paint gate is the positive check D-100''s compile gate lacked (T-577).
+
+**Refinement (2026-09-23)**
+
+**Blocked by T-577.** A first-paint gate cannot pass until the paint fix lands, and a softened gate would repeat the compile-only mistake (D-108).
+
+**The assertion:**
+- the booted Welcome view, read through the semantics tree, as `tools/ui/tests/smoke.spec.ts` already does;
+- plus zero uncaught page errors (`page.on(''pageerror'')`). Nothing checks today for the exception T-577 found.
+
+**Build-info prerequisite:**
+- `test-e2e`, `ui-dev` and `ui-smoke` (`Makefile:195,216,225`) lack the `gen-build-info` prerequisite that `test-a11y`, `test-integration` and `smoke-bundle` have (`:187,191,210`).
+- `lib/clide.dart` exports the gitignored `build_info.g.dart`, so a clean checkout likely fails.
+- Add the prerequisite.
+
+**CI:**
+- A new `web-e2e` job with `needs: web-wasm`.
+- `actions/setup-node` with a pinned Node version.
+- `npm ci` and `npx playwright install --with-deps chromium` in `tools/ui/`.
+- The run itself goes through a `make` target (D-32).
+- Raise the Playwright test timeout: the driver can wait twice for 30 s, against Playwright''s 30 s default.
+
+**T-660''s network check:** it lands as `tools/ui/tests/network-boundary.spec.ts`, and `ci/test_e2e.sh` should run every spec rather than one named file.
+
+**Docs drift:** `docs/testing/README.md` and `tools/ui/README.md` still describe Gitea CI. T-692 covers them.
+
+**Stale reference:** T-438''s closing note names T-440 as this follow-up; it meant this ticket.', 'Follow-up from T-438 (the `dart:ffi` web fence, D-100): with `flutter build web --wasm` compiling again and a compile gate in CI, restore the *full* web-WASM Playwright e2e — the remaining slice of T-438''s acceptance.
+
+**What''s already done (T-438).** The web build compiles; `.github/workflows/test.yml` has a `web-wasm` job that runs `flutter build web --wasm` (the anti-rot compile gate); `make ui-dev` (build + serve) works.
+
+**What this ticket adds.** The actual browser e2e, which needs runner provisioning the compile gate doesn''t:
+- `make test-e2e` / `make ui-smoke` run green locally and in CI (build → serve `localhost:4280` → Playwright smoke → teardown).
+- A GitHub Actions job: `setup-node`, `npm install` + `npx playwright install --with-deps` in `tools/ui/`, then `make test-e2e`. Add it to `.github/workflows/test.yml` (replacing the compile-only `web-wasm` job, or as a second job that `needs` it).
+- Confirm the Playwright driver (D-26) still matches the current web entrypoint after the fence (degraded web build: no terminal/native-git/highlighting — the smoke should assert what *does* render, e.g. the shell boots and a pane mounts).
+
+**Acceptance.** `make test-e2e` and `make ui-smoke` pass locally; a CI job runs the Playwright smoke against the wasm build on every push/PR; D-26/D-32 reflect the restored e2e job.
+
+**Refs:** T-438 (compile fence + gate), D-100 / Q-50 (fence decision), D-26 (Playwright driver), D-32 (CI; the withheld e2e job).
+
+Re-parented 2026-09-23 under Epic B (T-650) of the web UI initiative (T-648, D-116). The boot-and-first-paint gate is the positive check D-100''s compile gate lacked (T-577).
+
+**Refinement (2026-09-23)**
+
+**Blocked by T-577.** A first-paint gate cannot pass until the paint fix lands, and a softened gate would repeat the compile-only mistake (D-108).
+
+**The assertion:**
+- the booted Welcome view, read through the semantics tree, as `tools/ui/tests/smoke.spec.ts` already does;
+- plus zero uncaught page errors (`page.on(''pageerror'')`). Nothing checks today for the exception T-577 found.
+
+**Build-info prerequisite:**
+- `test-e2e`, `ui-dev` and `ui-smoke` (`Makefile:195,216,225`) lack the `gen-build-info` prerequisite that `test-a11y`, `test-integration` and `smoke-bundle` have (`:187,191,210`).
+- `lib/clide.dart` exports the gitignored `build_info.g.dart`, so a clean checkout likely fails.
+- Add the prerequisite.
+
+**CI:**
+- A new `web-e2e` job with `needs: web-wasm`.
+- `actions/setup-node` with a pinned Node version.
+- `npm ci` and `npx playwright install --with-deps chromium` in `tools/ui/`.
+- The run itself goes through a `make` target (D-32).
+- Raise the Playwright test timeout: the driver can wait twice for 30 s, against Playwright''s 30 s default.
+
+**T-660''s network check:** it lands as `tools/ui/tests/network-boundary.spec.ts`, and `ci/test_e2e.sh` should run every spec rather than one named file.
+
+**Docs drift:** `docs/testing/README.md` and `tools/ui/README.md` still describe Gitea CI. T-692 covers them.
+
+**Stale reference:** T-438''s closing note names T-440 as this follow-up; it meant this ticket.
+
+**Findings from verifying T-577 (2026-09-23).** Each one changes what this gate has to do.
+
+1. **Headless Chromium draws nothing without explicit software WebGL.** Launch it with `--enable-unsafe-swiftshader --use-angle=swiftshader`, set in `playwright.config.ts` under `launchOptions.args`. Without those flags, a correct build still screenshots blank.
+2. **Semantics are not a paint proxy.** Ninety `flt-semantics` nodes, the status bar label among them, were present while the canvas was blank. The first-paint assertion has to look at pixels: a screenshot that isn''t uniform, or a non-empty canvas inside Flutter''s shadow root. Semantics labels alone will pass on a build that shows nothing.
+3. **`smoke.spec.ts` is stale.** The Welcome view says "Open folder…" and "New project…", not "Open project". On web the status bar reads "checking…", because no host sits behind it (Epic C), not "disconnected".
+4. **`driver.ts` is fixed.** It now dispatches the click on the semantics placeholder; Playwright refused the forced click because the placeholder sits outside the viewport.
+5. **Where it ran.** The pinned `mcr.microsoft.com/playwright:v1.50.0-noble` image ran the harness without node on the host, via `--network host` against a local server.', NULL, '2026-09-23 19:48:01', '2026-09-23 19:48:01.016', '2026-09-23 19:48:01.016', NULL, 'c29867321e46715554e529a5c9cbe429', 2) ON CONFLICT(hash) DO NOTHING;

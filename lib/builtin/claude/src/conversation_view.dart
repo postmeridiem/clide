@@ -37,6 +37,7 @@ import 'package:clide/kernel/src/syntax/language_map.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/src/terminal/terminal.dart';
 import 'package:clide/widgets/widgets.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 
 class ConversationView extends StatefulWidget {
@@ -483,6 +484,10 @@ String? _resolveRepoFile(BuildContext context, String raw) => resolveWorkspaceFi
 /// inside it. `..` segments are rejected so a ref can't escape the repo.
 @visibleForTesting
 String? resolveWorkspaceFilePath(String? root, String raw) {
+  // This runs while every message builds, and a browser has no local files to
+  // check: nothing linkifies there, rather than every build throwing (T-577).
+  // The transport answers it once the web host exists (T-670).
+  if (kIsWeb) return null;
   if (root == null || raw.isEmpty || raw.contains('..')) return null;
   final abs = raw.startsWith('/') ? raw : '$root/$raw';
   if (!abs.startsWith('$root/')) return null;

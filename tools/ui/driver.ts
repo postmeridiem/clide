@@ -37,7 +37,10 @@ export class ClideDriver {
     });
     const placeholder = this.page.locator('flt-semantics-placeholder');
     if ((await placeholder.count()) > 0) {
-      await placeholder.click({ force: true });
+      // Flutter parks the placeholder just outside the viewport, and Playwright
+      // refuses to click it there, even with `force`. A dispatched click
+      // reaches the same listener without the viewport check.
+      await placeholder.dispatchEvent('click');
     }
     await this.page.waitForSelector('flt-semantics[aria-label]', {
       timeout: 30_000,

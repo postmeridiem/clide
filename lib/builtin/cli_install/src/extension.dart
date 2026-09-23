@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:clide/clide.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/src/cli_install.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// VS Code-style "Install 'clide' command in PATH" affordance (T-212).
 ///
@@ -33,7 +34,9 @@ class CliInstallExtension extends ClideExtension {
     // Proactive launch-time detection (desktop only). Non-modal: we notify
     // and point at the command rather than auto-installing — no surprise
     // filesystem writes (interaction-zone discipline, D-78).
-    if (!(Platform.isLinux || Platform.isMacOS)) return;
+    // kIsWeb first: dart:io's Platform throws in a browser instead of
+    // answering false (T-577).
+    if (kIsWeb || !(Platform.isLinux || Platform.isMacOS)) return;
     switch (_resolved.inspect().state) {
       case CliInstallState.missing:
         ctx.notify.warn(

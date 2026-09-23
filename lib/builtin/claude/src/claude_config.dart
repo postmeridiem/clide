@@ -234,6 +234,10 @@ class ClaudeConfig extends ChangeNotifier {
   /// already exists, read the layered disk config, and start watching. Never
   /// runs the paid probe — call [ensureProbe] for that.
   Future<void> load() async {
+    // Everything below reads local disk or runs `claude`, and neither exists
+    // in a browser. Stay on the defaults there (T-577); the web host will
+    // answer through the transport (T-670).
+    if (kIsWeb) return;
     _error = null;
     _version = _parseVersion(await _guard(_versionRunner));
     await _readProbeCache();
@@ -268,6 +272,7 @@ class ClaudeConfig extends ChangeNotifier {
   /// watcher calls this on change; callers can force it. Version + probe are
   /// not re-resolved (the binary doesn't change under us at runtime).
   Future<void> refresh() async {
+    if (kIsWeb) return; // no disk to re-read; see [load]
     await _loadDiskConfig();
     if (_disposed) return; // a watcher-driven refresh racing a teardown mustn't notify a disposed notifier
     notifyListeners();
@@ -277,6 +282,7 @@ class ClaudeConfig extends ChangeNotifier {
   /// the same instance — and its listeners — re-reading disk and re-watching
   /// for the new repo. The global scope and probe are unaffected.
   Future<void> setProjectDir(Directory? dir) async {
+    if (kIsWeb) return; // no disk to re-read or watch; see [load]
     _stopWatching();
     _projectDir = dir;
     await _loadDiskConfig();

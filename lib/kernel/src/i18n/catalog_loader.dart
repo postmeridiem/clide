@@ -35,10 +35,28 @@ class AssetCatalogLoader implements CatalogLoader {
 
   static const String _defaultRoot = 'assets/i18n';
 
+  /// Every asset the bundle holds, read once from its manifest. The fallback
+  /// chain asks for locales clide doesn't ship (`en` before `en_us`). On web,
+  /// each of those asks was a network fetch that failed with a 404 and an
+  /// engine error, per namespace, on every boot (T-577), so a catalog the
+  /// manifest lacks is skipped without asking. Null when the bundle has no
+  /// manifest, such as a test bundle; every candidate is then fetched, as before.
+  late final Future<Set<String>?> _assets = _readManifest();
+
+  Future<Set<String>?> _readManifest() async {
+    try {
+      return (await AssetManifest.loadFromAssetBundle(bundle)).listAssets().toSet();
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   Future<Map<String, Object?>> load(String namespace, Locale locale) async {
     final locDir = FallbackChain.filenameSuffix(locale);
     final path = '$rootDir/$locDir/$namespace.json';
+    final assets = await _assets;
+    if (assets != null && !assets.contains(path)) return const {};
     try {
       final text = await bundle.loadString(path);
       if (text.trim().isEmpty) return const {};
