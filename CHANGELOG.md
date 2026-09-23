@@ -18,15 +18,19 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [2.17.0] — 2026-09-23
+
+### Added
+
 - **Install updates from the About box** (T-621, Linux) — Help → About →
   Check for updates now offers Install and restart: clide downloads the
   release, checks it, installs it and restarts every window on it.
   Conversations resume; running turns and terminals stop. Also `clide app
   update --install`.
-
-### Changed
-
-### Fixed
 
 ## [2.16.0] — 2026-09-23
 
