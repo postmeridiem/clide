@@ -1004,3 +1004,19 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCDM61KAA3GV3CVTE8PAZ8N0', 'decision_ref', NULL, 'D-111', NULL, '2026-09-23 08:23:58', '2026-09-23 08:23:58.310', '2026-09-23 08:23:58.310', NULL, 'df476fd95eeb05a69e91e1f26e8f25a5', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHD4QYHYRTK0SGRZCBSHSQ0', 'decision_ref', NULL, 'D-112', NULL, '2026-09-23 08:23:58', '2026-09-23 08:23:58.743', '2026-09-23 08:23:58.743', NULL, '0b9038377acf1c0fe97960b4e259eeba', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FJ4D1M6ESSSQ1ZERTH4V9YN4', 'title', 'Distribute the clide skill per-workspace with an install marker', 'Install the clide skill at user scope with a version marker and auto-refresh', NULL, '2026-09-23 08:24:01', '2026-09-23 08:24:01.330', '2026-09-23 08:24:01.330', NULL, '3fa40dd482b71e4000f1dac7d6ba7ca1', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCTQHQWRQ139050EF6CVVCHR', 'description', 'placeholder', NULL, NULL, '2026-09-23 08:25:02', '2026-09-23 08:25:02.109', '2026-09-23 08:25:02.109', NULL, 'cfa04e6996d8fb8e7d3c58a2ed35a6db', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCTQHQWRQ139050EF6CVVCHR', 'description', NULL, 'The queued-message rows above the composer (T-587) are misaligned. Screenshot 2026-09-23: the "queued" tag sits visibly lower than the message text next to it and reads as a different size, and the edit / dismiss icons don''t line up with either.
+
+Cause, in `lib/builtin/claude/src/queued_messages_dock.dart` `_row()`:
+- The Row uses `CrossAxisAlignment.start`, and the tag is nudged with a hand-tuned `Padding(top: 1)`. The tag (`clideFontCaption`) and the message (`clideFontSmall`) have different font sizes and line heights, so top alignment can''t put their text on one line. The 1px nudge fixes nothing.
+- The icon buttons also sit top-aligned, so their centre doesn''t match the first text line.
+
+Fix direction:
+- Align the tag and the message''s first line on a shared text baseline: `CrossAxisAlignment.baseline` with `TextBaseline.alphabetic`, or wrap both in one `Text.rich`. Drop the `top: 1` hack.
+- Decide whether the tag should be the same size as the message, or a small chip (a muted pill with padding) that''s deliberately set apart. Either way, it must share the first line''s baseline.
+- Centre the edit / dismiss buttons vertically on the first text line, not on the row top. This must still hold for a 3-line message and while the inline editor is open.
+- Check the "editing" state too, where the tag reads "editing" and the ClideEditable replaces the text.
+
+Follow the ui-design skill for control geometry and tokens. Add a golden for a 1-line and a 3-line queued row.
+
+Acceptance: in a 1-line row, the tag, the text and the icon centres sit on one line; in a 3-line row they align with the first line; the editing state keeps the same alignment.', NULL, '2026-09-23 08:25:02', '2026-09-23 08:25:02.345', '2026-09-23 08:25:02.345', NULL, '3ff8054a1fed5105bf87661033e63109', 2) ON CONFLICT(hash) DO NOTHING;
