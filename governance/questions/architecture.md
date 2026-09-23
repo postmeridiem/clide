@@ -183,7 +183,12 @@ ticket persistence.
     - The `dart:io` that would actually run in a browser lives in `lib/builtin/claude/` and `lib/kernel/`.
 
     Leaning: a thick host, with T-399 adjacent rather than a prerequisite.
-  - (b) **Host entrypoint and process model.** A pure-Dart AOT host needs `buildDispatcher` separated from the Flutter `main.dart`, which captures layout, settings, `MessageBus` and `DialogRouter`. It also needs host-side types taken off `ChangeNotifier`, which pulls in `dart:ui`. A headless Flutter engine avoids that split but is heavier. One host per workspace keeps [D-111](../decisions/architecture.md#d-111-one-window-process-per-workspace-in-place-switching-is-retired)'s identity chain.
+  - (b) **Host entrypoint and process model.** A pure-Dart AOT host needs `buildDispatcher` lifted out of the Flutter `main.dart`, where it is a local function inside `main()`.
+    - It takes the layout arrangement and panel registry as parameters.
+    - It captures settings, `MessageBus`, the tray, the clipboard and canvas documents, among others.
+    - It also captures `DialogRouter`, which pulls in the widget framework.
+
+    The host also needs host-side types taken off `ChangeNotifier`, which pulls in `dart:ui`. A headless Flutter engine avoids that split but is heavier. One host per workspace keeps [D-111](../decisions/architecture.md#d-111-one-window-process-per-workspace-in-place-switching-is-retired)'s identity chain.
   - (c) **Transport.** The browser speaks the `v:1` envelope over WebSocket, and the broker bridges it to the host's socket (D-117). Still open:
     - how a remote UI subscribes to events (the desktop UI gets them in-process);
     - per-connection concurrency, so terminal input does not queue behind slow requests;
