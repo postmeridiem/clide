@@ -43,6 +43,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   mouse modes a click was reported one line below where you clicked.
 - **Arrow keys work in programs that switch cursor-key mode** (T-632) —
   vim, less and others that ask for application cursor keys now get them.
+- **Terminal tab stops set by programs take effect** (T-627) — the
+  "set tab stop here" sequence did nothing.
+- **Bright white is bright** (T-630) — terminal text in color 15 (SGR
+  97/107) rendered as plain white.
 
 ## [2.18.1] — 2026-09-23
 

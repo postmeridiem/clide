@@ -51,7 +51,9 @@ void main() {
       expect(builder.paletteColor(12), TerminalThemes.defaultTheme.brightBlue);
       expect(builder.paletteColor(13), TerminalThemes.defaultTheme.brightMagenta);
       expect(builder.paletteColor(14), TerminalThemes.defaultTheme.brightCyan);
-      expect(builder.paletteColor(15), TerminalThemes.defaultTheme.white);
+      // 15 is bright white (SGR 97/107), not white (T-630).
+      expect(builder.paletteColor(15), TerminalThemes.defaultTheme.brightWhite);
+      expect(builder.paletteColor(15), isNot(builder.paletteColor(7)));
     });
 
     test('index 16 is the start of the 6×6×6 RGB cube — pure black at (0,0,0)', () {

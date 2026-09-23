@@ -452,7 +452,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void setTapStop() {
-    _tabStops.isSetAt(_buffer.cursorX);
+    // HTS (ESC H): set a tab stop at the cursor. Upstream called the read
+    // (isSetAt), so HTS did nothing (T-627).
+    _tabStops.setAt(_buffer.cursorX);
   }
 
   @override

@@ -417,10 +417,13 @@ void main() {
       expect(t.buffer.cursorX, 79); // saturated
     });
 
-    test('setTapStop is a query, not a write — does not throw', () {
+    test('HTS (ESC H) sets a tab stop at the cursor (T-627)', () {
       final t = _Recorder().build();
-      t.buffer.setCursorX(5);
-      t.setTapStop();
+      t.clearAllTabStops();
+      t.write('\x1b[1;6H\x1bH'); // column 6 (index 5), then HTS
+      t.buffer.setCursorX(0);
+      t.tab();
+      expect(t.buffer.cursorX, 5, reason: 'TAB from column 0 stops at the new tab stop');
     });
   });
 

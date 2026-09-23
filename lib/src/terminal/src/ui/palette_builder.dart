@@ -47,7 +47,7 @@ class PaletteBuilder {
       case 14:
         return theme.brightCyan;
       case 15:
-        return theme.white;
+        return theme.brightWhite; // SGR 97/107 — upstream returned white (T-630)
     }
 
     if (colNum < 232) {
