@@ -8,4 +8,4 @@
 -- a newer one is refused rather than replayed under rules this binary
 -- does not know. See D-28 and docs/versions.md.
 -- pql:changelog_format: 2.0.0
--- pql:written_by: 2.0.0
+-- pql:written_by: 2.4.0

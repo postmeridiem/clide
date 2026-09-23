@@ -123,6 +123,7 @@ legacy/**/.coverage
 legacy/**/.coverage.*
 .clide/settings.yaml
 .claude/skills/pql/
+.claude/skills/clean-house/
 
 # frame0-wireframe local ID ↔ Frame0 ID mapping; per-machine state.
 *.idmap.json
