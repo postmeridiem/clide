@@ -452,16 +452,12 @@ void main() {
       expect(painterOf(tester).selected, added.id, reason: 'the new node is selected so it can be moved at once');
     });
 
-    // Two tests rather than one that re-pumps: the shared harness's Overlay
-    // honours initialEntries on its first build only.
-    testWidgets('add-note is hidden when the host cannot pick a file', (tester) async {
+    testWidgets('add-note appears only once the host can pick a file', (tester) async {
       await tester.pumpWidget(view(twoNodes, onChanged: (_) {}));
       await tester.pump();
       expect(button('Add note from file'), findsNothing);
       expect(button('Add text node'), findsOneWidget, reason: 'the other actions are unaffected');
-    });
 
-    testWidgets('add-note appears once the host can pick a file', (tester) async {
       await tester.pumpWidget(view(twoNodes, onChanged: (_) {}, onPickFile: () async => null));
       await tester.pump();
       expect(button('Add note from file'), findsOneWidget);
@@ -707,24 +703,7 @@ void main() {
     });
 
     testWidgets('a genuinely new document resets zoom, pan and selection', (tester) async {
-      // Swapped through a notifier, not a second pumpWidget: the shared
-      // harness's Overlay only honours initialEntries on its first build,
-      // so re-pumping would leave the original child mounted.
-      final docs = ValueNotifier<CanvasDoc>(twoNodes);
-      addTearDown(docs.dispose);
-      await tester.pumpWidget(
-        anchoredHarness(
-          f,
-          SizedBox(
-            width: 400,
-            height: 400,
-            child: ValueListenableBuilder<CanvasDoc>(
-              valueListenable: docs,
-              builder: (_, doc, _) => CanvasView(doc: doc, onChanged: (_) {}),
-            ),
-          ),
-        ),
-      );
+      await tester.pumpWidget(view(twoNodes, onChanged: (_) {}));
       await tester.pump();
 
       await tester.tapAt(screenRect(tester, twoNodes, 0).center);
@@ -733,8 +712,13 @@ void main() {
       expect(painterOf(tester).selected, 'a');
       expect(painterOf(tester).pan.dx, 40);
 
-      docs.value = const CanvasDoc(
-        nodes: [TextNode(id: 'z', x: 0, y: 0, width: 50, height: 50, text: 'z')],
+      await tester.pumpWidget(
+        view(
+          const CanvasDoc(
+            nodes: [TextNode(id: 'z', x: 0, y: 0, width: 50, height: 50, text: 'z')],
+          ),
+          onChanged: (_) {},
+        ),
       );
       await tester.pump();
 

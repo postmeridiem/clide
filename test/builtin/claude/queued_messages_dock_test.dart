@@ -31,17 +31,7 @@ void main() {
 
   const two = [QueuedMessage(id: 'q1', text: 'first queued'), QueuedMessage(id: 'q2', text: 'second queued')];
 
-  // The harness mounts its child in an OverlayEntry, which is built once — so
-  // a later pumpWidget never reaches the dock. Changes go through these
-  // notifiers inside the one mounted tree instead.
-  late ValueNotifier<List<QueuedMessage>> queue;
-  late ValueNotifier<bool> mounted;
-
-  Future<void> pump(WidgetTester tester, List<QueuedMessage> messages) async {
-    queue = ValueNotifier(messages);
-    mounted = ValueNotifier(true);
-    addTearDown(queue.dispose);
-    addTearDown(mounted.dispose);
+  Future<void> pump(WidgetTester tester, List<QueuedMessage> messages, {bool mounted = true}) async {
     await tester.pumpWidget(
       harness(
         f,
@@ -49,18 +39,15 @@ void main() {
           alignment: Alignment.topLeft,
           child: SizedBox(
             width: 500,
-            child: ListenableBuilder(
-              listenable: Listenable.merge([queue, mounted]),
-              builder: (_, _) => !mounted.value
-                  ? const SizedBox.shrink()
-                  : QueuedMessagesDock(
-                      messages: queue.value,
-                      onDismiss: dismissed.add,
-                      onEdit: (id, text) => edits.add((id, text)),
-                      onEditStart: () => holds++,
-                      onEditEnd: () => releases++,
-                    ),
-            ),
+            child: !mounted
+                ? const SizedBox.shrink()
+                : QueuedMessagesDock(
+                    messages: messages,
+                    onDismiss: dismissed.add,
+                    onEdit: (id, text) => edits.add((id, text)),
+                    onEditStart: () => holds++,
+                    onEditEnd: () => releases++,
+                  ),
           ),
         ),
       ),
@@ -140,8 +127,7 @@ void main() {
     await pump(tester, two);
     await tester.tap(find.byKey(const Key('queued-edit-q1')));
     await tester.pump();
-    queue.value = const [QueuedMessage(id: 'q2', text: 'second queued')];
-    await tester.pump();
+    await pump(tester, const [QueuedMessage(id: 'q2', text: 'second queued')]);
     expect(releases, 1);
     expect(find.text('editing'), findsNothing);
   });
@@ -150,8 +136,7 @@ void main() {
     await pump(tester, two);
     await tester.tap(find.byKey(const Key('queued-edit-q1')));
     await tester.pump();
-    mounted.value = false;
-    await tester.pump();
+    await pump(tester, two, mounted: false);
     expect(releases, 1);
   });
 }

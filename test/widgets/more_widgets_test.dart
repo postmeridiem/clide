@@ -106,7 +106,6 @@ After.
 
     testWidgets('bare D/Q/R refs all linkify (T-279)', (tester) async {
       var tapped = '';
-      // One pump (re-pumping harness() reuses the first Overlay entry), three refs.
       await tester.pumpWidget(harness(f, ClideMarkdown('refs D-77 and Q-5 and R-2 here', onRecordTap: (x) => tapped = x)));
       await tester.pumpAndSettle();
       for (final id in ['D-77', 'Q-5', 'R-2']) {

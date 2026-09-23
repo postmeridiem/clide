@@ -600,3 +600,40 @@ DECSTR (`CSI ! p`, soft reset) is a separate, smaller follow-up — same interme
 
 Done when: claude/vim cursor-shape changes (insert vs normal mode) render as bar vs block in the terminal pane.', 'review', 'low', NULL, NULL, NULL, '2026-06-12 00:52:25', '2026-09-23 07:55:22.255', NULL, 'da4677c8650110a7c9f41ceecd9cbe72', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
 INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM45BSF1B0R0JA1Z7FC', 'task', '06FB0TNQM6T6580D8ABDVTMNZW', 'Re-resolve .editorconfig on external file changes (fs-watch)', 'T-29 follow-up. Today open buffers re-resolve their EditorSettings when a .editorconfig is saved IN-APP (a hook in EditorRegistry.save → editor.settings-changed). External edits — another editor, a git checkout/branch switch — are NOT picked up until reopen. Wire a filesystem watch so an external .editorconfig change re-resolves open buffers too. Prefer piggybacking the files subsystem''s existing watcher over a new dedicated watch; debounce; only re-resolve buffers under the changed config''s directory. Rare case, hence deferred from the initial T-29 work (the in-app save hook covers the common path). Refs: T-29, lib/src/editor/editor_settings_resolver.dart, EditorRegistry._reresolveSettings.', 'review', 'low', NULL, NULL, NULL, '2026-06-09 07:15:22', '2026-09-23 07:57:03.607', NULL, '02f28ea74c6b74c458ef737c9e7f0746', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FZDK216SJHEHNB1R0B97JWDR', 'bug', NULL, 'Widget harnesses freeze their child: Overlay(initialEntries) ignores a re-pump', 'Both shared widget harnesses mount their child through `Overlay(initialEntries: [OverlayEntry(builder: (_) => child)])` — `harness()` at test/helpers/widget_harness.dart:24 and `anchoredHarness()` at :50.
+
+`initialEntries` is read **once**, when the Overlay is first built. The `OverlayEntry`''s builder closure captures the `child` from that first call and keeps returning it. So a second `tester.pumpWidget(...)` with different arguments updates the Overlay element but changes nothing on screen: **the original child stays mounted.**
+
+## Why this is worse than an ordinary gotcha
+
+It fails silently, and in the direction of a false pass. The natural shape is:
+
+```dart
+await tester.pumpWidget(view(doc, someFlag: false));
+expect(thing, findsNothing);            // passes — correctly
+await tester.pumpWidget(view(doc, someFlag: true));
+expect(thing, findsOneWidget);          // fails — confusingly
+```
+
+The failing half at least announces itself. The dangerous half is the inverse: a test that re-pumps and then asserts the OLD behaviour still holds passes trivially, having exercised nothing. Nothing in the failure message points at the Overlay.
+
+## Encountered twice, both worked around locally
+
+- **T-322** — swapping the document to assert the view resets. Worked around by driving the swap through a `ValueNotifier` inside a single pump (test/builtin/canvas/canvas_view_test.dart, "a genuinely new document resets zoom, pan and selection").
+- **T-571** — toggling `onPickFile` to assert the add-note button appears. Worked around by splitting into two single-pump tests ("add-note is hidden when…" / "add-note appears once…").
+
+Both workarounds are fine locally and both cost debugging time first. The comments left at each site describe the trap but don''t stop the next person meeting it.
+
+## Fix directions (pick when doing it)
+
+1. **Rebuild the entry on update** — the simplest correct shape is to not use `initialEntries` for the content at all: pass the child through a widget below the Overlay, or hold the `OverlayEntry` and call `markNeedsBuild()` when the harness rebuilds.
+2. **Drop the Overlay where it isn''t needed.** `harness()`''s doc comment says the Overlay exists for Draggable feedback / Tooltip. Many callers need neither, and an Overlay-free variant would be re-pumpable and simpler.
+3. **Make it loud rather than silent** if neither is practical — e.g. assert in debug when the harness is rebuilt with a different child.
+
+## Do it together with the width problem
+
+`harness()` uses `Overlay(canSizeOverlay: true)` plus a zero-size `MediaQuery`, which hands the child unbounded width. That has its own history of biting tests (T-122, T-160) and is why `anchoredHarness` exists at all. Both problems live in the same few lines, and the second harness exists because of the first — worth one considered pass over the file rather than two patches.
+
+## Acceptance
+
+A test can `pumpWidget` the same harness twice with different arguments and see the second one. The existing workarounds in canvas_view_test.dart can be simplified back to the natural shape (or keep them and just delete the explanatory comments — either is evidence the fix works).', 'review', 'medium', NULL, NULL, NULL, '2026-08-12 16:26:49.014', '2026-09-23 07:57:42.472', NULL, 'ddb16e510d5b7295975eacbb30550d36', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

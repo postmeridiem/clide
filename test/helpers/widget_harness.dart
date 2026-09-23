@@ -21,7 +21,7 @@ Widget harness(KernelFixture fixture, Widget child) {
         controller: fixture.services.theme,
         child: MediaQuery(
           data: const MediaQueryData(),
-          child: Overlay(initialEntries: [OverlayEntry(canSizeOverlay: true, builder: (_) => child)]),
+          child: OverlayHost(canSizeOverlay: true, child: child),
         ),
       ),
     ),
@@ -47,12 +47,8 @@ Widget anchoredHarness(KernelFixture fixture, Widget child, {Size size = const S
         controller: fixture.services.theme,
         child: MediaQuery(
           data: MediaQueryData(size: size),
-          child: Overlay(
-            initialEntries: [
-              OverlayEntry(
-                builder: (_) => Align(alignment: alignment, child: child),
-              ),
-            ],
+          child: OverlayHost(
+            child: Align(alignment: alignment, child: child),
           ),
         ),
       ),
@@ -71,18 +67,23 @@ Widget anchoredHarness(KernelFixture fixture, Widget child, {Size size = const S
 ///
 /// Written as a widget rather than a bare `Overlay(initialEntries: [...])`
 /// because those entries are read **only on first mount**: a test that re-pumps
-/// its tree with a new child would silently keep showing the old one.
+/// its tree with a new child would silently keep showing the old one (T-572).
+/// Both harnesses above mount their child through this for the same reason.
 class OverlayHost extends StatefulWidget {
-  const OverlayHost({super.key, required this.child});
+  const OverlayHost({super.key, required this.child, this.canSizeOverlay = false});
 
   final Widget child;
+
+  /// Forwarded to the entry — lets the Overlay size itself to [child]. Read
+  /// once, on first mount, like the entry itself.
+  final bool canSizeOverlay;
 
   @override
   State<OverlayHost> createState() => _OverlayHostState();
 }
 
 class _OverlayHostState extends State<OverlayHost> {
-  late final OverlayEntry _entry = OverlayEntry(builder: (_) => widget.child);
+  late final OverlayEntry _entry = OverlayEntry(canSizeOverlay: widget.canSizeOverlay, builder: (_) => widget.child);
 
   @override
   void didUpdateWidget(OverlayHost old) {
