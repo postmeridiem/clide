@@ -18,6 +18,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:clide/builtin/claude/src/session_naming.dart' show freshSessionId;
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/builtin/claude/src/turn_signals.dart';
 import 'package:clide/builtin/claude/src/workflow_run.dart';
@@ -92,6 +93,11 @@ class ClaudeStreamJsonProcess extends StreamJsonProcess {
         // Emit partial assistant messages as they stream in so the view
         // can update in real time (T-168).
         '--include-partial-messages',
+        // Echo each stdin user message (isReplay, with the uuid we sent) at
+        // the moment the CLI takes it in. A message written mid-turn is only
+        // picked up at the next tool step, and the echo is the one signal
+        // that it has reached claude (T-618).
+        '--replay-user-messages',
         ...sessionArgs,
       ],
       workingDirectory: cwd,
@@ -185,14 +191,20 @@ class ModelOption {
   final bool supportsAutoMode;
 }
 
-/// A user message waiting for the running turn to end (T-587). Pure data.
+/// A user message sent while a turn runs that hasn't reached claude yet
+/// (T-587, T-618). Pure data.
 class QueuedMessage {
-  const QueuedMessage({required this.id, required this.text});
+  const QueuedMessage({required this.id, required this.text, this.delivering = false});
 
   /// clide-local id, stable across edits — the handle for edit / dismiss.
   final String id;
 
   final String text;
+
+  /// Already written to claude, waiting for its next tool step to take it in
+  /// (T-618). Past recall: it can no longer be edited or dismissed. False for
+  /// a message clide still holds.
+  final bool delivering;
 }
 
 /// Effort levels `claude --effort` accepts (probed against 2.1.175). There is
@@ -693,6 +705,10 @@ class StreamJsonSession {
       return;
     }
 
+    // An echo of a user message we wrote (T-618): drop it unless it is a
+    // mid-turn message just taken in, which renders here, where it landed.
+    if (ev['type'] == 'user' && ev['isReplay'] == true && !_onUserEcho(ev)) return;
+
     // Finalise a streamed reply: when the real text `assistant` event for a
     // message we streamed arrives, reuse the placeholder's `partial-<id>` uuid
     // so the controller replaces the placeholder in place rather than appending
@@ -1053,37 +1069,61 @@ class StreamJsonSession {
     }
   }
 
-  /// Send [text] to claude as a stream-json user message, and echo it locally
-  /// so it renders immediately (stream-json doesn't replay stdin without
-  /// `--replay-user-messages`).
+  /// Send [text] to claude as a stream-json user message, and render it
+  /// locally right away — the CLI's own echo (`--replay-user-messages`) only
+  /// comes once claude takes the message in.
   void send(String text) {
-    _proc.writeLine(
-      jsonEncode({
-        'type': 'user',
-        'message': {'role': 'user', 'content': text},
-      }),
-    );
+    // The echo of a message rendered here is dropped (T-618): it already shows.
+    _writeUser(text, renderOnEcho: false);
     _items.add(UserMessage(uuid: 'local-${_localSeq++}', timestamp: DateTime.now(), isSidechain: false, text: text));
     _setBusy(true);
   }
 
+  /// Write a user message to claude's stdin under a fresh uuid, and record
+  /// what to do when its `isReplay` echo comes back (T-618).
+  String _writeUser(String text, {required bool renderOnEcho}) {
+    final uuid = freshSessionId();
+    _proc.writeLine(
+      jsonEncode({
+        'type': 'user',
+        'uuid': uuid,
+        'message': {'role': 'user', 'content': text},
+      }),
+    );
+    _echoes[uuid] = renderOnEcho;
+    return uuid;
+  }
+
+  /// uuid of every user message written to stdin whose echo hasn't come back
+  /// yet → whether the echo is what renders it (T-618).
+  final _echoes = <String, bool>{};
+
   final _queued = <QueuedMessage>[];
+  final _delivering = <QueuedMessage>[];
   final _queuedCtl = ValueStream<List<QueuedMessage>>.seeded(const []);
 
-  /// Messages the user submitted while a turn was running, oldest first
-  /// (T-587). Held here — NOT written to stdin — so they can still be
-  /// dismissed; once written, the CLI owns them.
-  List<QueuedMessage> get queued => List.unmodifiable(_queued);
+  /// Whether a message submitted mid-turn goes to claude right away, to be
+  /// taken in at its next tool step (T-618), rather than being held until the
+  /// turn ends (T-587). Set by the pane from `app.claude.deliverMidTurn`.
+  bool deliverMidTurn = false;
+
+  /// Messages the user submitted while a turn was running that haven't reached
+  /// claude yet, oldest first: first the ones already written and waiting for
+  /// claude's next tool step ([QueuedMessage.delivering], T-618), then the ones
+  /// clide still holds (T-587) — those can be edited or dismissed; once
+  /// written, the CLI owns them.
+  List<QueuedMessage> get queued => List.unmodifiable([..._delivering, ..._queued]);
 
   /// Emits [queued] whenever it changes. Replay-latest.
   Stream<List<QueuedMessage>> get queuedStream => _queuedCtl.stream;
 
-  void _emitQueued() => _queuedCtl.add(List.unmodifiable(_queued));
+  void _emitQueued() => _queuedCtl.add(queued);
 
-  /// The user's send (T-587): immediate when idle, queued while a turn runs.
-  /// A queued message goes out when the turn's `result` arrives — one per
-  /// turn, so each keeps its own turn exactly as if it had been sent then —
-  /// and only renders in the conversation once it is actually sent.
+  /// The user's send (T-587): immediate when idle. Mid-turn it is written
+  /// right away when [deliverMidTurn] is on — claude takes it in at its next
+  /// tool step and it renders when the CLI echoes it (T-618). Otherwise it is
+  /// held until the turn's `result`, one per turn, so each keeps its own turn
+  /// exactly as if it had been sent then, and renders once actually sent.
   ///
   /// [send] stays the immediate write for callers that mean "now": a prompt's
   /// follow-up note must ride with the approval mid-turn, and team delivery /
@@ -1097,7 +1137,26 @@ class StreamJsonSession {
     }
     _queued.add(QueuedMessage(id: 'queued-${_localSeq++}', text: text));
     _emitQueued();
-    _flushQueued(); // idle with a released queue: the head goes now
+    _flushQueued(); // idle, or delivering mid-turn, with a released queue
+  }
+
+  /// Write [text] to claude mid-turn; it renders when its echo arrives (T-618).
+  void _deliver(String text) {
+    final uuid = _writeUser(text, renderOnEcho: true);
+    _delivering.add(QueuedMessage(id: uuid, text: text, delivering: true));
+  }
+
+  /// The CLI echoed a user message we wrote (`--replay-user-messages`, T-618).
+  /// True when the echo should render — a mid-turn message just taken in;
+  /// false for an echo of one already on screen, or one we didn't write.
+  bool _onUserEcho(Map<String, dynamic> ev) {
+    final render = _echoes.remove(ev['uuid']);
+    if (render != true) return false;
+    _delivering.removeWhere((m) => m.id == ev['uuid']);
+    _emitQueued();
+    // Written just as a turn ended, it starts the next one.
+    _setBusy(true);
+    return true;
   }
 
   /// Drop a queued message so it is never sent (T-587). False when [id] is
@@ -1136,12 +1195,18 @@ class StreamJsonSession {
     _flushQueued();
   }
 
-  /// Send the head of the queue once a turn has ended.
+  /// Send what the queue can release: its head once a turn has ended, and —
+  /// with [deliverMidTurn] — everything else straight away (T-618).
   void _flushQueued() {
-    if (_busy || _queueHeld || _queued.isEmpty || _end != null) return;
-    final next = _queued.removeAt(0);
+    if (_queueHeld || _queued.isEmpty || _end != null) return;
+    if (_busy && !deliverMidTurn) return;
+    if (!_busy) send(_queued.removeAt(0).text);
+    if (deliverMidTurn) {
+      while (_queued.isNotEmpty) {
+        _deliver(_queued.removeAt(0).text);
+      }
+    }
     _emitQueued();
-    send(next.text);
   }
 
   /// Inject a clide-local notice card into the conversation — nothing is sent
@@ -1326,9 +1391,12 @@ class StreamJsonSession {
       _queue.clear();
       _pendingCtl.add(null);
     }
-    // Nor can a queued message ever be sent (T-587).
-    if (_queued.isNotEmpty) {
+    // Nor can a queued message ever be sent (T-587), nor a delivering one
+    // taken in (T-618).
+    _echoes.clear();
+    if (_queued.isNotEmpty || _delivering.isNotEmpty) {
       _queued.clear();
+      _delivering.clear();
       _emitQueued();
     }
     _endCtl.add(_end!);

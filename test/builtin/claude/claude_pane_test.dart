@@ -19,6 +19,7 @@ import 'package:clide/builtin/claude/src/conversation_view.dart';
 import 'package:clide/builtin/claude/src/model_picker_card.dart';
 import 'package:clide/builtin/claude/src/permission_mode_control.dart';
 import 'package:clide/builtin/claude/src/queued_messages_dock.dart';
+import 'package:clide/builtin/claude/src/session_defaults.dart' show kDeliverMidTurnKey;
 import 'package:clide/builtin/claude/src/session_naming.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/session_picker.dart';
@@ -446,7 +447,22 @@ void main() {
     expect(proc.killed, isFalse);
   });
 
+  testWidgets('with mid-turn delivery on (the default), a message sent mid-turn goes out at once (T-618)', (tester) async {
+    await mount(tester, const ClaudePane(showChrome: false));
+    final proc = created.single;
+    List<String> sent() => [
+      for (final w in proc.writes)
+        if ((jsonDecode(w) as Map)['type'] == 'user') ((jsonDecode(w) as Map)['message'] as Map)['content'] as String,
+    ];
+
+    await act(tester, () => composer(tester).onSubmit('start a turn'));
+    await act(tester, () => composer(tester).onSubmit('by the way'));
+    expect(sent(), ['start a turn', 'by the way'], reason: 'written straight away, for claude to take in at its next step');
+    expect(find.text('next step'), findsOneWidget, reason: 'waits in the dock until claude echoes it');
+  });
+
   testWidgets('a message sent mid-turn waits in the queue dock; dismissed ones never send (T-587)', (tester) async {
+    await tester.runAsync(() => f.services.settings.set<bool>(kDeliverMidTurnKey, false));
     await mount(tester, const ClaudePane(showChrome: false));
     final proc = created.single;
     List<String> sent() => [

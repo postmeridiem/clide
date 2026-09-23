@@ -1,7 +1,10 @@
 /// Messages the user sent while a turn was running, docked above the composer
-/// (T-587). They are held clide-side until the turn ends, so each can still be
-/// edited or dismissed. Lives in the interaction zone (D-78) — the
-/// conversation only shows a message once it is actually sent.
+/// (T-587). A held one (tagged "queued") waits clide-side until the turn ends,
+/// so it can still be edited or dismissed. With mid-turn delivery (T-618) a
+/// message is written to claude at once and shows as "next step" — past
+/// recall, no controls — until claude takes it in at its next tool step. Lives
+/// in the interaction zone (D-78) — the conversation only shows a message once
+/// claude has it.
 ///
 /// Editing holds the whole queue ([onEditStart] / [onEditEnd]): a message must
 /// not go out half-edited because the turn happened to end mid-edit.
@@ -130,7 +133,11 @@ class _QueuedMessagesDockState extends State<QueuedMessagesDock> {
           Padding(
             padding: const EdgeInsets.only(top: 1),
             child: ClideText(
-              editing ? _t('queue.editing', 'editing') : _t('queue.tag', 'queued'),
+              editing
+                  ? _t('queue.editing', 'editing')
+                  : m.delivering
+                  ? _t('queue.delivering', 'next step')
+                  : _t('queue.tag', 'queued'),
               fontSize: clideFontCaption,
               color: editing ? tokens.globalFocus : tokens.globalTextMuted,
             ),
@@ -142,7 +149,10 @@ class _QueuedMessagesDockState extends State<QueuedMessagesDock> {
                 : ClideText(m.text, fontSize: clideFontSmall, color: tokens.globalTextMuted, maxLines: 3, overflow: TextOverflow.ellipsis),
           ),
           const SizedBox(width: 8),
-          if (editing) ...[
+          // Already written to claude (T-618): past recall, so no controls.
+          if (m.delivering)
+            const SizedBox.shrink()
+          else if (editing) ...[
             _button(tokens, 'check', _t('queue.save', 'Save queued message'), const Key('queued-save'), () => _endEdit(save: true)),
             _button(tokens, 'x', _t('queue.cancelEdit', 'Cancel edit'), const Key('queued-cancel'), () => _endEdit(save: false)),
           ] else ...[

@@ -547,8 +547,12 @@ class _ClaudePaneState extends State<ClaudePane> {
       _session?.addLocalNotice(tuiOnlyNotice(slashCommandToken(text)!));
       return;
     }
-    // Queued while a turn runs, so it can still be edited or dismissed (T-587).
-    _session?.submit(text);
+    // Mid-turn it reaches claude at its next tool step (T-618), or — with that
+    // setting off — waits in the editable queue until the turn ends (T-587).
+    final settings = _kernel?.settings;
+    _session
+      ?..deliverMidTurn = settings == null || deliverMidTurn(settings)
+      ..submit(text);
   }
 
   /// clide-owned `/model` (T-408): with an argument, set the model directly;

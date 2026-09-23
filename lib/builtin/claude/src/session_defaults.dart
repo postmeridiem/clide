@@ -21,6 +21,13 @@ const String kDefaultPermissionModeDefault = 'auto';
 /// selectable without entering it; the CLI refuses it otherwise.
 const String kAllowBypassKey = 'app.claude.allowBypassPermissions';
 
+/// Whether a message sent mid-turn goes to claude at once, to be taken in at
+/// its next tool step, rather than held until the turn ends (T-618). On by
+/// default; off restores the editable T-587 queue.
+const String kDeliverMidTurnKey = 'app.claude.deliverMidTurn';
+
+bool deliverMidTurn(SettingsStore settings) => settings.get<bool>(kDeliverMidTurnKey) ?? true;
+
 /// The permission mode new sessions start in (`--permission-mode`).
 String defaultPermissionModeFlag(SettingsStore settings) {
   final v = settings.get<String>(kDefaultPermissionModeKey);

@@ -67,6 +67,15 @@ void main() {
     expect(find.text('queued'), findsNWidgets(2));
   });
 
+  testWidgets('a delivering message is tagged "next step" and has no controls (T-618)', (tester) async {
+    await pump(tester, const [QueuedMessage(id: 'u1', text: 'on its way', delivering: true), QueuedMessage(id: 'q2', text: 'still held')]);
+    expect(find.text('next step'), findsOneWidget);
+    expect(find.text('queued'), findsOneWidget);
+    expect(find.byKey(const Key('queued-edit-u1')), findsNothing);
+    expect(find.byKey(const Key('queued-dismiss-u1')), findsNothing);
+    expect(find.byKey(const Key('queued-edit-q2')), findsOneWidget);
+  });
+
   testWidgets('dismiss reports the message id', (tester) async {
     await pump(tester, two);
     await tester.tap(find.byKey(const Key('queued-dismiss-q2')));

@@ -1057,6 +1057,127 @@ void main() {
     });
   });
 
+  // T-618: with `--replay-user-messages` the CLI echoes each stdin user
+  // message (isReplay, carrying the uuid we sent) when it takes it in — for a
+  // message written mid-turn, at the next tool step (probed 2026-09-23).
+  group('mid-turn delivery (T-618)', () {
+    String result() => jsonEncode({'type': 'result', 'subtype': 'success'});
+    List<Map> userWrites() => [
+      for (final w in proc.writes)
+        if ((jsonDecode(w) as Map)['type'] == 'user') jsonDecode(w) as Map,
+    ];
+    List<String> sentTexts() => [for (final w in userWrites()) (w['message'] as Map)['content'] as String];
+    String uuidOf(String text) => userWrites().lastWhere((w) => (w['message'] as Map)['content'] == text)['uuid'] as String;
+    String echo(String uuid, String text) => jsonEncode({
+      'type': 'user',
+      'isReplay': true,
+      'uuid': uuid,
+      'session_id': 's',
+      'parent_tool_use_id': null,
+      'timestamp': '2026-09-23T08:32:21.000Z',
+      'message': {'role': 'user', 'content': text},
+    });
+    List<String> userItems() => [for (final i in items.whereType<UserMessage>()) i.text];
+
+    setUp(() => session.deliverMidTurn = true);
+
+    test('every user message is written with a uuid for its echo to carry', () async {
+      session.submit('hi');
+      expect(uuidOf('hi'), matches(RegExp(r'^[0-9a-f-]{36}$')));
+    });
+
+    test('mid-turn submit is written at once but only shows in the dock', () async {
+      session.submit('first');
+      session.submit('also this');
+      await pumpEventQueue();
+      expect(sentTexts(), ['first', 'also this']);
+      expect(userItems(), ['first'], reason: 'not in the conversation until claude has it');
+      final [m] = session.queued;
+      expect(m.text, 'also this');
+      expect(m.delivering, isTrue);
+    });
+
+    test('its echo renders it where it landed and clears it from the dock', () async {
+      session.submit('first');
+      session.submit('also this');
+      proc.emit(assistantToolUse());
+      proc.emit(echo(uuidOf('also this'), 'also this'));
+      await pumpEventQueue();
+      expect(userItems(), ['first', 'also this']);
+      expect(session.queued, isEmpty);
+      expect(items.last, isA<UserMessage>(), reason: 'after the tool call it was taken in at');
+    });
+
+    test('the echo of a message already on screen is dropped — no duplicate', () async {
+      session.submit('first');
+      proc.emit(echo(uuidOf('first'), 'first'));
+      await pumpEventQueue();
+      expect(userItems(), ['first']);
+    });
+
+    test('an echo we did not write is dropped', () async {
+      proc.emit(echo('00000000-0000-4000-8000-000000000000', 'stranger'));
+      await pumpEventQueue();
+      expect(userItems(), isEmpty);
+    });
+
+    test('a delivering message can no longer be edited or dismissed', () async {
+      session.submit('first');
+      session.submit('too late');
+      final id = session.queued.single.id;
+      expect(session.dismissQueued(id), isFalse);
+      expect(session.editQueued(id, 'changed'), isFalse);
+      expect(session.queued.single.text, 'too late');
+    });
+
+    test('taken in after the turn ended, it starts the next turn', () async {
+      session.submit('first');
+      session.submit('late');
+      proc.emit(result());
+      await pumpEventQueue();
+      expect(session.busy, isFalse);
+      proc.emit(echo(uuidOf('late'), 'late'));
+      await pumpEventQueue();
+      expect(session.busy, isTrue);
+      expect(userItems(), ['first', 'late']);
+    });
+
+    test('a held queue still holds; release delivers mid-turn', () async {
+      session.submit('first');
+      session.holdQueue();
+      session.submit('waits');
+      await pumpEventQueue();
+      expect(sentTexts(), ['first']);
+      expect(session.queued.single.delivering, isFalse);
+      session.releaseQueue();
+      await pumpEventQueue();
+      expect(sentTexts(), ['first', 'waits']);
+      expect(session.queued.single.delivering, isTrue);
+    });
+
+    test('a queue released at idle sends its head and delivers the rest', () async {
+      session.submit('first');
+      session.holdQueue();
+      session.submit('b');
+      session.submit('c');
+      proc.emit(result());
+      await pumpEventQueue();
+      session.releaseQueue();
+      await pumpEventQueue();
+      expect(sentTexts(), ['first', 'b', 'c']);
+      expect(userItems(), ['first', 'b'], reason: 'b started a turn; c waits for its echo');
+      expect(session.queued.map((m) => (m.text, m.delivering)), [('c', true)]);
+    });
+
+    test('process exit clears delivering messages', () async {
+      session.submit('first');
+      session.submit('pending');
+      proc.exit.complete(1);
+      await pumpEventQueue();
+      expect(session.queued, isEmpty);
+    });
+  });
+
   // T-244: the event shapes are the CLI's own SDK schema (2.1.280) —
   // `system/status` with `status: "compacting" | "requesting" | null`, a
   // closing status carrying `compact_result`, then `system/compact_boundary`.

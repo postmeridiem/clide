@@ -123,9 +123,10 @@ class ClaudeExtension extends ClideExtension {
       run: _cycleFoldLevel,
     ),
     // Claude settings category (T-457) — defaults applied to NEW sessions
-    // (the pane reads these keys at spawn) as the --model, --effort and
-    // --permission-mode launch flags (T-597); allowing bypass adds
-    // --allow-dangerously-skip-permissions. The
+    // (the pane reads these keys at spawn): effort and permission mode as the
+    // --effort / --permission-mode launch flags (T-597), allowing bypass adds
+    // --allow-dangerously-skip-permissions, and the model goes as a set_model
+    // control request once the session starts. The
     // conversation fold level (T-453) lives here too: it had a one-field
     // "Activity" tab of its own until the settings restructure.
     SettingsCategoryContribution(
@@ -208,6 +209,18 @@ class ClaudeExtension extends ClideExtension {
                   SettingsOption(value: 'thinking', label: 'Fold tools + thinking', labelKey: 'settings.activity.opt.thinking'),
                   SettingsOption(value: 'everything', label: 'Fold all but prose', labelKey: 'settings.activity.opt.everything'),
                 ],
+              ),
+              // Read at each send (T-618), so toggling applies live.
+              SettingsField(
+                key: kDeliverMidTurnKey,
+                kind: SettingsFieldKind.toggle,
+                label: 'Deliver messages mid-turn',
+                labelKey: 'settings.claude.deliverMidTurn.label',
+                help:
+                    'A message you send while Claude is working reaches it at its next step, instead of waiting for the turn to end. '
+                    'Turn off to hold messages until the turn ends, so you can still edit or dismiss them.',
+                helpKey: 'settings.claude.deliverMidTurn.help',
+                defaultValue: true,
               ),
             ],
           ),
