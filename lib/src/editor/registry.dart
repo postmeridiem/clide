@@ -147,7 +147,7 @@ class EditorRegistry {
     final normalized = buf.settings.applyOnSave(buf.content);
     final changed = normalized != buf.content;
 
-    final absolute = _absolutePathOf(buf.path);
+    final absolute = _writePathOf(buf.path);
     await File(absolute).writeAsString(normalized);
 
     if (changed) {
@@ -265,6 +265,15 @@ class EditorRegistry {
   String _absolutePathOf(String repoRelative) {
     final sep = Platform.pathSeparator;
     return resolveUnderRootFollowingSymlinks(workspaceRoot, repoRelative.replaceAll('/', sep));
+  }
+
+  /// The save target for a buffer path (T-610). The read resolver above lets a
+  /// file that doesn't exist yet through unresolved, so a new file under a
+  /// symlinked-out directory would be written outside the workspace; the write
+  /// resolver confines its parent instead, as `files.write` does (T-102).
+  String _writePathOf(String repoRelative) {
+    final sep = Platform.pathSeparator;
+    return resolveForWriteUnderRoot(workspaceRoot, repoRelative.replaceAll('/', sep));
   }
 
   // Support JSON decode of Selection from IPC args.

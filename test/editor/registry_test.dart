@@ -318,5 +318,25 @@ void main() {
       await expectLater(reg.save(buf.id), throwsA(isA<PathOutsideRoot>()));
       expect(await File('${outside.path}/target.txt').readAsString(), 'original');
     });
+
+    test('save of a NEW file under a symlinked-out directory is refused (T-610)', () async {
+      // The read resolver let a not-yet-existing target through unresolved, so
+      // `cfg -> <outside>` + saving `cfg/x.desktop` wrote outside the workspace.
+      final outside = await Directory.systemTemp.createTemp('clide-editor-outside-');
+      addTearDown(() => outside.deleteSync(recursive: true));
+      Link('${sandbox.path}/cfg').createSync(outside.path);
+      final buf = await reg.open('cfg/x.desktop'); // missing file → empty buffer
+      reg.setContent(buf.id, '[Desktop Entry]\nExec=evil');
+      await expectLater(reg.save(buf.id), throwsA(isA<PathOutsideRoot>()));
+      expect(File('${outside.path}/x.desktop').existsSync(), isFalse, reason: 'nothing written outside the workspace');
+    });
+
+    test('save of a NEW file in a real workspace directory still works', () async {
+      Directory('${sandbox.path}/sub').createSync();
+      final buf = await reg.open('sub/new.txt');
+      reg.setContent(buf.id, 'hello');
+      expect(await reg.save(buf.id), isTrue);
+      expect(File('${sandbox.path}/sub/new.txt').readAsStringSync(), 'hello');
+    });
   });
 }
