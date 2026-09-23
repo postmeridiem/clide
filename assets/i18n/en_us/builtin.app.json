@@ -1,0 +1,20 @@
+{
+  "command.hideToTray": { "translation": "Window: Hide to Tray" },
+  "command.quit": { "translation": "Quit this Window" },
+  "command.quitAll": { "translation": "Quit clide (All Windows)" },
+  "settings.title": { "translation": "General" },
+  "settings.section.window": { "translation": "Window" },
+  "settings.field.closeToTray.label": { "translation": "Keep running when the window closes" },
+  "settings.field.closeToTray.help": { "translation": "Closing the window hides it to the tray (the Dock on macOS) so Claude sessions and terminals keep running. Quit from the tray menu. Without a tray, closing always quits." },
+  "settings.section.language": { "translation": "Language" },
+  "settings.field.language.label": { "translation": "Language" },
+  "settings.field.language.help": { "translation": "Language for the app interface; applies live." },
+  "settings.section.diagnostics": { "translation": "Diagnostics" },
+  "settings.field.logLevel.label": { "translation": "Log level" },
+  "settings.field.logLevel.help": { "translation": "How much clide writes to its log and the Output dock. Same as `clide log level`." },
+  "tray.tooltip": { "translation": "clide" },
+  "tray.showAll": { "translation": "Show all windows" },
+  "tray.hideAll": { "translation": "Hide all windows" },
+  "tray.quitAll": { "translation": "Quit clide" },
+  "tray.noWorkspace": { "translation": "clide (no project)" }
+}

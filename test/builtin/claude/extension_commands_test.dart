@@ -162,12 +162,15 @@ void main() {
     });
   });
 
-  group('Activity settings category (T-453)', () {
-    final category = ext.contributions.whereType<SettingsCategoryContribution>().firstWhere((c) => c.id == 'activity').category;
+  group('conversation fold level (T-453)', () {
+    final categories = ext.contributions.whereType<SettingsCategoryContribution>().map((c) => c.category).toList();
 
-    test('contributes an Activity category with the fold-level field', () {
-      expect(category.title, 'Activity');
-      final field = category.sections.expand((s) => s.fields).firstWhere((f) => f.key == kActivityFoldLevelKey);
+    test('lives in the Claude category — no one-field Activity tab', () {
+      expect(categories.map((c) => c.id), isNot(contains('activity')));
+      final claude = categories.firstWhere((c) => c.id == 'claude');
+      final section = claude.sections.firstWhere((s) => s.fields.any((f) => f.key == kActivityFoldLevelKey));
+      expect(section.label, 'Conversation');
+      final field = section.fields.firstWhere((f) => f.key == kActivityFoldLevelKey);
       expect(field.kind, SettingsFieldKind.select);
       expect(field.defaultValue, 'tools');
       expect(field.options.map((o) => o.value), containsAll(['none', 'tools', 'thinking', 'everything']));

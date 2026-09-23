@@ -29,6 +29,7 @@ import 'package:clide/builtin/settings_ui/settings_ui.dart';
 import 'package:clide/builtin/terminal/terminal.dart';
 import 'package:clide/builtin/theme_picker/theme_picker.dart';
 import 'package:clide/builtin/tools_settings/tools_settings.dart';
+import 'package:clide/builtin/app/app.dart';
 import 'package:clide/builtin/view/view.dart';
 import 'package:clide/builtin/vim/vim.dart';
 import 'package:clide/builtin/tickets/tickets.dart';
@@ -56,6 +57,7 @@ import 'package:clide/src/daemon/image_commands.dart';
 import 'package:clide/src/daemon/project_commands.dart';
 import 'package:clide/src/daemon/instance_command.dart';
 import 'package:clide/src/daemon/log_commands.dart';
+import 'package:clide/src/daemon/window_commands.dart';
 import 'package:clide/src/daemon/pane_commands.dart';
 import 'package:clide/src/daemon/status_command.dart';
 import 'package:clide/src/daemon/ui_command.dart';
@@ -170,6 +172,9 @@ Future<void> main() async {
   // Captured after boot so `clide status` can report the read-only reader's
   // viewed doc (D-81), which isn't an editor buffer (T-221).
   ReaderNavRegistry? kernelReaderNav;
+  // The kernel tray/window bridge, captured post-boot so `window.show|hide`
+  // and `app.quit` reach the native window (D-110, T-590).
+  TrayRegistry? kernelTray;
   // The kernel MessageBus, captured post-boot so `ui.open` can drive the GUI
   // readers (publish a 'selection') from the CLI — the drive-half of D-6 (T-231).
   MessageBus? kernelMessages;
@@ -356,6 +361,9 @@ Future<void> main() async {
     if (log != null) {
       registerLogCommands(dispatcher, log, (name) async => await kernelSettings?.set<String>('app.log.level', name));
     }
+    // `clide window show|hide`, `clide app quit [--all]` — the CLI half of the
+    // tray menu and the window's close button (D-110, D-6).
+    registerWindowCommands(dispatcher, () => kernelTray);
     // Trusted read-only roots beyond the workspace: the global Claude
     // config dir (~/.claude), so the reader can open user-scope skill /
     // agent / command markdown the Config tab surfaces (D-80, T-195).
@@ -619,6 +627,7 @@ Future<void> main() async {
   // creates it before the daemonClientFactory runs, but the status closure
   // only reads it at request time (post-boot), so capturing it here is safe.
   kernelReaderNav = services.readerNav;
+  kernelTray = services.tray;
   kernelMessages = services.messages;
   kernelFilterStates = services.filterStates;
   kernelClipboard = services.clipboard;
@@ -675,6 +684,7 @@ Future<void> main() async {
     ..register(KeybindingsUiExtension())
     ..register(ClaudeControlExtension())
     ..register(ToolsSettingsExtension())
+    ..register(AppExtension())
     ..register(ClideCompanionExtension())
     ..register(CliInstallExtension());
 

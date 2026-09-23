@@ -235,7 +235,6 @@
   "command.teamChat.open": { "translation": "Claude: het teamchatpaneel openen" },
   "command.teamChat.post": { "translation": "Claude: een bericht als gebruiker in het teamkanaal plaatsen" },
   "command.agent.fork": { "translation": "Claude: een beheerde sessie forken naar een nieuwe branch-sessie" },
-  "settings.activity.title": { "translation": "Activiteit" },
   "settings.activity.conversation.label": { "translation": "Gesprek" },
   "settings.activity.foldLevel.label": { "translation": "Invouwniveau" },
   "settings.activity.foldLevel.help": { "translation": "Hoe agressief het gesprek tool-aanroepen, nadenken en resultaten invouwt." },

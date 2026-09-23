@@ -235,7 +235,6 @@
   "command.teamChat.open": { "translation": "Claude: open the team chat pane" },
   "command.teamChat.post": { "translation": "Claude: post a message into the team channel as the user" },
   "command.agent.fork": { "translation": "Claude: fork a managed session into a new branch session" },
-  "settings.activity.title": { "translation": "Activity" },
   "settings.activity.conversation.label": { "translation": "Conversation" },
   "settings.activity.foldLevel.label": { "translation": "Fold level" },
   "settings.activity.foldLevel.help": { "translation": "How aggressively the conversation folds tool calls, thinking, and results." },

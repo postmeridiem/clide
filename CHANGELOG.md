@@ -25,6 +25,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- **Settings has a General tab** (T-590) — Language moves there from
+  Appearance, the log level gets a home, and the one-field Activity tab folds
+  into Claude as a Conversation section. Stored settings are unchanged.
+
 ### Fixed
 
 - **The status bar shows the model and mode before you've talked to Claude**

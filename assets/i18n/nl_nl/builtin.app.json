@@ -1,0 +1,20 @@
+{
+  "command.hideToTray": { "translation": "Venster: naar systeemvak" },
+  "command.quit": { "translation": "Dit venster afsluiten" },
+  "command.quitAll": { "translation": "clide afsluiten (alle vensters)" },
+  "settings.title": { "translation": "Algemeen" },
+  "settings.section.window": { "translation": "Venster" },
+  "settings.field.closeToTray.label": { "translation": "Blijf draaien als het venster sluit" },
+  "settings.field.closeToTray.help": { "translation": "Sluiten verbergt het venster in het systeemvak (het Dock op macOS), zodat Claude-sessies en terminals blijven draaien. Afsluiten via het menu van het systeemvak. Zonder systeemvak sluit het venster altijd af." },
+  "settings.section.language": { "translation": "Taal" },
+  "settings.field.language.label": { "translation": "Taal" },
+  "settings.field.language.help": { "translation": "Taal voor de app-interface; wordt direct toegepast." },
+  "settings.section.diagnostics": { "translation": "Diagnose" },
+  "settings.field.logLevel.label": { "translation": "Logniveau" },
+  "settings.field.logLevel.help": { "translation": "Hoeveel clide naar zijn log en het Output-dock schrijft. Gelijk aan `clide log level`." },
+  "tray.tooltip": { "translation": "clide" },
+  "tray.showAll": { "translation": "Alle vensters tonen" },
+  "tray.hideAll": { "translation": "Alle vensters verbergen" },
+  "tray.quitAll": { "translation": "clide afsluiten" },
+  "tray.noWorkspace": { "translation": "clide (geen project)" }
+}

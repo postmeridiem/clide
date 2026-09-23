@@ -86,6 +86,11 @@ List<TopMenu> buildClideMenuTree() => [
       const MenuCommandItem('settings.open', fallbackTitle: 'Settings…'),
       const MenuSeparator(),
       MenuCommandItem('file.closeWorkspace', fallbackTitle: 'Close Project', enabledWhen: (s) => s.project.isOpen),
+      // Closing the window hides it to the tray (D-110), so a real quit
+      // needs its own entry.
+      const MenuSeparator(),
+      const MenuCommandItem('window.quit', fallbackTitle: 'Quit this Window'),
+      const MenuCommandItem('window.quitAll', fallbackTitle: 'Quit clide (All Windows)'),
     ],
   ),
   TopMenu(

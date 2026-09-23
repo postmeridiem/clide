@@ -122,46 +122,11 @@ class ClaudeExtension extends ClideExtension {
       i18nNamespace: id,
       run: _cycleFoldLevel,
     ),
-    // Activity settings category (T-453) — the fold level as a schema field,
-    // written to kActivityFoldLevelKey; the panes already rebuild off the
-    // settings notifier, so picking a level applies live.
-    SettingsCategoryContribution(
-      id: 'activity',
-      category: SettingsCategory(
-        id: 'activity',
-        title: 'Activity',
-        titleKey: 'settings.activity.title',
-        i18nNamespace: id,
-        iconName: 'cards-three',
-        priority: 50,
-        sections: [
-          SettingsSection(
-            label: 'Conversation',
-            labelKey: 'settings.activity.conversation.label',
-            fields: [
-              SettingsField(
-                key: kActivityFoldLevelKey,
-                kind: SettingsFieldKind.select,
-                label: 'Fold level',
-                labelKey: 'settings.activity.foldLevel.label',
-                help: 'How aggressively the conversation folds tool calls, thinking, and results.',
-                helpKey: 'settings.activity.foldLevel.help',
-                defaultValue: 'tools',
-                options: [
-                  SettingsOption(value: 'none', label: 'Show everything', labelKey: 'settings.activity.opt.none'),
-                  SettingsOption(value: 'tools', label: 'Fold tool calls', labelKey: 'settings.activity.opt.tools'),
-                  SettingsOption(value: 'thinking', label: 'Fold tools + thinking', labelKey: 'settings.activity.opt.thinking'),
-                  SettingsOption(value: 'everything', label: 'Fold all but prose', labelKey: 'settings.activity.opt.everything'),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
     // Claude settings category (T-457) — defaults applied to NEW sessions
     // (the pane reads these keys at spawn). Effort flows through --effort;
-    // model + permission mode are sent as control requests post-spawn.
+    // model + permission mode are sent as control requests post-spawn. The
+    // conversation fold level (T-453) lives here too: it had a one-field
+    // "Activity" tab of its own until the settings restructure.
     SettingsCategoryContribution(
       id: 'claude',
       category: SettingsCategory(
@@ -205,6 +170,29 @@ class ClaudeExtension extends ClideExtension {
                 helpKey: 'settings.claude.permissionMode.help',
                 defaultValue: 'default',
                 options: [for (final p in kPermissionModes) SettingsOption(value: p.value, label: p.displayName)],
+              ),
+            ],
+          ),
+          // Fold level (T-453), written to kActivityFoldLevelKey; the panes
+          // rebuild off the settings notifier, so picking a level applies live.
+          SettingsSection(
+            label: 'Conversation',
+            labelKey: 'settings.activity.conversation.label',
+            fields: [
+              SettingsField(
+                key: kActivityFoldLevelKey,
+                kind: SettingsFieldKind.select,
+                label: 'Fold level',
+                labelKey: 'settings.activity.foldLevel.label',
+                help: 'How aggressively the conversation folds tool calls, thinking, and results.',
+                helpKey: 'settings.activity.foldLevel.help',
+                defaultValue: 'tools',
+                options: [
+                  SettingsOption(value: 'none', label: 'Show everything', labelKey: 'settings.activity.opt.none'),
+                  SettingsOption(value: 'tools', label: 'Fold tool calls', labelKey: 'settings.activity.opt.tools'),
+                  SettingsOption(value: 'thinking', label: 'Fold tools + thinking', labelKey: 'settings.activity.opt.thinking'),
+                  SettingsOption(value: 'everything', label: 'Fold all but prose', labelKey: 'settings.activity.opt.everything'),
+                ],
               ),
             ],
           ),

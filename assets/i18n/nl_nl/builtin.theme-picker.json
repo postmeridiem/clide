@@ -18,8 +18,5 @@
   "settings.appearance.field.monoFont.label": { "translation": "Monospace-lettertype" },
   "settings.appearance.field.monoFont.help": { "translation": "Terminal, diffs, code en ID's; wordt direct toegepast." },
   "settings.appearance.field.monoFont.option.jetBrainsMono": { "translation": "JetBrains Mono" },
-  "settings.appearance.field.monoFont.option.firaMono": { "translation": "Fira Mono" },
-  "settings.appearance.section.language": { "translation": "Taal" },
-  "settings.appearance.field.language.label": { "translation": "Taal" },
-  "settings.appearance.field.language.help": { "translation": "Taal voor de app-interface; wordt direct toegepast." }
+  "settings.appearance.field.monoFont.option.firaMono": { "translation": "Fira Mono" }
 }
