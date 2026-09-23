@@ -239,7 +239,10 @@ void main() {
       final fake = File('${dir.path}/git')
         ..writeAsStringSync('#!/bin/sh\ncat >/dev/null\nhead -c 1000000 /dev/zero | tr "\\000" x >&2\necho "patch does not apply" >&2\nexit 1\n');
       await Process.run('chmod', ['755', fake.path]);
-      final git = GitClient(toolchain: ToolchainView.resolved(ResolvedPaths(git: fake.path)), workDir: dir);
+      final git = GitClient(
+        toolchain: ToolchainView.resolved(ResolvedPaths(git: fake.path)),
+        workDir: dir,
+      );
       final err = await git.stageHunk('patch').then<Object?>((_) => null, onError: (Object e) => e).timeout(const Duration(seconds: 20));
       expect(err, isA<GitException>());
       expect((err! as GitException).stderr, endsWith('patch does not apply\n'));

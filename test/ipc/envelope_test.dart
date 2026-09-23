@@ -116,7 +116,10 @@ void main() {
     });
 
     test('a schema version this clide does not speak is refused; none at all is accepted', () {
-      expect(() => IpcMessage.decode('{"type":"request","v":99,"id":"1","cmd":"ping"}'), throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('version'))));
+      expect(
+        () => IpcMessage.decode('{"type":"request","v":99,"id":"1","cmd":"ping"}'),
+        throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('version'))),
+      );
       expect(IpcMessage.decode('{"type":"request","id":"1","cmd":"ping"}'), isA<IpcRequest>());
       expect(IpcMessage.decode('{"type":"request","v":1,"id":"1","cmd":"ping"}'), isA<IpcRequest>());
     });
