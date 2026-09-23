@@ -173,34 +173,44 @@ Future<void> httpDownload(Uri url, File to, void Function(int received, int? tot
   }
 }
 
-/// Environment variable that tells a starting window it replaces one that is
-/// still shutting down: its IPC server waits for the socket instead of
-/// refusing to bind (D-113).
+/// The argument that tells a starting window it replaces one an update is
+/// restarting (D-113): it reopens its working directory's repo instead of the
+/// welcome screen, and its IPC server waits for the old window's socket
+/// instead of refusing to bind. An argument, not an environment variable, so
+/// the window's terminals and Claude sessions don't inherit it.
+const kRelaunchArg = '--relaunch';
+
+/// The environment variable 2.17.0 used for the same signal. Still honoured,
+/// so a window that version restarts gets the same treatment; never sent.
 const kRelaunchEnv = 'CLIDE_RELAUNCH';
+
+/// Whether this process was started by an update's window restart.
+bool isRelaunch(List<String> args, Map<String, String> env) => args.contains(kRelaunchArg) || env[kRelaunchEnv] == '1';
+
+typedef WindowStart = Future<Process> Function(String exe, List<String> args, String cwd, Map<String, String> env);
 
 /// Restarts clide windows on the binary at [executable].
 class WindowRelauncher {
-  WindowRelauncher({
-    required this.executable,
-    String? socketDir,
-    Map<String, String>? environment,
-    Future<Process> Function(String exe, String cwd, Map<String, String> env)? start,
-  }) : _socketDir = socketDir ?? socketDirectory(),
-       _environment = environment ?? Platform.environment,
-       _start = start ?? _startDetached;
+  WindowRelauncher({required this.executable, String? socketDir, Map<String, String>? environment, WindowStart? start})
+    : _socketDir = socketDir ?? socketDirectory(),
+      _environment = environment ?? Platform.environment,
+      _start = start ?? _startDetached;
 
   final String executable;
   final String _socketDir;
   final Map<String, String> _environment;
-  final Future<Process> Function(String exe, String cwd, Map<String, String> env) _start;
+  final WindowStart _start;
 
-  static Future<Process> _startDetached(String exe, String cwd, Map<String, String> env) =>
-      Process.start(exe, const [], workingDirectory: cwd, mode: ProcessStartMode.detached, environment: env, includeParentEnvironment: false);
+  static Future<Process> _startDetached(String exe, List<String> args, String cwd, Map<String, String> env) =>
+      Process.start(exe, args, workingDirectory: cwd, mode: ProcessStartMode.detached, environment: env, includeParentEnvironment: false);
 
-  /// Start a window for [root]. It picks its workspace from its working
-  /// directory, never inherits this window's IPC identity (T-421), and waits
-  /// for [root]'s socket to be released ([kRelaunchEnv]).
-  Future<void> launch(String root) => _start(executable, root, {...withoutWindowIdentity(_environment), kRelaunchEnv: '1'});
+  /// Start a window for [root]: in [root], so it reopens that repo, with
+  /// [kRelaunchArg], and without this window's IPC identity (T-421) or a
+  /// relaunch flag this process itself inherited.
+  Future<void> launch(String root) {
+    final env = withoutWindowIdentity(_environment)..remove(kRelaunchEnv);
+    return _start(executable, const [kRelaunchArg], root, env);
+  }
 
   /// Every other live clide window — its socket and workspace root, asked via
   /// `files.root`. Sockets that don't answer are skipped.

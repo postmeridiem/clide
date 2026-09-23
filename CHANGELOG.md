@@ -22,6 +22,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **Windows restarted by an update reopen their project** (T-621) — they
+  came back on the welcome page instead of the repo they were showing.
+- **The About box uses the room it has** (T-622) — it widens with the
+  window, so the bundled-dependency lines no longer cut off.
+
 ## [2.17.0] — 2026-09-23
 
 ### Added

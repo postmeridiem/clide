@@ -59,7 +59,7 @@ import 'package:clide/src/daemon/instance_command.dart';
 import 'package:clide/src/daemon/log_commands.dart';
 import 'package:clide/src/daemon/update_commands.dart';
 import 'package:clide/src/daemon/window_commands.dart';
-import 'package:clide/src/update/self_update.dart' show SelfUpdater, WindowRelauncher, kRelaunchEnv;
+import 'package:clide/src/update/self_update.dart' show SelfUpdater, WindowRelauncher, isRelaunch;
 import 'package:clide/src/daemon/pane_commands.dart';
 import 'package:clide/src/daemon/status_command.dart';
 import 'package:clide/src/daemon/ui_command.dart';
@@ -89,7 +89,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 
-Future<void> main() async {
+Future<void> main([List<String> args = const []]) async {
+  // Started by an update's window restart (D-113): reopen the cwd repo and
+  // wait for the old window's socket.
+  final relaunched = isRelaunch(args, Platform.environment);
   final binding = WidgetsFlutterBinding.ensureInitialized();
 
   // Test mode: skip the full app, run the test harness instead.
@@ -266,7 +269,7 @@ Future<void> main() async {
     try {
       // A window restarted by an update replaces one still shutting down:
       // wait for its socket rather than refuse to bind (D-113).
-      await server.start(handoffWait: Platform.environment[kRelaunchEnv] == '1' ? const Duration(seconds: 15) : Duration.zero);
+      await server.start(handoffWait: relaunched ? const Duration(seconds: 15) : Duration.zero);
     } catch (e, st) {
       ipcLog.error('ipc', 'server start failed', error: e, stackTrace: st);
       return;
@@ -727,8 +730,10 @@ Future<void> main() async {
     await services.project.loadRecents();
     // T-115: picker-first. Auto-open only when exactly one recent has
     // its sticky-startup flag set; otherwise the welcome tab (default
-    // workspace content) serves as the project picker.
-    final opened = await services.project.openStickyOrNothing();
+    // workspace content) serves as the project picker. A window an update
+    // restarted reopens the repo it was showing — its working directory
+    // (D-113).
+    final opened = relaunched ? await services.project.open(startupWorkRoot.path) : await services.project.openStickyOrNothing();
     if (opened) {
       services.panels.activateTab(Slots.workspace, 'claude.primary');
     }

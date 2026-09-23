@@ -22,8 +22,11 @@ class AboutDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideSettings.theme.of(context).surface;
+    // Wide enough that the license lines and the update row don't clip on an
+    // ordinary screen, never wider than the window allows.
+    final width = (MediaQuery.sizeOf(context).width - 80).clamp(480.0, 760.0);
     return Container(
-      width: 480,
+      width: width,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: tokens.modalSurfaceBackground,

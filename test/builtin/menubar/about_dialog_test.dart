@@ -112,6 +112,33 @@ void main() {
     });
   }, skip: !Platform.isLinux ? 'releases only publish a Linux bundle' : false);
 
+  testWidgets('the box grows with the window, within bounds, so license lines do not clip', (tester) async {
+    // Centred, as the dialog host shows it, under the window's MediaQuery (the
+    // harness alone gives a tight width and a zero-size MediaQuery).
+    Future<double> widthIn(double window) async {
+      await tester.pumpWidget(
+        harness(
+          f,
+          MediaQuery(
+            data: MediaQueryData(size: Size(window, 1000)),
+            child: Center(
+              child: AboutDialog(onDismiss: () {}, updateFetch: (_) async => '{}'),
+            ),
+          ),
+        ),
+      );
+      return tester.getSize(find.byType(AboutDialog)).width;
+    }
+
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    expect(await widthIn(700), 620);
+    expect(await widthIn(1600), 760);
+    expect(await widthIn(400), 480, reason: 'never narrower than the original box');
+  });
+
   testWidgets('surfaces a clear error when the check fails', (tester) async {
     await pump(tester, (_) => Future.error('offline'));
     await tester.tap(find.text('Check for updates'));

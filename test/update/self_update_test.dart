@@ -169,26 +169,35 @@ void main() {
       final (_, aCmds) = await window('a', '/repo/a');
       final (_, bCmds) = await window('b', '/repo/b');
       File('${tmp.path}/sockets/dead.sock').writeAsStringSync(''); // stale node: skipped
-      final started = <(String, String, Map<String, String>)>[];
+      final started = <(String, List<String>, String, Map<String, String>)>[];
       final r = WindowRelauncher(
         executable: '/home/u/.local/lib/clide/clide',
         socketDir: '${tmp.path}/sockets',
-        environment: {'PATH': '/bin', 'CLIDE_SOCK': '/x.sock', 'CLIDE_WORKSPACE': '/x'},
-        start: (exe, cwd, env) async {
-          started.add((exe, cwd, env));
+        // CLIDE_RELAUNCH: this window was itself restarted by 2.17.0 — the
+        // flag must not ride along to the windows it starts.
+        environment: {'PATH': '/bin', 'CLIDE_SOCK': '/x.sock', 'CLIDE_WORKSPACE': '/x', kRelaunchEnv: '1'},
+        start: (exe, args, cwd, env) async {
+          started.add((exe, args, cwd, env));
           return Process.start('true', const []);
         },
       );
 
       expect(await r.relaunchSiblings(ownSocket: own), 2);
-      expect(started.map((s) => s.$2).toSet(), {'/repo/a', '/repo/b'});
-      for (final (exe, _, env) in started) {
+      expect(started.map((s) => s.$3).toSet(), {'/repo/a', '/repo/b'}, reason: 'each starts in its repo, so it reopens it');
+      for (final (exe, args, _, env) in started) {
         expect(exe, '/home/u/.local/lib/clide/clide');
-        expect(env, {'PATH': '/bin', kRelaunchEnv: '1'}, reason: 'no inherited window identity; waits for the socket');
+        expect(args, [kRelaunchArg]);
+        expect(env, {'PATH': '/bin'}, reason: 'no inherited window identity or relaunch flag');
       }
       expect(aCmds, ['files.root', 'app.quit']);
       expect(bCmds, ['files.root', 'app.quit']);
       expect(ownCmds, isEmpty, reason: 'this window restarts itself last, not via its socket');
+    });
+
+    test('a relaunch is the argument, or the 2.17.0 environment variable', () {
+      expect(isRelaunch(const [kRelaunchArg], const {}), isTrue);
+      expect(isRelaunch(const [], const {kRelaunchEnv: '1'}), isTrue);
+      expect(isRelaunch(const [], const {}), isFalse);
     });
 
     test('ipcOneShot returns null for a socket nobody answers', () async {
