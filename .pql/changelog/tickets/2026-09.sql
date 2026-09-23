@@ -527,3 +527,19 @@ Implementation notes:
 - Clear the indicator when compaction completes and normal streaming resumes.
 
 Acceptance: triggering /compact (or an auto-compaction) shows an in-pane "compacting" indicator and a status-bar progress affordance for the duration, both of which clear when it finishes; covered by a unit test against a canned event fixture containing the compaction event.', 'review', 'medium', NULL, NULL, 'D-77', '2026-06-05 15:21:10', '2026-09-23 07:51:23.806', NULL, '12137b3fe470aedb2c4669d46f2a8d19', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FD91RWDWZPHFPJ72FHHHWS08', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'API-error cards: flag with a red error border (statusError)', 'User report 2026-06-16 (screenshot ~/.cache/clide/pasted/paste-1781681999949.png). An API error renders as a plain conversation card with no error styling:
+
+    clide
+    API Error: Server is temporarily limiting requests (not your usage limit) · Rate limited
+
+It should be visually flagged with a **red error border** on the card so it stands out from normal turns.
+
+**Already supported — just needs wiring.** `lib/builtin/claude/src/conversation_card.dart`:
+- `ConversationCardStatus.error` exists (line ~302 → `tokens.statusError`) but today only tints the header status tick, not the border.
+- The `bordered` variant draws `Border.all(color: widget.borderColor ?? tokens.panelBorder)` (lines ~61 / ~224) — so the border defaults to the neutral `panelBorder`.
+
+**Fix:** render the API-error card as `variant: bordered, status: error, borderColor: tokens.statusError` (or, cleaner, have the card derive the border from `status == error → tokens.statusError` so any error card gets the red border without each caller passing it). Wire the producer — the error / system message that carries the "API Error …" text (in `conversation_view.dart` / `transcript_reader.dart`, e.g. the stream error / `SessionEnd.reason` path) — to mark the card as an error.
+
+**Acceptance:** an API error (rate-limit, server error, etc.) renders a card with a red `statusError` border; normal cards unchanged; a widget test asserts the error card''s border colour.
+
+**Files:** lib/builtin/claude/src/conversation_card.dart (border from error status), the error/system-message rendering in lib/builtin/claude/src/conversation_view.dart / transcript_reader.dart.', 'review', 'medium', NULL, NULL, NULL, '2026-06-17 07:41:24.975', '2026-09-23 07:51:58.176', NULL, 'd7c6f886140401e4d24bbbaf9319ba8a', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

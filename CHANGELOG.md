@@ -62,6 +62,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   `claude auth login`.
 - **Images, drawings, icons and ticket pick-ups land in the Claude tab you're
   in** (T-295) — they always went to the primary tab.
+- **API errors stand out in the conversation** (T-461) — a rate-limit,
+  overload or expired-login error gets a red border and a failure mark
+  instead of looking like any other clide notice.
 - **Choosing a permission mode Claude refuses no longer shows it as active**
   (T-597) — picking bypass showed "bypass" while the session stayed in its
   old mode. A refused change now rolls back and says why.

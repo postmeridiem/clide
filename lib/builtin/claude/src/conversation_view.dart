@@ -662,6 +662,20 @@ class _ConversationTurn extends StatelessWidget {
           onOpenFile: (path, line) => _openFile(context, path, line),
         ),
       ),
+      // A failed API call (rate limit, overload, expired login) — the CLI's
+      // stand-in turn, flagged with a red error border + error mark so it
+      // stands out from normal turns (T-461). Otherwise framed like the
+      // synthetic clide card below: it is not Claude speaking.
+      AssistantTextMessage() when i.apiError => ConversationCard(
+        variant: ConversationCardVariant.bordered,
+        accent: tokens.globalTextMuted,
+        label: ClideSettings.i18n.string(context, 'conversation.label.clide', namespace: 'builtin.claude', placeholder: 'clide'),
+        status: ConversationCardStatus.error,
+        borderColor: tokens.statusError,
+        copyText: i.text,
+        margin: _childMargin,
+        body: ClideText(i.text, fontSize: clideFontMeta),
+      ),
       // CLI-local output (model "<synthetic>": a forwarded local command's
       // response or a clide-injected notice, T-411) is not Claude speaking —
       // framed + muted like the context card (T-306), attributed to clide.

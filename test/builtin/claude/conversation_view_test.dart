@@ -9,6 +9,7 @@ import 'dart:io';
 
 import 'package:clide/builtin/claude/src/activity_cluster.dart';
 import 'package:clide/builtin/claude/src/claude_banner.dart';
+import 'package:clide/builtin/claude/src/conversation_card.dart' show ConversationCard, ConversationCardStatus;
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/conversation_view.dart';
 import 'package:clide/builtin/claude/src/image_thumbnail.dart';
@@ -22,7 +23,8 @@ import 'package:clide/kernel/kernel.dart' show PaneKeyNav;
 import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart' show Builder, Focus, Image, FileImage, MediaQuery, Scrollable, ScrollableState, ValueKey;
+import 'package:flutter/widgets.dart'
+    show Border, BoxDecoration, Builder, Container, Focus, Image, FileImage, MediaQuery, Scrollable, ScrollableState, ValueKey;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
@@ -1006,6 +1008,38 @@ void main() {
       expect(find.text('clide'), findsOneWidget);
       expect(find.text('claude'), findsNothing);
       expect(find.textContaining("isn't available"), findsOneWidget);
+    });
+
+    testWidgets('an API-error turn renders with a red statusError border + error mark (T-461)', (tester) async {
+      await pumpWith(tester, [
+        AssistantTextMessage(
+          uuid: 'e1',
+          timestamp: _t,
+          isSidechain: false,
+          text: 'API Error: 529 Overloaded. This is a server-side issue, usually temporary.',
+          synthetic: true,
+          apiError: true,
+        ),
+      ]);
+      final cardFinder = find.byType(ConversationCard);
+      final tokens = ClideSettings.theme.of(tester.element(cardFinder)).surface;
+      final card = tester.widget<ConversationCard>(cardFinder);
+      expect(card.status, ConversationCardStatus.error);
+      final box = tester.widget<Container>(find.descendant(of: cardFinder, matching: find.byType(Container)).first);
+      final border = (box.decoration! as BoxDecoration).border! as Border;
+      expect(border.top.color, tokens.statusError);
+      expect(find.bySemanticsLabel('failed'), findsOneWidget);
+      expect(find.textContaining('API Error: 529'), findsOneWidget);
+    });
+
+    testWidgets('a plain synthetic card keeps the neutral panel border (T-461)', (tester) async {
+      await pumpWith(tester, [AssistantTextMessage(uuid: 's2', timestamp: _t, isSidechain: false, text: 'usage text', synthetic: true)]);
+      final cardFinder = find.byType(ConversationCard);
+      final tokens = ClideSettings.theme.of(tester.element(cardFinder)).surface;
+      expect(tester.widget<ConversationCard>(cardFinder).status, ConversationCardStatus.none);
+      final box = tester.widget<Container>(find.descendant(of: cardFinder, matching: find.byType(Container)).first);
+      final border = (box.decoration! as BoxDecoration).border! as Border;
+      expect(border.top.color, tokens.panelBorder);
     });
 
     testWidgets('an ordinary Bash card has no live-tail segment (T-325)', (tester) async {

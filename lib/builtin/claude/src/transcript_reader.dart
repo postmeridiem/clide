@@ -115,6 +115,7 @@ final class AssistantTextMessage extends ConversationItem {
     super.parentToolUseId,
     required this.text,
     this.synthetic = false,
+    this.apiError = false,
   });
 
   final String text;
@@ -125,8 +126,14 @@ final class AssistantTextMessage extends ConversationItem {
   /// Rendered as a muted "clide" card, never coral Claude prose (T-411).
   final bool synthetic;
 
+  /// The CLI's stand-in turn for a failed API call ("API Error: 529
+  /// Overloaded …", "Login expired · Please run /login") — the envelope
+  /// carries `isApiErrorMessage: true`. Rendered with a red error border so
+  /// it stands out from normal turns (T-461).
+  final bool apiError;
+
   @override
-  String toString() => 'AssistantTextMessage(${_shortId(uuid)}, ${text.length} chars${synthetic ? ', synthetic' : ''})';
+  String toString() => 'AssistantTextMessage(${_shortId(uuid)}, ${text.length} chars${synthetic ? ', synthetic' : ''}${apiError ? ', api error' : ''})';
 }
 
 /// Extended thinking block from an assistant turn.
@@ -757,6 +764,9 @@ void _parseAssistantInto(
   final content = message['content'];
   if (content is! List) return;
   final synthetic = (message['model'] as String?) == kSyntheticModel;
+  // A failed API call surfaces as a synthetic assistant turn whose envelope
+  // (not message) carries `isApiErrorMessage` (T-461).
+  final apiError = envelope['isApiErrorMessage'] == true;
 
   for (final item in content) {
     if (item is! Map) continue;
@@ -773,6 +783,7 @@ void _parseAssistantInto(
               parentToolUseId: parentToolUseId,
               text: text,
               synthetic: synthetic,
+              apiError: apiError,
             ),
           );
         }

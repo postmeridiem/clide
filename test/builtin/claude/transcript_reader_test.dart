@@ -579,6 +579,48 @@ void main() {
     });
   });
 
+  group('API-error turns (T-461)', () {
+    test('an envelope-level isApiErrorMessage flags the text as an API error', () {
+      // Shape taken from a real transcript line: the flag sits on the
+      // envelope, next to `error` / `apiErrorStatus`, not inside `message`.
+      final chunk = jsonEncode({
+        'type': 'assistant',
+        'uuid': 'e1',
+        'timestamp': '2026-06-12T10:00:00.000Z',
+        'message': {
+          'role': 'assistant',
+          'model': '<synthetic>',
+          'content': [
+            {'type': 'text', 'text': 'API Error: 529 Overloaded.'},
+          ],
+        },
+        'error': 'server_error',
+        'isApiErrorMessage': true,
+        'apiErrorStatus': 529,
+      });
+      final msg = parseTranscriptChunk(chunk).items.whereType<AssistantTextMessage>().single;
+      expect(msg.apiError, isTrue);
+      expect(msg.synthetic, isTrue);
+      expect(msg.toString(), contains('api error'));
+    });
+
+    test('an ordinary assistant turn is not an API error', () {
+      final chunk = jsonEncode({
+        'type': 'assistant',
+        'uuid': 'a3',
+        'timestamp': '2026-06-12T10:00:00.000Z',
+        'message': {
+          'role': 'assistant',
+          'model': 'claude-fable-5',
+          'content': [
+            {'type': 'text', 'text': 'hello'},
+          ],
+        },
+      });
+      expect(parseTranscriptChunk(chunk).items.whereType<AssistantTextMessage>().single.apiError, isFalse);
+    });
+  });
+
   group('TranscriptReader — append streaming (filesystem)', () {
     late Directory tempBase;
 
