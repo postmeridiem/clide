@@ -29,6 +29,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   longer takes the `clide` CLI from the opened workspace, and exposes only
   that one command to Claude rather than a whole directory. It also stops
   pointing Claude at the GUI binary when the CLI isn't installed.
+- **Terminals no longer leak into other programs** (T-611) — every process
+  clide started after opening a terminal inherited that terminal's handle,
+  and with it the ability to read or type into it.
 
 ## [2.18.1] — 2026-09-23
 

@@ -117,6 +117,9 @@ final _nativeWrite = _dl.lookupFunction<ffi.IntPtr Function(ffi.Int32, ffi.Point
   'write',
 );
 final _nativeClose = _dl.lookupFunction<ffi.Int32 Function(ffi.Int32), int Function(int)>('close');
+// fcntl is variadic: declared as such so the int argument is passed the way the
+// platform's varargs ABI expects (it differs from a fixed arg on arm64 macOS).
+final _fcntl = _dl.lookupFunction<ffi.Int32 Function(ffi.Int32, ffi.Int32, ffi.VarArgs<(ffi.Int32,)>), int Function(int, int, int)>('fcntl');
 final _ioctl = _dl.lookupFunction<ffi.Int32 Function(ffi.Int32, ffi.UnsignedLong, ffi.Pointer<_Winsize>), int Function(int, int, ffi.Pointer<_Winsize>)>(
   'ioctl',
 );
@@ -128,6 +131,9 @@ final _waitpid = _dl.lookupFunction<ffi.Int32 Function(ffi.Int32, ffi.Pointer<ff
 // Constants — all duplicated from <fcntl.h>, <sys/ioctl.h>, <spawn.h>.
 final int _kTiocsWinsz = Platform.isMacOS ? 0x80087467 : 0x5414;
 const int _kORdwr = 0x0002;
+// F_SETFD / FD_CLOEXEC — the same values on Linux and macOS.
+const int _kFSetfd = 2;
+const int _kFdCloexec = 1;
 final int _kONoctty = Platform.isMacOS ? 0x20000 : 0x0100;
 // POSIX_SPAWN_SETSID — glibc 2.26+ (0x80), macOS 10.15+ (0x400).
 final int _kSpawnSetsid = Platform.isMacOS ? 0x400 : 0x80;
@@ -227,6 +233,15 @@ class NativePty implements PtySession {
     final masterFd = _posixOpenpt(_kORdwr | _kONoctty);
     if (masterFd < 0) {
       throw PtyException('posix_openpt', 'posix_openpt failed', errno: libc.errno);
+    }
+    // Close-on-exec (T-611): every later child — other panes, git, pql,
+    // claude — would otherwise inherit this pane's master and could read or
+    // type into its terminal; a closed pane's shell might also never get its
+    // SIGHUP. This pane's own child drops it explicitly below as well.
+    if (_fcntl(masterFd, _kFSetfd, _kFdCloexec) != 0) {
+      final err = libc.errno;
+      _nativeClose(masterFd);
+      throw PtyException('fcntl', 'could not set close-on-exec on the pty master', errno: err);
     }
     if (_grantpt(masterFd) != 0) {
       final err = libc.errno;

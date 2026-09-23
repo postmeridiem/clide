@@ -42,6 +42,24 @@ void main() {
       expect(got, contains('hello-pty'));
     });
 
+    test("a pane's child does not inherit another pane's pty master (T-611)", tags: ['pty'], () async {
+      final env = {...Platform.environment, 'TERM': 'xterm-256color'};
+      // Pane A stays open while pane B looks at what it was handed.
+      final a = NativePty.start(executable: '/bin/sh', arguments: ['-c', 'sleep 30'], columns: 80, rows: 24, workingDirectory: '/', environment: env);
+      addTearDown(a.close);
+      final b = NativePty.start(
+        executable: '/bin/sh',
+        arguments: ['-c', 'ls -l /proc/self/fd; echo END-FDS'],
+        columns: 200,
+        rows: 50,
+        workingDirectory: '/',
+        environment: env,
+      );
+      addTearDown(b.close);
+      final got = await _readUntil(b, 'END-FDS', ioTimeout);
+      expect(got, isNot(contains('ptmx')), reason: 'a pty master open in the child could read or type into another terminal');
+    }, skip: Platform.isLinux ? false : 'reads /proc/self/fd');
+
     test('emits FFI breadcrumbs to the main callback + the reader isolate crumb file (T-434)', tags: ['pty'], () async {
       final dir = Directory.systemTemp.createTempSync('clide-pty-crumb-');
       addTearDown(() {
