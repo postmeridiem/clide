@@ -39,11 +39,22 @@ jobs:
         run: echo "flutter=$(jq -r .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@v2
         with: { flutter-version: '${{ steps.fvm.outputs.flutter }}', channel: stable }
+      # The committed project signs with a local Apple Development team the
+      # runner has no certificate for; sign ad-hoc here instead (runner copy
+      # only — local builds keep their team).
+      - name: ad-hoc signing
+        run: >-
+          sed -i '' -E
+          -e 's/CODE_SIGN_IDENTITY = "Apple Development";/CODE_SIGN_IDENTITY = "-";/'
+          -e 's/DEVELOPMENT_TEAM = [A-Z0-9]+;/DEVELOPMENT_TEAM = "";/'
+          -e 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/'
+          macos/Runner.xcodeproj/project.pbxproj
       - run: make build            # gen-build-info + clide-cli + flutter build macos
       # Copying the C client into Contents/MacOS breaks the build's ad-hoc
-      # signature seal; re-sign ad-hoc so the bundle still launches. There is
-      # no Developer ID, so a downloaded copy needs its quarantine cleared.
-      - run: codesign --force --deep --sign - build/macos/Build/Products/Release/clide.app
+      # signature seal; re-sign ad-hoc so the bundle still launches, keeping
+      # its entitlements. There is no Developer ID, so a downloaded copy needs
+      # its quarantine cleared.
+      - run: codesign --force --deep --sign - --preserve-metadata=entitlements build/macos/Build/Products/Release/clide.app
       - name: package
         run: ditto -c -k --keepParent build/macos/Build/Products/Release/clide.app clide-macos-${{ inputs.version || 'dev' }}.zip
       - uses: actions/upload-artifact@v4
