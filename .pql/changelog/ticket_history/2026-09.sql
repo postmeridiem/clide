@@ -1288,3 +1288,387 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCT0JDZA1E8ACCF0W7H6Y198', 'status', 'review', 'done', NULL, '2026-09-23 13:50:50', '2026-09-23 13:50:50.696', '2026-09-23 13:50:50.696', NULL, '26313453cdfae135a649fad45e87a391', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCT0JGWXHDHNWAQ082S6ZQNM', 'status', 'review', 'done', NULL, '2026-09-23 13:50:51', '2026-09-23 13:50:51.145', '2026-09-23 13:50:51.145', NULL, 'd93106364d1a5d28d889458795bddf97', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM66FTCTWHH9AQTNFKR', 'status', 'in_progress', 'done', NULL, '2026-09-23 13:50:51', '2026-09-23 13:50:51.954', '2026-09-23 13:50:51.954', NULL, 'ce6282b986cd26d74a351965dbc40fa2', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXAXZAFG2DTPKFBJARV8Y7R', 'description', NULL, '## Initiative: Web UI — full clide in the browser, served from a container
+
+**Goal:** The full IDE in a browser, served by clide hosts in a container that a non-developer can install on a Linux machine with Docker, with build instructions and user documentation. The IDE covers Claude sessions, the terminal, files, the editor, git and pql. (D-116)
+
+**Architecture:** (D-117)
+- Caddy is the only network listener. It handles TLS, the static wasm bundle and authentication, and it proxies the session WebSocket and nothing else.
+- An internal, protocol-blind Dart broker maps `/u/<N>/w/<repo-slug>/` to a per-workspace host, spawning or attaching.
+- Per-workspace Dart hosts run the dispatcher and the subsystems. Claude and the `clide` CLI inside the container talk to the host socket.
+- The browser runs the same Flutter UI compiled to wasm, over a `DaemonTransport` (T-331) carried on the WebSocket.
+
+**Constraints:**
+- Desktop fidelity is never traded for the web (the CLAUDE.md guardrail, as amended by D-116).
+- No Dart HTTP server faces the network (D-117), and no API framework wraps the backend (R-13).
+- The supply-chain rules apply to everything in the image: exact pins, licences in `licenses.yaml`, advisory review, and building from source where D-61 requires it (Q-53).
+- Gates assert positive outcomes: the web build must boot and paint, not merely compile (D-108, T-577).
+
+**Success metrics:**
+- On a clean Linux host with Docker, the installer brings clide web up and prints a `/u/0/w/<slug>/` URL. Opening it over TLS shows a workspace with a working Claude session, terminal, files, editor and git.
+- CI builds the image, boots it and asserts first paint on every PR. Releases publish a pinned, signed image.
+- The user guide covers install, first run, upgrade, backup and uninstall without assuming developer knowledge.
+
+**Dependencies:**
+- Q-52 (host architecture) gates the host and parity epics.
+- Q-53 (distribution) gates the image and installer epics.
+- Adjacent work: T-399 (the execution seam for SSH-remote), T-358 (manifest modes), T-46 and T-491 (installer, release channel), T-601 (security hardening).
+
+**Risk mitigation:**
+- The largest unknown, the Claude session stack''s wire contract, is decided in the Phase 0 gate before any host code is written.
+- A walking-skeleton container (Epic C''s first story) proves build, TLS and serving end to end before the host exists.
+- Every story that depends on an open question is blocked on the gate that answers it. The unblocked backlog therefore only ever shows work whose shape is known.', NULL, '2026-09-23 14:29:17', '2026-09-23 14:29:17.449', '2026-09-23 14:29:17.449', NULL, 'f2d08f79cdb6ed87ad2ed8bcec9b14be', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXAZ5MQRY0C7RHVJFF3ER3G', 'description', NULL, '## Epic A: Governance gate
+
+**Goal:** Turn the open questions into decisions before code depends on them. This is the Phase 0 pattern the SSH-remote epic used (T-330).
+
+**Tasks:**
+1. Record the direction (D-116), the front door (D-117) and the rejected wrapper (R-13); amend D-100, D-94, D-56 and the CLAUDE.md guardrails. Done.
+2. Resolve Q-52 (the host architecture) into D-records.
+3. Resolve Q-53 (distribution) into D-records, and amend POLICY.md to cover images.
+
+**Acceptance:**
+- Q-52 and Q-53 are resolved, each pointing at the D-records that answer every sub-question.
+- The stories blocked on them in Epics C–H are expanded or re-scoped to match.', NULL, '2026-09-23 14:29:27', '2026-09-23 14:29:27.293', '2026-09-23 14:29:27.293', NULL, '5d841a3c4a6f663d7f311646c7d151e3', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXAZ7713854V2WXTFREB68C', 'description', NULL, '## Epic B: Web build boots, paints, stays honest
+
+**Goal:** The wasm build boots to first paint without a backend, a CI gate proves it on every change, and it fetches nothing from the network at runtime.
+
+**Tasks:**
+1. T-577: plug the remaining `_Namespace` hole on the activation path, and quieten the i18n probe.
+2. T-443: CI boots the bundle in a browser and asserts first paint.
+3. Self-host the renderer (CanvasKit/Skwasm) so nothing is fetched from a CDN (D-60).
+4. Set a bundle-size budget and enforce it in CI.
+5. Once the edge serves the bundle cross-origin-isolated (Epic C): verify the Skwasm threaded path, and compare CanvasKit with Skwasm on the conversation view.
+
+**Acceptance:**
+- A clean boot paints with no console errors and no requests outside the bundle''s own origin.
+- The CI web job fails when either of those regresses.', NULL, '2026-09-23 14:29:27', '2026-09-23 14:29:27.658', '2026-09-23 14:29:27.658', NULL, '5c04a3cbec66d39edae276297f7c86d6', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXAZ8KHR81WFY1WN4QQWSRC', 'description', NULL, '## Epic C: Front door, host/UI split, network transport
+
+**Goal:** A browser tab at `/u/<N>/w/<slug>/` talks to that workspace''s host through the edge and the broker (D-117). The host is split from the UI so it runs without a Flutter window.
+
+**Tasks:**
+1. A walking-skeleton edge and dev container, with no host behind it yet.
+2. The broker: forward-auth for the edge, a session registry, spawn-or-attach, and opaque pass-through.
+3. After the gate (Q-52):
+   - the host/UI line;
+   - a headless host entrypoint;
+   - the host side of the transport;
+   - the web client transport;
+   - caller identity behind the front door;
+   - UI-side `dart:io` moved behind the transport;
+   - the `webui` mode.
+
+**Acceptance:**
+- A workspace opens at its URL in a browser, and dispatcher requests and events round-trip through Caddy, the broker and the host.
+- Desktop behaviour is unchanged, with the existing suites green.', NULL, '2026-09-23 14:29:27', '2026-09-23 14:29:27.986', '2026-09-23 14:29:27.986', NULL, 'f1d543c47e075b7d8db674b521af3d53', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXAZ9S3PJ0303Z84NWCN75M', 'description', NULL, '## Epic D: Claude sessions on the host
+
+**Goal:** Claude sessions run on the host and survive a closed tab. The UI, browser or desktop, drives them through a wire contract instead of holding live objects.
+
+**Tasks:** Expand after Q-52(e) resolves. The expected shape:
+- the session contract: items, status, prompts, send, interrupt and model;
+- the orchestrator, per-session MCP servers and team broker moved host-side;
+- `ClaudePane` consuming the contract on both targets;
+- `~/.claude` reads going through host commands;
+- permission prompts over the wire.
+
+Related: T-333, the control relay the SSH-remote epic needs.
+
+**Acceptance:**
+- A session started in the browser keeps running when the tab closes, and reattaches when it reopens.
+- Desktop sessions behave as before.', NULL, '2026-09-23 14:29:28', '2026-09-23 14:29:28.302', '2026-09-23 14:29:28.302', NULL, 'd488246ad1d3557bf17d98d9446f23d4', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXAZB3A0XQW4HT6XCT1GEVW', 'description', NULL, '## Epic E: Browser parity and UX
+
+**Goal:** Everything the desktop does, working in a browser tab.
+
+**Tasks:**
+- the terminal over the WebSocket;
+- files, editor, git and pql end to end;
+- highlighting and Lua, as Q-52(f) decides (this settles T-26);
+- clipboard and image paste;
+- keymap conflicts with browser-reserved shortcuts (D-54);
+- small screens (Q-26);
+- web accessibility (Q-13, Q-12).
+
+**Acceptance:**
+- The Playwright suite exercises each surface against the container.
+- No desktop regression.', NULL, '2026-09-23 14:29:28', '2026-09-23 14:29:28.639', '2026-09-23 14:29:28.639', NULL, '3047fe181548f761195208be3cc3e83d', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXAZCAN22REKXZF47EXTDRC', 'description', NULL, '## Epic F: Container image and build
+
+**Goal:** A reproducible, pinned release image, built and boot-tested in CI and published with each release.
+
+**Tasks:**
+- The multi-stage image: Flutter from `.fvmrc`, Caddy built from source, Dart AOT broker and hosts. It uses a digest-pinned base, a non-root user, volumes and a health check.
+- `make image`.
+- A CI job that builds the image and boot-smokes it on every PR.
+- Publishing from `release.yml`, from tested commits only, with checksums, an SBOM and signing parity with T-491.
+- `licenses.yaml` and scanning cover the image contents.
+- arm64, later.
+
+**Acceptance:**
+- A fresh clone builds the image with one documented command.
+- A release publishes a pinned, verifiable image.
+- The boot-smoke gate fails when the image stops painting.', NULL, '2026-09-23 14:29:28', '2026-09-23 14:29:28.954', '2026-09-23 14:29:28.954', NULL, '781b0da6578c34d7351288fefa800921', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXAZDFPAXQ61ZHT04EKRA2R', 'description', NULL, '## Epic G: Installer for non-developers (Linux + Docker)
+
+**Goal:** Someone who is not a developer can install, upgrade and remove clide web on a Linux machine with Docker.
+
+**Tasks:**
+- The install script: preflight checks, data and workspace volumes, the access token, the compose file, the pinned image, start, and print the URL.
+- Upgrade, uninstall, status and logs.
+- LAN TLS: Caddy''s internal CA with its root trusted, or ACME for a domain.
+- Claude Code provisioning and login inside the container.
+- A download that can be verified before it runs.
+
+Cross-linked with T-46.
+
+**Acceptance:** On a clean supported Linux host:
+- install, then open the URL, gives a working workspace;
+- re-running the installer is idempotent;
+- an upgrade keeps the data;
+- uninstall removes the service and, when asked, the data.', NULL, '2026-09-23 14:29:29', '2026-09-23 14:29:29.230', '2026-09-23 14:29:29.230', NULL, 'af2b020a62d0cb5d513178aadb7bc3f4', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXAZEKK2SE4HT79HGTKKH70', 'description', NULL, '## Epic H: Documentation
+
+**Goal:** User documentation a non-developer can follow end to end, and build instructions a contributor can follow.
+
+**Tasks:**
+- Decide where the docs live.
+- The user guide: requirements, install, first run, URLs, connecting Claude, security and TLS, reverse proxies, upgrade, backup, uninstall, troubleshooting.
+- The build-from-source guide.
+- Architecture docs for the host/UI split, CONTRIBUTING, and `tools/ui/README.md`.
+
+**Acceptance:**
+- Every installer and image behaviour a user meets is documented.
+- The docs are checked against a real install before each release that changes them.', NULL, '2026-09-23 14:29:29', '2026-09-23 14:29:29.545', '2026-09-23 14:29:29.545', NULL, 'a41b0e6c49e0a0c673913cb9873115b3', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXB9FDZVD1QCXYT995CEZ2M', 'description', NULL, 'Phase 0 for the host epics. **This is a gate:** C3–C9, D and E stay blocked until it lands.
+
+Resolve Q-52 (`governance/questions/architecture.md`) into D-records that answer all six sub-questions:
+- (a) thick or thin host, and so T-399''s role;
+- (b) the host entrypoint and process model;
+- (c) the transport;
+- (d) trust behind the front door;
+- (e) the Claude session stack;
+- (f) native pieces and mode gating.
+
+**Scope:**
+- A throwaway probe that boots the dispatcher and the Flutter-free subsystems from a plain Dart entrypoint, to measure what the host/UI split actually costs. `buildDispatcher` in `lib/main.dart` captures layout, settings, `MessageBus` and `DialogRouter`. Kernel types built on `ChangeNotifier` pull in `dart:ui`.
+- A written comparison for the Claude session stack: host-side sessions behind a wire contract, against tunnelling the `claude` process''s stdio (`StreamJsonProcess`) to a browser-side session.
+- The D-records, with Q-52 marked resolved and pointing at them.
+- Every story blocked on this ticket expanded or re-scoped to match.
+
+**Out of scope:** implementing any of it.
+
+**Done when:**
+- Q-52 is resolved into D-records that answer (a)–(f).
+- Each story blocked on this ticket has a description that matches those decisions.', NULL, '2026-09-23 14:30:51', '2026-09-23 14:30:51.687', '2026-09-23 14:30:51.687', NULL, '26a001eb26e0fbbb9154f4b999ea6f38', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXB9GVRVEAV0KHMWYNNCGGG', 'description', NULL, '**This is a gate for Epics F and G.** Resolve Q-53 (`governance/questions/tooling.md`) into D-records that answer (a)–(g). Amend POLICY.md so it covers container images: base-image pinning by digest, OS packages in `licenses.yaml`, and image scanning.
+
+**Scope:**
+- (a) Check the Claude Code CLI''s licence against D-65 before deciding whether the image bundles it or provisions it at first run.
+- (b) Decide where Claude credentials live inside the container, and who can read them.
+- (c) Name the base image and its glibc floor. The vendored `libtree-sitter.so` needs glibc 2.34 or later.
+- (d) Decide the registry, the signing scheme (parity with T-491), and how D-113''s self-update behaves in `webui` mode.
+- (e) Write the installer contract (Linux + Docker first).
+- (f) Choose the LAN TLS path.
+- (g) Define the Caddy build: from source, pinned, attributed.
+
+**Out of scope:** building the image or the installer.
+
+**Done when:**
+- Q-53 is resolved into D-records.
+- POLICY.md names the rules for images.
+- The stories in F and G are re-scoped to match.', NULL, '2026-09-23 14:30:52', '2026-09-23 14:30:52.051', '2026-09-23 14:30:52.051', NULL, 'cab15921fc87757cd05db98bc50b759f', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXB9J5FAHZ5FWNF85D5HTSW', 'description', NULL, 'Flutter''s web bootstrap can load the renderer (CanvasKit/Skwasm) from a CDN. D-60 forbids network fetches the user did not ask for, and a self-hosted install may have no internet access at all. Nobody has checked yet whether the current bundle does this.
+
+**Scope:**
+- Record what a `flutter build web --wasm` bundle requests at startup, from the browser''s network log.
+- If anything leaves the bundle''s origin, build with the renderer self-hosted and serve it from the bundle.
+
+**Done when:**
+- A clean boot makes no request outside the bundle''s own origin.
+- The CI web job asserts that.', NULL, '2026-09-23 14:30:52', '2026-09-23 14:30:52.398', '2026-09-23 14:30:52.398', NULL, '0d81e90a6dde032aede7642003afb9b5', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXB9KM4A5N7PYNKJGBGGFER', 'description', NULL, 'The wasm build is about 93 MB (web-target spike, 2026-09-02).
+
+Pick a budget and write down the reasoning behind it. Measure the compressed transfer size as well as the size on disk, since the edge will serve precompressed assets. Make CI report both on every run.
+
+**Done when:**
+- The budget is recorded with its reasoning.
+- CI reports the bundle size on every run.
+- CI fails when the build exceeds the budget.', NULL, '2026-09-23 14:30:52', '2026-09-23 14:30:52.789', '2026-09-23 14:30:52.789', NULL, 'e11ed68b60b7a9f4082dc32283ef84cb', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXB9P1XVWRZ68QGCPY31SZR', 'description', NULL, 'The first container, before any host exists. Caddy serves the wasm bundle, which proves the build, TLS and serving path end to end (D-117).
+
+**Scope:**
+- A dev Dockerfile: one stage builds `flutter build web --wasm` with the Flutter version from `.fvmrc`, and Caddy serves the output.
+- Caddy config:
+  - TLS, using Caddy''s internal CA for local use;
+  - SPA fallback, so `/u/<N>/w/<slug>/` loads the app;
+  - COOP/COEP headers;
+  - precompressed assets;
+  - cache headers.
+- A `make` target that builds and runs it locally.
+
+**Out of scope:** the broker, the hosts and authentication (C2 onwards); release hardening (Epic F).
+
+**Done when:**
+- The image builds reproducibly from a clean clone.
+- A browser at `https://localhost:<port>/u/0/w/demo/` reports `crossOriginIsolated === true`, and the app boots as far as the web build currently does.', NULL, '2026-09-23 14:30:53', '2026-09-23 14:30:53.387', '2026-09-23 14:30:53.387', NULL, '8fa9359dcef3661f497062eb3f847323', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXBA8EXM95DZJQ1AFQJS0NM', 'description', NULL, 'clide has no end-user documentation yet: the README carries developer build steps, and `docs/` holds design history.
+
+Decide where user docs live, and their structure. The proposal is `docs/user/` plus an "Install" section in the README, with the legacy user manual (`legacy/docs/user-manual.md`) as a starting outline.
+
+**Done when:**
+- The location and outline are agreed.
+- They are committed as a skeleton the other Epic H stories fill in.', NULL, '2026-09-23 14:30:58', '2026-09-23 14:30:58.055', '2026-09-23 14:30:58.055', NULL, '22df098f6afb04bd9257aa1566555a2c', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXBABKEB9RR65ZVQQJVJG0G', 'description', NULL, 'When `PQL_VAULT` is set in the environment, the pql tests run `pql` against that vault instead of their fixture. This affects `test/pql/client_test.dart` and `test/daemon/pql_commands_test.dart`.
+
+- 18 tests fail: 14 in the client test and 4 in the daemon commands test.
+- **The ticket tests also write into the named vault.** They create "Fixture epic" / "Fixture child" tickets there, and change the status of whatever ticket carries the fixture''s id.
+
+With the variable unset, both files pass (57 tests). A developer who exports `PQL_VAULT` for their own work therefore gets a red suite and a modified vault from `make test`.
+
+**Fix:**
+- Scrub `PQL_VAULT`, `PQL_DB` and `PQL_CONFIG` from the environment of every `pql` process the tests spawn.
+- Add a hermetic test that fails if any `PQL_*` variable reaches one.
+
+**Done when:**
+- `PQL_VAULT=/some/other/vault make test` passes.
+- It leaves that vault untouched.', NULL, '2026-09-23 14:30:58', '2026-09-23 14:30:58.875', '2026-09-23 14:30:58.875', NULL, 'a7b83abde716f8a163a814f8411b3b19', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXBACVJ4TMMNGH31VV6A8A0', 'description', NULL, 'The vendored `native/linux-x64/libtree-sitter.so` is built on a recent distribution and needs glibc 2.34 or later: 11 of its symbols are versioned `GLIBC_2.34`. On a glibc 2.31 host (Ubuntu 20.04-based distributions), `DynamicLibrary.open` fails with ``version `GLIBC_2.34'' not found``. Two consequences on such hosts:
+- the native tree-sitter smoke test fails;
+- the desktop app cannot load tree-sitter.
+
+**Options:**
+- Rebuild against an older glibc baseline, for example in a manylinux-style build container. This follows D-63.
+- Or declare a minimum glibc, and state it in `BUILD.md` and the install docs.
+
+The web UI image has the same floor (Q-53 c).
+
+**Done when:**
+- The supported glibc floor is decided and written down.
+- The vendored library loads on it.
+- CI builds or tests on that floor.', NULL, '2026-09-23 14:30:59', '2026-09-23 14:30:59.195', '2026-09-23 14:30:59.195', NULL, 'b112235d1f7e95e98838ad38f8e46286', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06G64PCW3KDVCV1X83543FA5JC', 'parent_id', 'T-276', 'T-650', NULL, '2026-09-23 14:31:25', '2026-09-23 14:31:25.350', '2026-09-23 14:31:25.350', NULL, '10091363afc72523c7255ec9cc12adf1', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCQZ47MAN835B215GSSMRV8W', 'parent_id', NULL, 'T-650', NULL, '2026-09-23 14:31:25', '2026-09-23 14:31:25.395', '2026-09-23 14:31:25.395', NULL, '73024ce96695a98ba7112c970d197d8e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXB9EJTH1WYNJ8DJE2T72R4', 'status', 'backlog', 'done', NULL, '2026-09-23 14:31:30', '2026-09-23 14:31:30.752', '2026-09-23 14:31:30.752', NULL, '953d7e71daf75a167fb4cc46662b4edd', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06G64PCW3KDVCV1X83543FA5JC', 'description', 'Spike write-up: `docs/spikes/web-target-2026-09-02.md`. Built `flutter build web --wasm` at v2.12.0, served it, loaded it in Chrome, read the console and access log.
+
+**The build succeeds and the app boots surprisingly far** — WASM, all fonts, all 12 themes, i18n catalogs, extension registration, keymap — then throws `Unsupported operation: _Namespace` and never paints. That''s `dart:io`''s filesystem layer, which has no web implementation.
+
+## The finding that matters
+
+D-100 fences `dart:ffi` and adds a `flutter build web --wasm` CI step "so the fence can''t silently rot". **That gate proves the tree compiles; it cannot prove the tree boots** — and those two came apart. This is a D-108 case in the wild: a negative check ("it didn''t fail to compile") standing in for a positive one, so compiling got mistaken for working.
+
+Two holes, found only by running it:
+
+1. **`main.dart:114`** — `resolveWorkspaceRoot(Directory.current)` sits six lines ABOVE the `if (!kIsWeb)` guard protecting everything after it. Constructing a `Directory` is inert on web; resolving one is not. **Fixed in the spike commit** (one line); took the boot from "themes loaded" to "extensions registered".
+2. **A second `_Namespace`** during extension activation — NOT fixed. Twelve files on the activation path call existsSync/createSync/listSync/readAsStringSync: terminal_pane, conversation_view, path_preset_control, agent_bootstrap, account_registry, claude_pane, claude_config, cli_install, watchdog, toolchain_paths, file_log_sink, tree_sitter_ffi.
+
+## Scope of THIS ticket
+
+Keep it to making the fence honest — not porting the app:
+
+- Plug hole 2 (and any it reveals) so the app paints.
+- **Make the CI web job boot the bundle and assert first paint**, not merely compile it. Without that the next hole lands the same silent way. The harness exists (`tools/ui/`, D-26) and is already ticketed as **T-443**; it is currently dead — the Playwright browser isn''t even installed locally, which is how this went unnoticed.
+- Quieten the i18n fallback probe: it emits ~20 404s + red engine errors per clean boot (probing `assets/i18n/en/*` before `en_us`), burying real errors exactly when you need to read them.
+
+## Explicitly NOT this ticket
+
+There is no IPC client on web at all — `main.dart:561` passes `daemonClientFactory: kIsWeb ? null : …`. Even with every hole plugged the UI would paint and do nothing, because the transport is a Unix socket a browser can''t open. That''s an absent layer, not a bug, and it''s a product decision (D-100 says web is a UI/e2e surface, not a functional replacement).
+
+**If that decision is ever revisited, sequence it behind T-399.** "RemoteExecutionContext seam — subsystems stop calling Process.run/File directly" is verbatim the refactor a web backend needs; the web port and the SSH-remote epic (T-336) are the same work with a different pipe on the end. Doing them independently builds the same seam twice.
+
+Note also that with such a seam the terminal is NOT a blocker: xterm.dart renders fine in a browser, and only the *spawn* is native. D-100''s "no PTY/terminal on web" is true of a standalone build, not of a front end to a host that owns the pty.', 'Spike write-up: `docs/spikes/web-target-2026-09-02.md`. Built `flutter build web --wasm` at v2.12.0, served it, loaded it in Chrome, read the console and access log.
+
+**The build succeeds and the app boots surprisingly far** — WASM, all fonts, all 12 themes, i18n catalogs, extension registration, keymap — then throws `Unsupported operation: _Namespace` and never paints. That''s `dart:io`''s filesystem layer, which has no web implementation.
+
+## The finding that matters
+
+D-100 fences `dart:ffi` and adds a `flutter build web --wasm` CI step "so the fence can''t silently rot". **That gate proves the tree compiles; it cannot prove the tree boots** — and those two came apart. This is a D-108 case in the wild: a negative check ("it didn''t fail to compile") standing in for a positive one, so compiling got mistaken for working.
+
+Two holes, found only by running it:
+
+1. **`main.dart:114`** — `resolveWorkspaceRoot(Directory.current)` sits six lines ABOVE the `if (!kIsWeb)` guard protecting everything after it. Constructing a `Directory` is inert on web; resolving one is not. **Fixed in the spike commit** (one line); took the boot from "themes loaded" to "extensions registered".
+2. **A second `_Namespace`** during extension activation — NOT fixed. Twelve files on the activation path call existsSync/createSync/listSync/readAsStringSync: terminal_pane, conversation_view, path_preset_control, agent_bootstrap, account_registry, claude_pane, claude_config, cli_install, watchdog, toolchain_paths, file_log_sink, tree_sitter_ffi.
+
+## Scope of THIS ticket
+
+Keep it to making the fence honest — not porting the app:
+
+- Plug hole 2 (and any it reveals) so the app paints.
+- **Make the CI web job boot the bundle and assert first paint**, not merely compile it. Without that the next hole lands the same silent way. The harness exists (`tools/ui/`, D-26) and is already ticketed as **T-443**; it is currently dead — the Playwright browser isn''t even installed locally, which is how this went unnoticed.
+- Quieten the i18n fallback probe: it emits ~20 404s + red engine errors per clean boot (probing `assets/i18n/en/*` before `en_us`), burying real errors exactly when you need to read them.
+
+## Explicitly NOT this ticket
+
+There is no IPC client on web at all — `main.dart:561` passes `daemonClientFactory: kIsWeb ? null : …`. Even with every hole plugged the UI would paint and do nothing, because the transport is a Unix socket a browser can''t open. That''s an absent layer, not a bug, and it''s a product decision (D-100 says web is a UI/e2e surface, not a functional replacement).
+
+**If that decision is ever revisited, sequence it behind T-399.** "RemoteExecutionContext seam — subsystems stop calling Process.run/File directly" is verbatim the refactor a web backend needs; the web port and the SSH-remote epic (T-336) are the same work with a different pipe on the end. Doing them independently builds the same seam twice.
+
+Note also that with such a seam the terminal is NOT a blocker: xterm.dart renders fine in a browser, and only the *spawn* is native. D-100''s "no PTY/terminal on web" is true of a standalone build, not of a front end to a host that owns the pty.
+
+Re-parented 2026-09-23 under the web UI initiative (T-648), Epic B (T-650): D-116 makes web a real target. The ''Explicitly NOT this ticket'' boundary stands; the transport is Epic C (T-651). The advice to sequence web work behind T-399 is reviewed in Q-52(a).', NULL, '2026-09-23 14:31:30', '2026-09-23 14:31:30.927', '2026-09-23 14:31:30.927', NULL, '63692ac3719e33318e669348515a7ce7', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCQZ47MAN835B215GSSMRV8W', 'description', 'Follow-up from T-438 (the `dart:ffi` web fence, D-100): with `flutter build web --wasm` compiling again and a compile gate in CI, restore the *full* web-WASM Playwright e2e — the remaining slice of T-438''s acceptance.
+
+**What''s already done (T-438).** The web build compiles; `.github/workflows/test.yml` has a `web-wasm` job that runs `flutter build web --wasm` (the anti-rot compile gate); `make ui-dev` (build + serve) works.
+
+**What this ticket adds.** The actual browser e2e, which needs runner provisioning the compile gate doesn''t:
+- `make test-e2e` / `make ui-smoke` run green locally and in CI (build → serve `localhost:4280` → Playwright smoke → teardown).
+- A GitHub Actions job: `setup-node`, `npm install` + `npx playwright install --with-deps` in `tools/ui/`, then `make test-e2e`. Add it to `.github/workflows/test.yml` (replacing the compile-only `web-wasm` job, or as a second job that `needs` it).
+- Confirm the Playwright driver (D-26) still matches the current web entrypoint after the fence (degraded web build: no terminal/native-git/highlighting — the smoke should assert what *does* render, e.g. the shell boots and a pane mounts).
+
+**Acceptance.** `make test-e2e` and `make ui-smoke` pass locally; a CI job runs the Playwright smoke against the wasm build on every push/PR; D-26/D-32 reflect the restored e2e job.
+
+**Refs:** T-438 (compile fence + gate), D-100 / Q-50 (fence decision), D-26 (Playwright driver), D-32 (CI; the withheld e2e job).', 'Follow-up from T-438 (the `dart:ffi` web fence, D-100): with `flutter build web --wasm` compiling again and a compile gate in CI, restore the *full* web-WASM Playwright e2e — the remaining slice of T-438''s acceptance.
+
+**What''s already done (T-438).** The web build compiles; `.github/workflows/test.yml` has a `web-wasm` job that runs `flutter build web --wasm` (the anti-rot compile gate); `make ui-dev` (build + serve) works.
+
+**What this ticket adds.** The actual browser e2e, which needs runner provisioning the compile gate doesn''t:
+- `make test-e2e` / `make ui-smoke` run green locally and in CI (build → serve `localhost:4280` → Playwright smoke → teardown).
+- A GitHub Actions job: `setup-node`, `npm install` + `npx playwright install --with-deps` in `tools/ui/`, then `make test-e2e`. Add it to `.github/workflows/test.yml` (replacing the compile-only `web-wasm` job, or as a second job that `needs` it).
+- Confirm the Playwright driver (D-26) still matches the current web entrypoint after the fence (degraded web build: no terminal/native-git/highlighting — the smoke should assert what *does* render, e.g. the shell boots and a pane mounts).
+
+**Acceptance.** `make test-e2e` and `make ui-smoke` pass locally; a CI job runs the Playwright smoke against the wasm build on every push/PR; D-26/D-32 reflect the restored e2e job.
+
+**Refs:** T-438 (compile fence + gate), D-100 / Q-50 (fence decision), D-26 (Playwright driver), D-32 (CI; the withheld e2e job).
+
+Re-parented 2026-09-23 under Epic B (T-650) of the web UI initiative (T-648, D-116). The boot-and-first-paint gate is the positive check D-100''s compile gate lacked (T-577).', NULL, '2026-09-23 14:31:31', '2026-09-23 14:31:31.083', '2026-09-23 14:31:31.083', NULL, 'b755b9486da7e9d875bfabc5e1bbc72a', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM79H4MPEWW2TWQ89D0', 'description', 'Build a distribution-aware installer for clide. Detects platform (Linux distro, macOS, WSL) and package manager (apt, dnf, pacman, brew, winget). Handles: Flutter runtime or bundled AOT binary, ptyc compilation or prebuilt binary, tmux and other runtime dependencies, font installation (Josefin Sans, JetBrains Mono, Phosphor Icons), desktop entry / .app bundle / Start Menu shortcut, and PATH registration. Should support both interactive install and headless CI mode (--unattended). Consider AppImage/Flatpak for Linux, .dmg for macOS.', 'Build a distribution-aware installer for clide. Detects platform (Linux distro, macOS, WSL) and package manager (apt, dnf, pacman, brew, winget). Handles: Flutter runtime or bundled AOT binary, ptyc compilation or prebuilt binary, tmux and other runtime dependencies, font installation (Josefin Sans, JetBrains Mono, Phosphor Icons), desktop entry / .app bundle / Start Menu shortcut, and PATH registration. Should support both interactive install and headless CI mode (--unattended). Consider AppImage/Flatpak for Linux, .dmg for macOS.
+
+The web UI initiative (T-648) adds a container install channel for Linux + Docker: Epic G (T-655). Desktop installers stay here.', NULL, '2026-09-23 14:31:31', '2026-09-23 14:31:31.260', '2026-09-23 14:31:31.260', NULL, '9b26aae4541d17250a9d7cf7dba1537d', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM5YG22EV7BFTX5RTPR', 'description', 'Conditional import behind TreeSitterService: native impl uses dart:ffi to libtree-sitter.so, web impl uses dart:js_interop to web-tree-sitter (official emscripten build from tree-sitter org). Same grammar .wasm files on both platforms. Vendor web-tree-sitter .wasm + JS glue as Flutter web assets, pinned version, added to licenses.yaml.
+
+Cancelled 2026-06-10 (backlog relevance sweep): contradicts the desktop-first guardrail (CLAUDE.md) - web is an explicit non-goal / happy-accident only. TreeSitterService is FFI-only and there is no shipped web product, so a web-tree-sitter dual-path is not wanted. Reopen only if web ever becomes a real target.', 'Conditional import behind TreeSitterService: native impl uses dart:ffi to libtree-sitter.so, web impl uses dart:js_interop to web-tree-sitter (official emscripten build from tree-sitter org). Same grammar .wasm files on both platforms. Vendor web-tree-sitter .wasm + JS glue as Flutter web assets, pinned version, added to licenses.yaml.
+
+Cancelled 2026-06-10 (backlog relevance sweep): contradicts the desktop-first guardrail (CLAUDE.md) - web is an explicit non-goal / happy-accident only. TreeSitterService is FFI-only and there is no shipped web product, so a web-tree-sitter dual-path is not wanted. Reopen only if web ever becomes a real target.
+
+Web is now a real target (D-116). Whether to reopen this ticket (wasm tree-sitter in the browser, or highlighting on the host) is Q-52(f), tracked as T-675.', NULL, '2026-09-23 14:31:31', '2026-09-23 14:31:31.442', '2026-09-23 14:31:31.442', NULL, '44fd7727d8b24de3f1541a64fcba79d7', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKMXSVCE98K1H76N00TYCQR', 'description', 'The sweep half of D-96: subsystems that touch the workspace (git client, pql client, files listing/IO, search engines, editor registry) gain an ExecutionContext seam instead of bare Process.run/File/Directory, so the same subsystem code serves local and ssh-exec workspaces.
+
+Shape: lib/src/remote/execution_context.dart (Flutter-free) —
+- abstract ExecutionContext { Future<ProcResult> run(String exe, List<String> args, {String? cwd, String? stdinText}); plus the file primitives actually used: readFile/writeFile/stat/list/exists/delete (audit the real call surface first — grep Process.run + dart:io File/Directory under lib/src/{git,pql,files,search,editor,daemon}). }
+- LocalExecutionContext: today''s behavior verbatim (Process.run + dart:io).
+- SshExecutionContext(SshConnection) [T-398]: run → exec channel; file primitives via standard remote commands (cat/stat -c/find/test/rm; write via `cat > file` with stdin) — POSIX only per D-98.
+
+Migration order (one subsystem per commit, zero behavior change proven by existing suites): git/operations.dart → pql/client.dart → files/listing.dart → search → editor/registry.dart. Constructor-inject the context defaulting to LocalExecutionContext so call sites don''t churn.
+
+Watcher: the polling watcher (debounced mtime/git-status sweep emitting the same FileChange events; inotifywait opportunistic) is its own follow-up ticket once this seam exists — don''t fold it in here.
+
+Done when: all five subsystems take an ExecutionContext, local default keeps every existing test green untouched, SshExecutionContext passes a stub-ssh suite for run + each file primitive.', 'The sweep half of D-96: subsystems that touch the workspace (git client, pql client, files listing/IO, search engines, editor registry) gain an ExecutionContext seam instead of bare Process.run/File/Directory, so the same subsystem code serves local and ssh-exec workspaces.
+
+Shape: lib/src/remote/execution_context.dart (Flutter-free) —
+- abstract ExecutionContext { Future<ProcResult> run(String exe, List<String> args, {String? cwd, String? stdinText}); plus the file primitives actually used: readFile/writeFile/stat/list/exists/delete (audit the real call surface first — grep Process.run + dart:io File/Directory under lib/src/{git,pql,files,search,editor,daemon}). }
+- LocalExecutionContext: today''s behavior verbatim (Process.run + dart:io).
+- SshExecutionContext(SshConnection) [T-398]: run → exec channel; file primitives via standard remote commands (cat/stat -c/find/test/rm; write via `cat > file` with stdin) — POSIX only per D-98.
+
+Migration order (one subsystem per commit, zero behavior change proven by existing suites): git/operations.dart → pql/client.dart → files/listing.dart → search → editor/registry.dart. Constructor-inject the context defaulting to LocalExecutionContext so call sites don''t churn.
+
+Watcher: the polling watcher (debounced mtime/git-status sweep emitting the same FileChange events; inotifywait opportunistic) is its own follow-up ticket once this seam exists — don''t fold it in here.
+
+Done when: all five subsystems take an ExecutionContext, local default keeps every existing test green untouched, SshExecutionContext passes a stub-ssh suite for run + each file primitive.
+
+Q-52(a), 2026-09-23: for a thick web host this seam is adjacent rather than a prerequisite. git, pql, files, search and editor already run behind the dispatcher and can stay on the host unchanged; the dart:io that would run in a browser lives in lib/builtin/claude and lib/kernel. T-577''s advice to sequence web work behind this ticket is under review there.', NULL, '2026-09-23 14:31:31', '2026-09-23 14:31:31.608', '2026-09-23 14:31:31.608', NULL, 'e4bc337ec2308d7e213995b96cc28297', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBDSQ2GBSP0ZH4RHZG2PMR0R', 'description', 'Introduce a ''modes'' capability in the extension manifest (lib/extension/src/manifest.dart) as an open vocabulary: edit and read now, with remote/ssh/webui reserved (D-94). The extension host (lib/extension/src/host.dart) activates an extension only when the active workspace mode is in its declared set; an undeclared extension defaults to edit-only. Then classify the builtins: read-mode-safe = editor (view), files (tree + D-79 grep), git (status/log/diff viewing), terminal, claude; goes dark = pql (search/query/backlinks), decisions, tickets, graph; partial = problems (keep non-pql diagnostics, drop the pql.doctor row). This is the substrate read-mode degrade (T-357) gates on, and the seam the SSH-remote question (Q-23) is expected to resolve into.', 'Introduce a ''modes'' capability in the extension manifest (lib/extension/src/manifest.dart) as an open vocabulary: edit and read now, with remote/ssh/webui reserved (D-94). The extension host (lib/extension/src/host.dart) activates an extension only when the active workspace mode is in its declared set; an undeclared extension defaults to edit-only. Then classify the builtins: read-mode-safe = editor (view), files (tree + D-79 grep), git (status/log/diff viewing), terminal, claude; goes dark = pql (search/query/backlinks), decisions, tickets, graph; partial = problems (keep non-pql diagnostics, drop the pql.doctor row). This is the substrate read-mode degrade (T-357) gates on, and the seam the SSH-remote question (Q-23) is expected to resolve into.
+
+Adopted by the web UI initiative for the webui mode: T-671 (D-116).', NULL, '2026-09-23 14:31:31', '2026-09-23 14:31:31.813', '2026-09-23 14:31:31.813', NULL, '6bf54888181b3c2759e416dc8d32fdf2', 2) ON CONFLICT(hash) DO NOTHING;
