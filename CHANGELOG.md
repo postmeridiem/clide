@@ -18,6 +18,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [2.15.0] — 2026-09-23
+
+### Added
+
 - **`clide pane list` names what a detail pane shows** (T-246) — the open
   ticket, decision, or editor file comes back as `subject`.
 - **Messages sent while Claude is working wait in a queue** (T-587) — shown
