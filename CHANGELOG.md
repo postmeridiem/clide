@@ -22,6 +22,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **Background-task notifications no longer appear as your messages**
+  (T-624) — when a background command or agent finished, its raw
+  `<task-notification>` block showed under "you". It is now a one-line
+  clide notice with the task's summary.
+
 ## [2.18.0] — 2026-09-23
 
 ### Added

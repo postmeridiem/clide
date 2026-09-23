@@ -672,6 +672,46 @@ void main() {
     });
   });
 
+  group('background-task notifications (T-624)', () {
+    // Shape from a real transcript: a "user" record tagged origin.kind
+    // task-notification, its content the harness's <task-notification> block.
+    const block =
+        '<task-notification>\n<task-id>bfn9tgo29</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n'
+        '<output-file>/tmp/x.output</output-file>\n<status>completed</status>\n'
+        '<summary>Background command "Wait for the v2.18.0 release run" completed (exit code 0)</summary>\n</task-notification>';
+    String event(Object content, {bool tagged = true}) => jsonEncode({
+      'type': 'user',
+      'uuid': 'tn1',
+      'timestamp': '2026-09-23T10:00:00.000Z',
+      if (tagged) 'origin': {'kind': 'task-notification'},
+      'message': {'role': 'user', 'content': content},
+    });
+
+    test('renders the summary as a clide notice, never as the user', () {
+      final items = parseTranscriptChunk(event(block)).items;
+      expect(items.whereType<UserMessage>(), isEmpty);
+      final msg = items.whereType<AssistantTextMessage>().single;
+      expect(msg.synthetic, isTrue);
+      expect(msg.text, 'Background command "Wait for the v2.18.0 release run" completed (exit code 0)');
+    });
+
+    test('the block is recognised even without the origin tag', () {
+      final items = parseTranscriptChunk(event(block, tagged: false)).items;
+      expect(items.whereType<UserMessage>(), isEmpty);
+      expect(items.single, isA<AssistantTextMessage>());
+    });
+
+    test('a tagged notification without a summary still says what happened', () {
+      final items = parseTranscriptChunk(event('<task-notification><status>completed</status></task-notification>')).items;
+      expect(items.single, isA<AssistantTextMessage>().having((m) => m.text, 'text', 'A background task finished.'));
+    });
+
+    test('prose that merely mentions the tag stays a user message', () {
+      final items = parseTranscriptChunk(event('what is a <task-notification>?', tagged: false)).items;
+      expect(items.single, isA<UserMessage>());
+    });
+  });
+
   group('TranscriptReader — append streaming (filesystem)', () {
     late Directory tempBase;
 

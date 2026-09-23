@@ -703,7 +703,29 @@ void _parseUserInto(
   // record wrapped in <local-command-stdout>. It is the CLI talking, not the
   // user: unwrap it and emit it as CLI-local output so it renders as the muted
   // "clide" card rather than under the "you" stripe (T-509).
+  //
+  // A background task finishing (a backgrounded Bash command, a sub-agent)
+  // reaches the model as a "user" record too — `origin.kind:
+  // task-notification`, its text a <task-notification> block. That is the
+  // harness, not the user: show its summary line as a clide notice (T-624).
+  final origin = envelope['origin'];
+  final fromTask = origin is Map && origin['kind'] == 'task-notification';
   void addUserText(String text, {required String? toolUseId}) {
+    final task = taskNotificationSummary(text, force: fromTask);
+    if (task != null) {
+      out.add(
+        AssistantTextMessage(
+          uuid: uuid,
+          timestamp: timestamp,
+          isSidechain: isSidechain,
+          parentUuid: parentUuid,
+          parentToolUseId: parentToolUseId,
+          text: task,
+          synthetic: true,
+        ),
+      );
+      return;
+    }
     final stdout = localCommandStdout(text);
     if (stdout == null) {
       out.add(
@@ -769,6 +791,19 @@ void _parseUserInto(
 }
 
 final RegExp _localCommandStdout = RegExp(r'^\s*<local-command-stdout>([\s\S]*)</local-command-stdout>\s*$');
+
+final RegExp _taskSummary = RegExp(r'<summary>([\s\S]*?)</summary>');
+
+/// The line to show for a background-task notification (T-624): its
+/// `<summary>`, or a generic line when it has none. Null when [text] isn't
+/// one — a `<task-notification>` block, or anything at all when [force]d by
+/// the record's `origin.kind`.
+String? taskNotificationSummary(String text, {bool force = false}) {
+  final trimmed = text.trimLeft();
+  if (!force && !trimmed.startsWith('<task-notification>')) return null;
+  final summary = _taskSummary.firstMatch(trimmed)?.group(1)?.trim();
+  return (summary == null || summary.isEmpty) ? 'A background task finished.' : summary;
+}
 
 /// ANSI/VT escape sequences: CSI (`ESC [ … final`), OSC (`ESC ] … BEL|ST`) and
 /// two-byte `ESC x` escapes. Only sequences that start with a real ESC byte —
