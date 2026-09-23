@@ -11,8 +11,9 @@
 # .githooks/. (The old regex matched only lib/ and pubspec.*, so a push that
 # ONLY changed a test, a ci/ gate script, or this hook skipped the whole suite.)
 # Pure assets/docs changes still ride along with the next lib-touching push.
-# There is no release CI — the full suite is only ever run here or via
-# `make push-check`. So a push touching none of the above runs just the instant
+# Release CI (release.yml) builds and publishes but runs no tests, so the full
+# suite is only ever run here or via `make push-check`. A push touching none of
+# the above runs just the instant
 # decisions + changelog + native-SHA gates. A state we can't classify (unfetched remote, new
 # branch) runs the full gate.
 set -euo pipefail

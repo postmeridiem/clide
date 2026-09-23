@@ -27,6 +27,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **"Check for updates" sees new releases again** (T-619) — no release after
+  v2.8.1 was published to GitHub, so the check always said you were up to
+  date. Releases now publish a Linux bundle; Windows bundles are paused.
+
 ## [2.15.0] — 2026-09-23
 
 ### Added
