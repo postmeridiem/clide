@@ -75,7 +75,13 @@ class _DragResizeHandleState extends State<DragResizeHandle> {
               height: widget.axis == Axis.vertical ? widget.thickness : null,
               color: tokens.chromeBackground,
               child: Align(
-                alignment: widget.slot == Slots.sidebar ? Alignment.centerRight : Alignment.centerLeft,
+                // The line sits on the edge facing the workspace; the dock's
+                // handle is above it, so its line runs along the top.
+                alignment: switch (widget.slot) {
+                  Slots.sidebar => Alignment.centerRight,
+                  Slots.dock => Alignment.topCenter,
+                  _ => Alignment.centerLeft,
+                },
                 child: Container(
                   width: widget.axis == Axis.horizontal ? (_focused ? 2 : 1) : null,
                   height: widget.axis == Axis.vertical ? (_focused ? 2 : 1) : null,
@@ -114,6 +120,15 @@ class _DragResizeHandleState extends State<DragResizeHandle> {
             replacers: [I18nReplacer(from: '{axis}', replace: axis)],
           ) ??
           'Context panel $axis';
+    }
+    if (widget.slot == Slots.dock) {
+      return i18n?.interpolated(
+            'resize.dock',
+            namespace: 'core',
+            placeholder: 'Output dock {axis}',
+            replacers: [I18nReplacer(from: '{axis}', replace: axis)],
+          ) ??
+          'Output dock $axis';
     }
     return i18n?.interpolated(
           'resize.slot',
@@ -175,8 +190,7 @@ class _DragResizeHandleState extends State<DragResizeHandle> {
     final startPt = _dragStartPointer;
     if (start == null || startPt == null) return;
     final rawDelta = widget.axis == Axis.horizontal ? e.position.dx - startPt.dx : e.position.dy - startPt.dy;
-    final delta = widget.slot == Slots.contextPanel ? -rawDelta : rawDelta;
-    widget.arrangement.setSize(widget.slot, start + delta);
+    widget.arrangement.setSize(widget.slot, bumpedSlotSize(slot: widget.slot, current: start, rawDelta: rawDelta));
   }
 
   void _onUp(PointerUpEvent _) {
@@ -194,8 +208,10 @@ class _BumpIntent extends Intent {
 /// keys both call this so the keyboard mirrors the drag: positive
 /// delta = right/down. Context-panel sits on the right edge of the
 /// app, so we flip the sign there — right-arrow should *shrink* it,
-/// matching how dragging the left-edge handle rightward works.
+/// matching how dragging the left-edge handle rightward works. The
+/// bottom dock is flipped for the same reason: its handle sits on its
+/// top edge, so dragging (or arrowing) up grows it (T-261).
 double bumpedSlotSize({required SlotId slot, required double current, required double rawDelta}) {
-  final delta = slot == Slots.contextPanel ? -rawDelta : rawDelta;
+  final delta = (slot == Slots.contextPanel || slot == Slots.dock) ? -rawDelta : rawDelta;
   return current + delta;
 }

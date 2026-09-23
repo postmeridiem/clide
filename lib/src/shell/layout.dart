@@ -62,16 +62,15 @@ class RootLayout extends StatelessWidget {
                 ],
               ),
             ),
-            if (dockVisible)
+            // The dock's top edge is a drag handle (T-261); its line doubles
+            // as the dock's top border.
+            if (dockVisible) ...[
+              DragResizeHandle(arrangement: a, slot: Slots.dock, axis: Axis.vertical),
               SizedBox(
                 height: dockHeight,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    border: Border(top: BorderSide(color: ClideSettings.theme.of(ctx).surface.chromeBorder)),
-                  ),
-                  child: SlotHost(slot: Slots.dock),
-                ),
+                child: SlotHost(slot: Slots.dock),
               ),
+            ],
             if (statusVisible)
               Container(
                 height: statusHeight,

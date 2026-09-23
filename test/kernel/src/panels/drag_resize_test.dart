@@ -156,6 +156,43 @@ void main() {
       expect(bumpedSlotSize(slot: Slots.contextPanel, current: 200, rawDelta: -10), 210);
     });
 
+    test('bumpedSlotSize flips sign for the bottom dock (handle on its top edge, T-261)', () {
+      expect(bumpedSlotSize(slot: Slots.dock, current: 200, rawDelta: -10), 210);
+      expect(bumpedSlotSize(slot: Slots.dock, current: 200, rawDelta: 10), 190);
+    });
+
+    testWidgets('dock handle: dragging up grows the dock, and it is labelled as the dock (T-261)', (tester) async {
+      final arr = LayoutArrangement();
+      arr.applyPreset(
+        const LayoutPresetContribution(
+          id: 'test-preset',
+          displayName: 'Test',
+          slots: [LayoutSlot(slot: Slots.dock, position: SlotPosition.bottom, defaultSize: 200)],
+        ),
+      );
+      final semHandle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        harness(
+          f,
+          Center(
+            child: SizedBox(
+              width: 200,
+              height: 40,
+              child: DragResizeHandle(arrangement: arr, slot: Slots.dock, axis: Axis.vertical),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.getSemantics(find.byType(DragResizeHandle)).label, 'Output dock height');
+      final gesture = await tester.startGesture(tester.getCenter(find.byType(DragResizeHandle)), kind: PointerDeviceKind.mouse);
+      await gesture.moveBy(const Offset(0, -40)); // drag up → dock grows
+      await tester.pump();
+      await gesture.up();
+      expect(arr.sizeOf(Slots.dock), 240);
+      semHandle.dispose();
+    });
+
     testWidgets('vertical-axis handle uses arrow up/down shortcuts and "height" label', (tester) async {
       final arr = LayoutArrangement();
       arr.applyPreset(

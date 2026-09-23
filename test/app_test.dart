@@ -27,6 +27,7 @@ import 'package:clide/clide.dart' show clideName;
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -136,6 +137,31 @@ void main() {
       findsOneWidget,
       reason: 'the interaction zone must bottom-anchor clear of the resize border when no status bar covers it',
     );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('RootLayout puts a drag handle above the open dock; dragging it up grows the dock (T-261)', (tester) async {
+    registerTabs();
+    f.services.panels.contribute(TabContribution(id: 'output.panel', slot: Slots.dock, title: 'Output', build: (_) => const Text('DOCK')));
+    await pumpLayout(tester);
+    final dockHandle = find.byWidgetPredicate((w) => w is DragResizeHandle && w.slot == Slots.dock);
+    expect(dockHandle, findsNothing, reason: 'a closed dock has no handle');
+
+    f.services.arrangement.setVisible(Slots.dock, true);
+    f.services.arrangement.setSize(Slots.dock, 200);
+    await tester.pump();
+    expect(find.text('DOCK'), findsOneWidget);
+    expect(dockHandle, findsOneWidget);
+    final handleTop = tester.getTopLeft(dockHandle).dy;
+    expect(tester.getTopLeft(find.text('DOCK')).dy, greaterThan(handleTop), reason: 'the handle sits above the dock');
+
+    final gesture = await tester.startGesture(tester.getCenter(dockHandle), kind: PointerDeviceKind.mouse);
+    await gesture.moveBy(const Offset(0, -60));
+    await tester.pump();
+    await gesture.up();
+    await tester.pump();
+    expect(f.services.arrangement.sizeOf(Slots.dock), 260);
+    expect(tester.getTopLeft(dockHandle).dy, handleTop - 60, reason: 'the grown dock pushes the workspace up');
     expect(tester.takeException(), isNull);
   });
 

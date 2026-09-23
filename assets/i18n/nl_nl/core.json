@@ -23,6 +23,7 @@
   "resize.axis.height": { "translation": "hoogte" },
   "resize.sidebar": { "translation": "Zijbalk {axis}" },
   "resize.contextPanel": { "translation": "Contextpaneel {axis}" },
+  "resize.dock": { "translation": "Uitvoerdok {axis}" },
   "resize.slot": { "translation": "{slot} {axis}" },
   "resize.pixels": { "translation": "{n} pixels" },
   "contextMenu.cut": { "translation": "Knippen" },
