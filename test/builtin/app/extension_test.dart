@@ -19,6 +19,7 @@ void main() {
   late KernelFixture f;
   late List<MethodCall> calls;
   var hideAllowed = true;
+  var now = DateTime(2026, 9, 23, 9);
 
   List<Object?> argsOf(String method) => [for (final c in calls.where((c) => c.method == method)) c.arguments];
 
@@ -44,7 +45,8 @@ void main() {
         },
       },
     );
-    f.services.extensions.register(AppExtension());
+    now = DateTime(2026, 9, 23, 9);
+    f.services.extensions.register(AppExtension(now: () => now));
     await f.services.extensions.activate('builtin.app');
   });
 
@@ -89,6 +91,35 @@ void main() {
       f.services.events.emit(const ProjectOpened(path: '/work/repo-a'));
       await pumpEventQueue();
       expect(argsOf('setWorkspace'), contains('/work/repo-a'));
+    });
+  });
+
+  group('a notification pulses the tray', () {
+    Future<void> toast() async {
+      publishToast(f.services.messages, 'test', 'something happened');
+      await pumpEventQueue();
+    }
+
+    test('every toast channel message (all notifications go there) pulses once', () async {
+      await toast();
+      expect(argsOf('pulse'), hasLength(1));
+    });
+
+    test('a burst within the throttle is one pulse; after it, the next one pulses again', () async {
+      await toast();
+      now = now.add(const Duration(milliseconds: 500));
+      await toast();
+      await toast();
+      expect(argsOf('pulse'), hasLength(1), reason: 'a burst reads as one spin');
+      now = now.add(AppExtension.pulseThrottle);
+      await toast();
+      expect(argsOf('pulse'), hasLength(2));
+    });
+
+    test('kernel notifications reach it through the same channel', () async {
+      f.services.notify.warn('disk almost full');
+      await pumpEventQueue();
+      expect(argsOf('pulse'), hasLength(1));
     });
   });
 

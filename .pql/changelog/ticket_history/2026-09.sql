@@ -305,3 +305,14 @@ Notes:
 - `clide panel resize --to` goes through the same clamp; its error/clamp messages should report the effective max.
 
 Acceptance: on a wide window the context panel can be dragged well past 1000px (up to the fraction); on a ~1600px window behaviour is unchanged; Claude never drops below its minimum; covered by arrangement tests at two window widths.', NULL, '2026-09-23 07:19:41', '2026-09-23 07:19:41.110', '2026-09-23 07:19:41.110', NULL, 'c8fb4adb9c2cfdcc676ad2dd967d985e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCT929BB9PM3C1NVM0FDNRJC', 'description', NULL, 'The ticket detail view (context panel) shows a ticket''s PARENT TREE but never its children. Opening an epic or story therefore hides what it contains. The user''s screenshot of T-276 (the UI tracker epic, which has dozens of children) showed only its own description.
+
+User 2026-09-23: "a ticket to add child tickets. in the previous screenshot the 276 ticket has a lot of children, but they are not shown".
+
+Today: `TicketDetailController.load` requests `pql.tickets.show` with `withContext: true` and reads only `ancestors` + `decisions`; `TicketDetail` has no children field; `ticket_detail_view.dart` renders a parents section (`_CompactCard` rows) and nothing below.
+
+Want: a CHILDREN section under the description, listing the direct children as the same compact cards (id, type colour, title, status), each opening that ticket in the reader on click (via the same ReaderNav `selection` path, so back/forward works). Order: open work first (in_progress, then ready/backlog), done last. An epic like T-276 can have many, so collapse done children behind a "N done" toggle, or cap with "show all".
+
+Data: pql already supports `pql ticket show <id> --with-children` (returns a `children` array: id/type/title/status/priority). Check whether the clide `pql.tickets.show` wrapper (lib/src/pql/) passes it through with `withContext`, or add a `withChildren` arg. Wrap, don''t duplicate (D-3).
+
+Acceptance: opening T-276 lists its children; clicking one navigates to it and Back returns; a leaf ticket shows no children section; done children are de-emphasised or collapsed; covered by controller + widget tests.', NULL, '2026-09-23 07:21:44', '2026-09-23 07:21:44.503', '2026-09-23 07:21:44.503', NULL, '9629c8e5f2427465928bc0fcda421a37', 2) ON CONFLICT(hash) DO NOTHING;

@@ -77,6 +77,10 @@ class TrayRegistry extends ChangeNotifier implements WindowHost {
   /// Localized labels for the shared menu (native has no catalog).
   Future<bool> setLabels(Map<String, String> labels) async => await _invoke<bool>('setLabels', labels) ?? false;
 
+  /// Draw the eye to the tray once — the icon spins a turn (Linux), the Dock
+  /// icon bounces (macOS). Cosmetic: callers throttle, native absorbs bursts.
+  Future<bool> pulse() async => await _invoke<bool>('pulse') ?? false;
+
   @override
   Future<bool> show() async => await _invoke<bool>('show') ?? false;
 

@@ -40,7 +40,8 @@ void main() {
     expect(await tray.hide(), isTrue);
     expect(await tray.quit(all: false), isTrue);
     expect(await tray.quit(all: true), isTrue);
-    expect(calls.map((c) => c.method), ['setCloseToTray', 'setWorkspace', 'setLabels', 'show', 'hide', 'quit', 'quitAll']);
+    expect(await tray.pulse(), isTrue);
+    expect(calls.map((c) => c.method), ['setCloseToTray', 'setWorkspace', 'setLabels', 'show', 'hide', 'quit', 'quitAll', 'pulse']);
     expect(calls[0].arguments, true);
     expect(calls[1].arguments, '/repo');
     expect(calls[2].arguments, {'quitAll': 'Quit clide'});

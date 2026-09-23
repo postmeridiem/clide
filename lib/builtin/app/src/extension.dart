@@ -19,6 +19,14 @@ const String kLogLevelKey = 'app.log.level';
 /// the tray/Dock (D-110) — close-to-tray policy, the tray menu's labels and
 /// workspace name, and the hide / quit / quit-all commands.
 class AppExtension extends ClideExtension {
+  AppExtension({DateTime Function()? now}) : _now = now ?? DateTime.now;
+
+  /// Injectable so the pulse throttle is testable without waiting it out.
+  final DateTime Function() _now;
+
+  /// At most one tray pulse per this window — a burst of toasts is one spin.
+  static const Duration pulseThrottle = Duration(seconds: 2);
+
   @override
   String get id => 'builtin.app';
   @override
@@ -28,8 +36,10 @@ class AppExtension extends ClideExtension {
 
   ClideExtensionContext? _ctx;
   StreamSubscription<ProjectOpened>? _projectSub;
+  StreamSubscription<Message>? _toastSub;
   bool? _closeToTray;
   String? _logLevel;
+  DateTime? _lastPulse;
 
   @override
   Future<void> activate(ClideExtensionContext ctx) async {
@@ -49,6 +59,19 @@ class AppExtension extends ClideExtension {
     final current = ctx.project.current?.path;
     if (current != null) unawaited(ctx.tray.setWorkspace(current));
     _projectSub = ctx.events.on<ProjectOpened>().listen((e) => unawaited(ctx.tray.setWorkspace(e.path)));
+    // Every notification is a toast on the bus; each turns the tray icon once
+    // (the Dock bounces on macOS), so a hidden window still catches the eye.
+    _toastSub = ctx.messages.subscribe(channel: toastChannel).listen((_) => _pulse());
+  }
+
+  void _pulse() {
+    final ctx = _ctx;
+    if (ctx == null) return;
+    final now = _now();
+    final last = _lastPulse;
+    if (last != null && now.difference(last) < pulseThrottle) return;
+    _lastPulse = now;
+    unawaited(ctx.tray.pulse());
   }
 
   @override
@@ -56,6 +79,7 @@ class AppExtension extends ClideExtension {
     _ctx?.settings.removeListener(_onSettings);
     _ctx?.i18n.removeListener(_pushLabels);
     await _projectSub?.cancel();
+    await _toastSub?.cancel();
   }
 
   void _pushLabels() {

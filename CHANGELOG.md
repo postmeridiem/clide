@@ -25,6 +25,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - **Closing a window keeps clide running in the tray** (T-55, Linux) — Claude
   sessions and terminals survive; one shared tray icon lists every window and
   quits them all. Opt out under Settings → General.
+- **The tray icon turns once when clide raises a notification** (T-55) — so a
+  hidden window still catches your eye. On macOS the Dock icon bounces.
 
 ### Changed
 
