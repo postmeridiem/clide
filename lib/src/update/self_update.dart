@@ -187,6 +187,10 @@ const kRelaunchEnv = 'CLIDE_RELAUNCH';
 /// Whether this process was started by an update's window restart.
 bool isRelaunch(List<String> args, Map<String, String> env) => args.contains(kRelaunchArg) || env[kRelaunchEnv] == '1';
 
+/// Set once at boot from [isRelaunch]: what the update closed comes back
+/// without asking (D-114) — the user never chose to close it.
+bool startedByRelaunch = false;
+
 typedef WindowStart = Future<Process> Function(String exe, List<String> args, String cwd, Map<String, String> env);
 
 /// Restarts clide windows on the binary at [executable].

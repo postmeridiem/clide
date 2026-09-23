@@ -13,6 +13,7 @@ import 'package:clide/builtin/claude/src/claude_status.dart' show nextPermission
 import 'package:clide/builtin/claude/src/conversation_view.dart' show claudeAccent;
 import 'package:clide/builtin/claude/src/claude_session_host.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
+import 'package:clide/builtin/claude/src/session_restore.dart';
 import 'package:clide/builtin/claude/src/pane_context_status.dart';
 import 'package:clide/builtin/claude/src/claude_meta_sidebar.dart';
 import 'package:clide/builtin/claude/src/session_defaults.dart';
@@ -73,6 +74,17 @@ class ClaudeExtension extends ClideExtension {
   /// slash list). Built and loaded at activation (D-76, T-151).
   ClaudeConfig? get config => _config;
 
+  /// Reopen the workspace's secondary Claude sessions from last time (T-589):
+  /// the ones on offer, else everything remembered. Null when the Claude tab
+  /// isn't built yet. Backs the palette command and `clide claude restore`.
+  int? restoreSessions() {
+    final host = _hostKey.currentState;
+    final root = _projectRoot ?? _ctx?.project.current?.path;
+    if (host == null) return null;
+    if (host.offeredSessions.isNotEmpty || root == null) return host.restoreSessions();
+    return host.restoreSessions(SecondarySessionStore(_ctx!.settings).restorable(root));
+  }
+
   @override
   List<ContributionPoint> get contributions => [
     TabContribution(
@@ -94,6 +106,14 @@ class ClaudeExtension extends ClideExtension {
         _hostKey.currentState?.addSecondary();
         return IpcResponse.ok(id: '', data: const {'status': 'spawned'});
       },
+    ),
+    CommandContribution(
+      id: 'claude.restore-sessions',
+      command: 'claude.restore-sessions',
+      title: 'Claude: restore last time\'s sessions',
+      titleKey: 'command.restoreSessions',
+      i18nNamespace: id,
+      run: (_) async => IpcResponse.ok(id: '', data: {'restored': restoreSessions() ?? 0}),
     ),
     CommandContribution(
       id: 'claude.kill-all-sessions',

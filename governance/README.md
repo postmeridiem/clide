@@ -155,6 +155,7 @@ You might also want, project-permitting:
 - [D-111: One window process per workspace; in-place switching is retired](decisions/architecture.md#d-111-one-window-process-per-workspace-in-place-switching-is-retired) — _architecture_
 - [D-112: IPC handlers do async file I/O; large operations offload to an isolate and report progress](decisions/architecture.md#d-112-ipc-handlers-do-async-file-io-large-operations-offload-to-an-isolate-and-report-progress) — _architecture_
 - [D-113: Self-update: verified download, rename swap of the install, windows restart onto it; the loader stays](decisions/architecture.md#d-113-self-update-verified-download-rename-swap-of-the-install-windows-restart-onto-it-the-loader-stays) — _architecture_
+- [D-114: Open sessions come back after a restart: files always, secondary Claude sessions on a prompt, all of it after an update](decisions/architecture.md#d-114-open-sessions-come-back-after-a-restart-files-always-secondary-claude-sessions-on-a-prompt-all-of-it-after-an-update) — _architecture_
 
 ## Open questions
 

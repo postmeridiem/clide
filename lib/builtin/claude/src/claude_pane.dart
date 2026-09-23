@@ -44,6 +44,7 @@ class ClaudePane extends StatefulWidget {
     this.isPrimary = true,
     this.secondaryIndex,
     this.forkSourceId,
+    this.resumeSessionId,
     this.onFork,
     this.showChrome = true,
     this.active = true,
@@ -58,6 +59,11 @@ class ClaudePane extends StatefulWidget {
   /// using `--resume <forkSourceId> --fork-session` (T-172). Takes precedence
   /// over the normal fresh/resume logic for secondary panes.
   final String? forkSourceId;
+
+  /// A secondary pane restored from a previous run (T-589): it resumes this
+  /// claude session instead of starting a fresh one. The primary ignores it —
+  /// its id is derived from the repo.
+  final String? resumeSessionId;
 
   /// Called when the user issues `/fork` to branch this session into a new
   /// pane. The argument is the current pane's claude session id, which the
@@ -430,7 +436,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     } else {
       // Bind this pane to a specific session id (T-146). Primary: deterministic
       // → resumes across restarts. Secondary: fresh → a clean session.
-      _sessionId ??= widget.isPrimary ? primarySessionId(repoRoot) : freshSessionId();
+      _sessionId ??= widget.isPrimary ? primarySessionId(repoRoot) : (widget.resumeSessionId ?? freshSessionId());
 
       // A transcript already on disk means the session existed before, so resume
       // it; `claude --session-id <id>` refuses an existing id (T-161/D-77).

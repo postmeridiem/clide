@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Your workspace comes back after a restart** (T-589) — open files reopen
+  on their own, and clide offers to restore last time's secondary Claude
+  sessions (or `clide claude restore`). After an update everything comes
+  back without asking.
+
 ### Changed
 
 ### Fixed
