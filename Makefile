@@ -391,6 +391,10 @@ clide-cli-clean: ## Remove the compiled C `clide` client.
 security: ## Supply-chain gate — osv-scanner over pubspec.lock (CI PR-merge pipeline; run locally on demand). Fails on a known advisory.
 	ci/osv_scan.sh
 
+.PHONY: native-verify
+native-verify: ## Supply-chain gate — vendored native artefacts match the SHA-256 in native/*/SHA256SUMS (D-63). Fails on a mismatch.
+	ci/verify_native.sh
+
 .PHONY: dugite-check
 dugite-check: ## Track dugite-native (bundled git) upstream releases for security drift (T-88 / D-59). Run quarterly, or on a git CVE. Informational, not a gate.
 	ci/check_dugite_version.sh

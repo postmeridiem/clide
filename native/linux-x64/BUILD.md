@@ -39,11 +39,16 @@ cmake --build build -j$(nproc)
 
 - **Size**: ~24 MB
 - **Exports**: `ts_wasm_store_new`, `ts_wasm_store_delete`, `ts_wasm_store_load_language`, `ts_wasm_store_language_count`, plus full tree-sitter C API
+- **SHA-256**: `ff74bc1984a800eaba8c7ef45322ee09abd04e7570655840532cfe52419a2b59`
+
+Recorded in [`SHA256SUMS`](SHA256SUMS) (with `WASMTIME-LICENSE`) and checked
+by `make native-verify`. A rebuild re-records the hash there and here in the
+same commit as the new binary.
 
 ## TODO before release
 
 - [ ] Build in CI from pinned source SHA
-- [ ] Record SHA-256 of output
+- [x] Record SHA-256 of output
 - [ ] Cross-compile for macOS (aarch64, x86_64)
 - [ ] Cross-compile for Windows (x86_64)
 - [ ] Vendor wasmtime NOTICE file per POLICY.md Apache-2.0 rules

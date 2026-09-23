@@ -708,3 +708,20 @@ Two facts narrow it:
 **Hardening regardless of outcome:** `newWindow()` should spawn the child with an explicit, scrubbed environment — strip `CLIDE_SOCK`/`CLIDE_WORKSPACE` (and not rely on inheriting them) so a fresh window always computes its own per-root socket from its own workspace. A new window must never inherit another workspace''s IPC identity.
 
 Hardening slice landed 2026-09-23: File → New Window now spawns with CLIDE_SOCK / CLIDE_WORKSPACE stripped from the environment (FileActions.newWindowEnvironment, case-insensitive). The root cause of the branch bleed is still unconfirmed; ticket stays open.', 'backlog', 'high', NULL, NULL, 'D-70', '2026-06-14 15:29:23', '2026-09-23 07:59:12.311', NULL, '9a313e11b72bc8eb817125ccda997e86', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7K1FN7KD8S5ZVX2VM', 'task', NULL, 'Automate supply-chain checks in CI (osv-scanner + native SHA verification)', 'Salvaged from gemini-report.md (external code-analysis). Today supply-chain checks are MANUAL — Makefile ''security'' target just prints ''Dart advisories reviewed manually before pubspec.yaml bumps''; there is no automated vuln scan or native-artifact integrity check. Automate both to harden the chain as we move to automated CI, complementing the existing prefer-zero-deps / exact-pin / licenses.yaml discipline (D-31, D-61, D-63).
+
+1. Automate Dart dependency vulnerability scanning:
+   - Run an automated scanner (e.g. Google osv-scanner) against pubspec.lock on every push/PR.
+   - Wire into the CI workflow and/or the Makefile ''security'' target so it runs in push-check.
+   - Fail the gate on known advisories; keep it quiet/zero-noise otherwise.
+
+2. Automate native/vendored dependency SHA256 verification (D-63):
+   - CI step / pre-push script that parses assets/licenses.yaml (+ relevant BUILD.md) for declared native artifacts (dugite-native, libtree-sitter.so), and verifies the SHA256 of the vendored binaries against the committed/expected hashes.
+   - Guards against silent corruption or tampering of vendored binaries; ensures they match the audited sources.
+
+Notes:
+- Both should be low-noise, runnable locally and in CI (candidate home: ci/security.sh + a Makefile target, surfaced via push-check).
+- Scope is automation only — the manual review discipline already exists; this makes it enforced rather than convention.
+- Source report (gemini-report.md) is being removed from the repo once this ticket captures its only actionable content.
+
+SHA half landed 2026-09-23: native/linux-x64/SHA256SUMS + ci/verify_native.sh + make native-verify (sha256sum --check --strict over native/*/SHA256SUMS). Not yet wired into push-check / CI — open question for the user. Stays open until the gate is enforced.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-09 16:42:47', '2026-09-23 07:59:39.817', NULL, 'f3c49a4cabb768e3d2a3deb40b24297e', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
