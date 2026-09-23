@@ -13,7 +13,7 @@
 # Pure assets/docs changes still ride along with the next lib-touching push.
 # There is no release CI — the full suite is only ever run here or via
 # `make push-check`. So a push touching none of the above runs just the instant
-# decisions + changelog gates. A state we can't classify (unfetched remote, new
+# decisions + changelog + native-SHA gates. A state we can't classify (unfetched remote, new
 # branch) runs the full gate.
 set -euo pipefail
 
@@ -57,8 +57,8 @@ if [[ "$force_full" -eq 0 ]]; then
 fi
 
 if [[ "$needs_gate" -eq 0 ]]; then
-  echo "==> pre-push: no source/test/ci/hook/pubspec change — decisions + changelog gates, skipping tests"
-  make decisions-validate changelog-gate
+  echo "==> pre-push: no source/test/ci/hook/pubspec change — instant gates only, skipping tests"
+  make decisions-validate changelog-gate native-verify
 else
   echo "==> pre-push: make push-check"
   make push-check

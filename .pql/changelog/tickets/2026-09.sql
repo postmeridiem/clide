@@ -765,3 +765,41 @@ Roughly seven mentions of tmux-as-current-fact survive across open tickets. Conf
 Not folded into this ticket''s scope unilaterally — T-392 is scoped to the front-door docs. Flagged here because whoever fixes the docs drift is the person holding the context to judge the ticket bodies too, and because a wrong premise inside a ticket is worse than a wrong sentence in a README: it survives into whatever gets built from it.
 
 Verified 2026-09-23: README and CLAUDE.md now describe --resume (D-77) persistence with no tmux claim; README has no version line to drift; the canvas (editable CanvasView) and graph (GraphPainter) surfaces README line 3 names are real now. Front-door scope done. The stale tmux premise in T-46/T-47 bodies was explicitly out of scope here — judge it when those tickets are picked up. Closing.', 'done', 'medium', NULL, NULL, NULL, '2026-06-11 22:02:44', '2026-09-23 08:01:32.582', NULL, 'd06537b0a729376240c48a95de399cc1', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7K1FN7KD8S5ZVX2VM', 'task', NULL, 'Automate supply-chain checks in CI (osv-scanner + native SHA verification)', 'Salvaged from gemini-report.md (external code-analysis). Today supply-chain checks are MANUAL — Makefile ''security'' target just prints ''Dart advisories reviewed manually before pubspec.yaml bumps''; there is no automated vuln scan or native-artifact integrity check. Automate both to harden the chain as we move to automated CI, complementing the existing prefer-zero-deps / exact-pin / licenses.yaml discipline (D-31, D-61, D-63).
+
+1. Automate Dart dependency vulnerability scanning:
+   - Run an automated scanner (e.g. Google osv-scanner) against pubspec.lock on every push/PR.
+   - Wire into the CI workflow and/or the Makefile ''security'' target so it runs in push-check.
+   - Fail the gate on known advisories; keep it quiet/zero-noise otherwise.
+
+2. Automate native/vendored dependency SHA256 verification (D-63):
+   - CI step / pre-push script that parses assets/licenses.yaml (+ relevant BUILD.md) for declared native artifacts (dugite-native, libtree-sitter.so), and verifies the SHA256 of the vendored binaries against the committed/expected hashes.
+   - Guards against silent corruption or tampering of vendored binaries; ensures they match the audited sources.
+
+Notes:
+- Both should be low-noise, runnable locally and in CI (candidate home: ci/security.sh + a Makefile target, surfaced via push-check).
+- Scope is automation only — the manual review discipline already exists; this makes it enforced rather than convention.
+- Source report (gemini-report.md) is being removed from the repo once this ticket captures its only actionable content.
+
+SHA half landed 2026-09-23: native/linux-x64/SHA256SUMS + ci/verify_native.sh + make native-verify (sha256sum --check --strict over native/*/SHA256SUMS). Not yet wired into push-check / CI — open question for the user. Stays open until the gate is enforced.
+
+Enforced 2026-09-23: native-verify now runs in make push-check (with the instant gates) and in the pre-push hook''s fast path, so a push that only touches native/ is still verified. osv half was already done. Both halves complete.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-09 16:42:47', '2026-09-23 08:05:10.165', NULL, '7535ad7677042a875230b70c6f1b6f93', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7K1FN7KD8S5ZVX2VM', 'task', NULL, 'Automate supply-chain checks in CI (osv-scanner + native SHA verification)', 'Salvaged from gemini-report.md (external code-analysis). Today supply-chain checks are MANUAL — Makefile ''security'' target just prints ''Dart advisories reviewed manually before pubspec.yaml bumps''; there is no automated vuln scan or native-artifact integrity check. Automate both to harden the chain as we move to automated CI, complementing the existing prefer-zero-deps / exact-pin / licenses.yaml discipline (D-31, D-61, D-63).
+
+1. Automate Dart dependency vulnerability scanning:
+   - Run an automated scanner (e.g. Google osv-scanner) against pubspec.lock on every push/PR.
+   - Wire into the CI workflow and/or the Makefile ''security'' target so it runs in push-check.
+   - Fail the gate on known advisories; keep it quiet/zero-noise otherwise.
+
+2. Automate native/vendored dependency SHA256 verification (D-63):
+   - CI step / pre-push script that parses assets/licenses.yaml (+ relevant BUILD.md) for declared native artifacts (dugite-native, libtree-sitter.so), and verifies the SHA256 of the vendored binaries against the committed/expected hashes.
+   - Guards against silent corruption or tampering of vendored binaries; ensures they match the audited sources.
+
+Notes:
+- Both should be low-noise, runnable locally and in CI (candidate home: ci/security.sh + a Makefile target, surfaced via push-check).
+- Scope is automation only — the manual review discipline already exists; this makes it enforced rather than convention.
+- Source report (gemini-report.md) is being removed from the repo once this ticket captures its only actionable content.
+
+SHA half landed 2026-09-23: native/linux-x64/SHA256SUMS + ci/verify_native.sh + make native-verify (sha256sum --check --strict over native/*/SHA256SUMS). Not yet wired into push-check / CI — open question for the user. Stays open until the gate is enforced.
+
+Enforced 2026-09-23: native-verify now runs in make push-check (with the instant gates) and in the pre-push hook''s fast path, so a push that only touches native/ is still verified. osv half was already done. Both halves complete.', 'review', 'medium', NULL, NULL, NULL, '2026-06-09 16:42:47', '2026-09-23 08:05:10.262', NULL, '9f550139828491d0b46d6a1b7a34f8e0', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
