@@ -3,8 +3,6 @@
 /// list, events keep it in sync, and activate/close route to IPC.
 library;
 
-import 'dart:async';
-
 import 'package:clide/builtin/editor/src/editor_controller.dart';
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/kernel.dart';
@@ -557,19 +555,37 @@ void main() {
     });
 
     test('a remote edit landing before our echo is reloaded once our edits settle', () async {
-      final reply = Completer<IpcResponse>();
-      ipc.stub('editor.set-content', (_) => reply.future);
+      final sets = ipc.defer('editor.set-content');
       final reads = await hydrated();
+      ipc.strict = true;
       c.pushLocalEdit(newContent: 'local', newSelection: const Selection.collapsed(5));
+      expect(sets.pending.single.args['text'], 'local');
       // Someone else inserts while our set-content is still in flight...
       emitEditor(bus, 'editor.edited', {'id': 'b_1', 'kind': 'insert', 'inserted': 'x', 'at': 0, 'replaced': 0, 'length': 1});
       // ...then our echo arrives.
       emitEditor(bus, 'editor.edited', _echo('b_1', 'local'));
       await pumpEventQueue();
       expect(reads(), 0, reason: 'no reload while a local edit is in flight');
-      reply.complete(_ok(const {}));
+      sets.pending.single.ok(const {});
       await pumpEventQueue();
       expect(reads(), 1, reason: 'the remote edit was swallowed');
+    });
+
+    test('two edits whose replies return out of order reload only for the remote one', () async {
+      final sets = ipc.defer('editor.set-content');
+      final reads = await hydrated();
+      ipc.strict = true;
+      c.pushLocalEdit(newContent: 'ab', newSelection: const Selection.collapsed(2));
+      c.pushLocalEdit(newContent: 'abc', newSelection: const Selection.collapsed(3));
+      emitEditor(bus, 'editor.edited', _echo('b_1', 'ab'));
+      emitEditor(bus, 'editor.edited', _echo('b_1', 'abc'));
+      // The second edit's reply comes back first.
+      sets.calls[1].ok(const {});
+      await pumpEventQueue();
+      sets.calls[0].ok(const {});
+      await pumpEventQueue();
+      expect(reads(), 0, reason: 'both echoes were ours — nothing to reload');
+      expect(c.content, 'abc');
     });
   });
 
