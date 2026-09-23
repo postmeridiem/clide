@@ -16,7 +16,7 @@
 ///   * T-217 — a `Bash(clide:*)` allow rule (`--allowedTools`) so the agent
 ///     is not prompted on every `clide …` call.
 ///
-/// The pure helpers ([clideContextNote], [agentEnvDelta], [resolveClideCliDir])
+/// The pure helpers ([clideContextNote], [agentEnvDelta], [resolveClideCli], [clideCliCandidates])
 /// hold the logic and are unit-tested directly; [agentBootstrap] is the thin
 /// IO wrapper the orchestrator calls. Flutter-free by design.
 library;
@@ -25,7 +25,7 @@ import 'dart:io';
 
 import 'package:clide/src/env/path_preset.dart' show applyPathPreset;
 import 'package:clide/src/env/shell_env.dart' show resolvedToolPath;
-import 'package:clide/src/ipc/paths.dart' show workspaceSocketPath;
+import 'package:clide/src/ipc/paths.dart' show socketDirectory, workspaceSocketPath;
 
 // Web fence (T-438, D-100): `Abi.current()` (dart:ffi) is desktop-only; the web
 // build gets a default dir name with no FFI introspection.
@@ -124,24 +124,57 @@ String? claudeConfigDirForWorkspace({required String cwd, required String? Funct
   return (inherited != null && inherited.isNotEmpty) ? inherited : null;
 }
 
-/// Locate the directory to prepend to a hosted agent's PATH so `clide`
-/// resolves (T-215). Returns null when `clide` is ALREADY on [currentPath]
-/// (the installed case — T-211 drops it in `~/.local/bin`, normally already
-/// on PATH) or when no candidate holds an executable `clide` (degrade
-/// gracefully — the session still spawns, the agent just can't call `clide`).
+/// Locate the `clide` CLI binary a hosted agent should reach (T-215). Returns
+/// null when `clide` is ALREADY on [currentPath] (the installed case — T-211
+/// drops it in `~/.local/bin`, normally already on PATH) or when no candidate
+/// is an executable file (degrade gracefully — the session still spawns, the
+/// agent just can't call `clide`).
 ///
-/// [candidateDirs] is an ordered fallback list; [isExecutableFile] probes
-/// `<dir>/clide`. Both are injected so the resolver is pure and testable.
-String? resolveClideCliDir({required String? currentPath, required List<String> candidateDirs, required bool Function(String path) isExecutableFile}) {
+/// [candidates] are binary paths, in order; [isExecutableFile] probes them.
+/// Both are injected so the resolver is pure and testable.
+String? resolveClideCli({required String? currentPath, required List<String> candidates, required bool Function(String path) isExecutableFile}) {
   if (currentPath != null) {
     for (final dir in currentPath.split(':')) {
       if (dir.isNotEmpty && isExecutableFile('$dir/clide')) return null;
     }
   }
-  for (final dir in candidateDirs) {
-    if (dir.isNotEmpty && isExecutableFile('$dir/clide')) return dir;
+  for (final c in candidates) {
+    if (c.isNotEmpty && isExecutableFile(c)) return c;
   }
   return null;
+}
+
+/// Where a `clide` CLI can come from, most trusted first (T-603): the user's
+/// install (`~/.local/bin`), the C client bundled next to the running app
+/// (`clide-cli` — the bundle's `clide` is the GUI itself), and, when the app
+/// runs from a clide source tree's `build/` dir, that tree's own
+/// `native/<abi>/clide`. Never the opened workspace: a repo that ships its own
+/// `native/` must not decide what the agent runs.
+List<String> clideCliCandidates({required String? home, required String executable, required String abi}) {
+  final bundle = File(executable).parent.path;
+  final buildAt = executable.indexOf('/build/');
+  return [
+    if (home != null && home.isNotEmpty) '$home/.local/bin/clide',
+    '$bundle/clide-cli',
+    if (buildAt > 0) '${executable.substring(0, buildAt)}/native/$abi/clide',
+  ];
+}
+
+/// Put [binary] on a hosted agent's PATH as `clide`, and nothing else with it
+/// (T-603): a directory of its own, inside clide's per-user runtime dir (0700,
+/// D-71), holding a single `clide` symlink. Prepending the binary's real
+/// directory would bring every other executable in it along. Returns that
+/// directory.
+String exposeClideCli(String binary, {required String dir}) {
+  Directory(dir).createSync(recursive: true);
+  final link = Link('$dir/clide');
+  if (link.existsSync()) {
+    if (link.targetSync() != binary) link.updateSync(binary);
+  } else {
+    if (File(link.path).existsSync()) File(link.path).deleteSync();
+    link.createSync(binary);
+  }
+  return dir;
 }
 
 /// The result of [agentBootstrap]: the env delta to overlay and the extra
@@ -170,12 +203,12 @@ AgentBootstrap agentBootstrap(
   // workspace's PATH preset (D-106), injected as a plain lookup like
   // [boundConfigDir] so this stays Flutter-free.
   final currentPath = resolvedToolPath();
-  final candidates = <String>[
-    if (home != null && home.isNotEmpty) '$home/.local/bin',
-    '$workspaceRoot/native/${currentNativeDirName()}',
-    File(Platform.resolvedExecutable).parent.path,
-  ];
-  final cliDir = resolveClideCliDir(currentPath: currentPath, candidateDirs: candidates, isExecutableFile: _isExecutableFile);
+  final cli = resolveClideCli(
+    currentPath: currentPath,
+    candidates: clideCliCandidates(home: home, executable: Platform.resolvedExecutable, abi: currentNativeDirName()),
+    isExecutableFile: _isExecutableFile,
+  );
+  final cliDir = cli == null ? null : exposeClideCli(cli, dir: '${socketDirectory()}/bin');
   final delta = agentEnvDelta(
     workspaceRoot: workspaceRoot,
     socketPath: workspaceSocketPath(workspaceRoot),

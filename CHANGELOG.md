@@ -25,6 +25,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - **The editor can no longer save a new file outside the workspace**
   (T-610) — a new file under a symlinked directory was written wherever the
   link pointed; saves are now confined like `clide files write`.
+- **A repo can't put its own programs on Claude's PATH** (T-603) — clide no
+  longer takes the `clide` CLI from the opened workspace, and exposes only
+  that one command to Claude rather than a whole directory. It also stops
+  pointing Claude at the GUI binary when the CLI isn't installed.
 
 ## [2.18.1] — 2026-09-23
 

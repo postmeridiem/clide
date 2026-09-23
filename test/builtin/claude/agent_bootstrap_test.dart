@@ -1,6 +1,8 @@
 /// Tests for the clide-hosted agent bootstrap (Epic B / T-215..T-217, D-83).
 library;
 
+import 'dart:io';
+
 import 'package:clide/builtin/claude/src/agent_bootstrap.dart';
 import 'package:clide/src/ipc/paths.dart' show workspaceSocketPath;
 import 'package:test/test.dart';
@@ -116,28 +118,71 @@ void main() {
     });
   });
 
-  group('resolveClideCliDir (T-215)', () {
+  group('resolveClideCli (T-215)', () {
     test('returns null when clide already resolves on PATH (no PATH change needed)', () {
-      final dir = resolveClideCliDir(
+      final cli = resolveClideCli(
         currentPath: '/usr/bin:/home/dev/.local/bin',
-        candidateDirs: const ['/repo/native/linux-x64'],
+        candidates: const ['/opt/clide/clide-cli'],
         isExecutableFile: (p) => p == '/home/dev/.local/bin/clide',
       );
-      expect(dir, isNull);
+      expect(cli, isNull);
     });
 
-    test('returns the first candidate holding an executable clide when not on PATH', () {
-      final dir = resolveClideCliDir(
+    test('returns the first executable candidate when not on PATH', () {
+      final cli = resolveClideCli(
         currentPath: '/usr/bin',
-        candidateDirs: const ['/nope', '/repo/native/linux-x64', '/also'],
-        isExecutableFile: (p) => p == '/repo/native/linux-x64/clide',
+        candidates: const ['/nope/clide', '/opt/clide/clide-cli', '/also/clide'],
+        isExecutableFile: (p) => p == '/opt/clide/clide-cli',
       );
-      expect(dir, '/repo/native/linux-x64');
+      expect(cli, '/opt/clide/clide-cli');
     });
 
     test('returns null when nothing holds clide', () {
-      final dir = resolveClideCliDir(currentPath: '/usr/bin', candidateDirs: const ['/a', '/b'], isExecutableFile: (_) => false);
-      expect(dir, isNull);
+      expect(resolveClideCli(currentPath: '/usr/bin', candidates: const ['/a/clide', '/b/clide'], isExecutableFile: (_) => false), isNull);
+    });
+  });
+
+  // T-603: the opened workspace never decides what `clide` the agent runs, and
+  // only `clide` itself reaches its PATH.
+  group('clideCliCandidates (T-603)', () {
+    test('an installed app: the user install, then the bundled C client — never the workspace', () {
+      final c = clideCliCandidates(home: '/home/u', executable: '/home/u/.local/lib/clide/clide', abi: 'linux-x64');
+      expect(c, ['/home/u/.local/bin/clide', '/home/u/.local/lib/clide/clide-cli']);
+      expect(c.any((p) => p.contains('/native/')), isFalse);
+    });
+
+    test('a build from a clide source tree adds that tree\'s own native client', () {
+      final c = clideCliCandidates(home: '/home/u', executable: '/src/clide/build/linux/x64/debug/bundle/clide', abi: 'linux-x64');
+      expect(c.last, '/src/clide/native/linux-x64/clide');
+    });
+
+    test('the bundle\'s own `clide` — the GUI — is never a candidate', () {
+      final c = clideCliCandidates(home: null, executable: '/opt/clide/clide', abi: 'linux-x64');
+      expect(c, ['/opt/clide/clide-cli']);
+    });
+  });
+
+  group('exposeClideCli (T-603)', () {
+    late Directory tmp;
+    setUp(() => tmp = Directory.systemTemp.createTempSync('clide-cli-expose-'));
+    tearDown(() => tmp.deleteSync(recursive: true));
+
+    test('a dir holding only a `clide` link to the binary', () {
+      final bin = File('${tmp.path}/pkg/clide-cli')..createSync(recursive: true);
+      File('${tmp.path}/pkg/evil').createSync();
+      final dir = exposeClideCli(bin.path, dir: '${tmp.path}/bin');
+      expect(Directory(dir).listSync().map((e) => e.uri.pathSegments.last), ['clide']);
+      expect(Link('$dir/clide').targetSync(), bin.path);
+    });
+
+    test('re-exposing another binary repoints the link', () {
+      final a = File('${tmp.path}/a/clide')..createSync(recursive: true);
+      final b = File('${tmp.path}/b/clide-cli')..createSync(recursive: true);
+      exposeClideCli(a.path, dir: '${tmp.path}/bin');
+      exposeClideCli(b.path, dir: '${tmp.path}/bin');
+      expect(Link('${tmp.path}/bin/clide').targetSync(), b.path);
+      exposeClideCli(b.path, dir: '${tmp.path}/bin'); // unchanged: no-op
+      expect(Link('${tmp.path}/bin/clide').targetSync(), b.path);
     });
   });
 
