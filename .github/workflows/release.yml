@@ -1,8 +1,11 @@
 name: release
 
-# Build + publish a versioned Linux release bundle when the version in
-# pubspec.yaml changes on main. The `version` job only proceeds when no GitHub
-# Release exists yet for v<version>, so an unrelated pubspec edit is a no-op.
+# Build + publish a versioned Linux release bundle for a commit on main that
+# passed the test workflow (T-608): it runs when `test` completes successfully
+# on a push to main, builds exactly that commit, and publishes only when no
+# GitHub Release exists yet for its v<version> — so an ordinary commit is a
+# no-op, and a release commit whose tests fail is never published. (Installing
+# an update is one click since D-113; an untested build must not reach it.)
 #
 # It checks for the *Release*, not the tag: `make release` creates and pushes
 # the v<version> tag together with the release commit, so a tag check always
@@ -15,9 +18,10 @@ name: release
 # it returns once the Windows port is exercised (see windows.yml).
 
 on:
-  push:
+  workflow_run:
+    workflows: [test]
+    types: [completed]
     branches: [main]
-    paths: ['pubspec.yaml']
   workflow_dispatch:
     inputs:
       tag:
@@ -30,6 +34,8 @@ permissions:
 
 jobs:
   version:
+    # A manual run, or a green test run for a push to main (never a PR's).
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.v.outputs.version }}
@@ -38,7 +44,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag || github.sha }}
+          # The commit the tests passed on — github.sha would be main's head
+          # at the time this run starts, possibly a later, untested commit.
+          ref: ${{ inputs.tag || github.event.workflow_run.head_sha || github.sha }}
       - id: v
         shell: bash
         env:
@@ -46,7 +54,7 @@ jobs:
         run: |
           version=$(awk -F': *' '/^version:/ {gsub(/[" ]/,"",$2); print $2; exit}' pubspec.yaml)
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "ref=${{ inputs.tag || github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "ref=${{ inputs.tag || github.event.workflow_run.head_sha || github.sha }}" >> "$GITHUB_OUTPUT"
           if gh release view "v$version" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "fresh=false" >> "$GITHUB_OUTPUT"
             echo "v$version already has a GitHub Release — nothing to publish."
