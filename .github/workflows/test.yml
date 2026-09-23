@@ -20,8 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - id: fvm   # the Flutter pin lives in .fvmrc — never float on `stable`
+        shell: bash
+        run: echo "flutter=$(jq -r .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, cache: true }
+        with: { flutter-version: '${{ steps.fvm.outputs.flutter }}', channel: stable, cache: true }
       - run: flutter pub get
       - name: install pql
         env:
@@ -50,8 +53,11 @@ jobs:
     needs: unit
     steps:
       - uses: actions/checkout@v4
+      - id: fvm   # the Flutter pin lives in .fvmrc — never float on `stable`
+        shell: bash
+        run: echo "flutter=$(jq -r .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, cache: true }
+        with: { flutter-version: '${{ steps.fvm.outputs.flutter }}', channel: stable, cache: true }
       - run: sudo apt-get update && sudo apt-get install -y xvfb ninja-build libgtk-3-dev
       - run: flutter pub get
       - name: install pql
@@ -78,8 +84,11 @@ jobs:
     needs: unit
     steps:
       - uses: actions/checkout@v4
+      - id: fvm   # the Flutter pin lives in .fvmrc — never float on `stable`
+        shell: bash
+        run: echo "flutter=$(jq -r .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, cache: true }
+        with: { flutter-version: '${{ steps.fvm.outputs.flutter }}', channel: stable, cache: true }
       - run: sudo apt-get update && sudo apt-get install -y xvfb ninja-build libgtk-3-dev
       - run: flutter pub get
       - name: install pql
@@ -119,8 +128,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - id: fvm   # the Flutter pin lives in .fvmrc — never float on `stable`
+        shell: bash
+        run: echo "flutter=$(jq -r .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, cache: true }
+        with: { flutter-version: '${{ steps.fvm.outputs.flutter }}', channel: stable, cache: true }
       - run: flutter pub get
       # Compile gate for the dart:ffi web fence (D-100 / T-438, resolving Q-50):
       # every native binding lives behind a `dart.library.ffi` conditional import
@@ -135,8 +147,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - id: fvm   # the Flutter pin lives in .fvmrc — never float on `stable`
+        shell: bash
+        run: echo "flutter=$(jq -r .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, cache: true }
+        with: { flutter-version: '${{ steps.fvm.outputs.flutter }}', channel: stable, cache: true }
       - run: flutter pub get
       - name: dart doc --validate-links (fail on warning)
         run: |

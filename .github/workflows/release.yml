@@ -63,8 +63,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.version.outputs.ref }}
+      - id: fvm   # the Flutter pin lives in .fvmrc — never float on `stable`
+        shell: bash
+        run: echo "flutter=$(jq -r .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@v2
-        with: { channel: stable }
+        with: { flutter-version: '${{ steps.fvm.outputs.flutter }}', channel: stable }
       - run: sudo apt-get update && sudo apt-get install -y ninja-build libgtk-3-dev
       - run: make dugite-fetch
       - run: make build            # gen-build-info + clide-cli + flutter build linux
