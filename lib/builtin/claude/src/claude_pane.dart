@@ -20,6 +20,7 @@ import 'model_picker_card.dart';
 import 'permission_mode_control.dart';
 import 'session_defaults.dart';
 import 'prompt_card.dart';
+import 'queued_messages_dock.dart';
 import 'session_index.dart';
 import 'session_naming.dart';
 import 'session_orchestrator.dart';
@@ -499,7 +500,8 @@ class _ClaudePaneState extends State<ClaudePane> {
       _session?.addLocalNotice(tuiOnlyNotice(slashCommandToken(text)!));
       return;
     }
-    _session?.send(text);
+    // Queued while a turn runs, so it can still be edited or dismissed (T-587).
+    _session?.submit(text);
   }
 
   /// clide-owned `/model` (T-408): with an argument, set the model directly;
@@ -827,6 +829,20 @@ class _ClaudePaneState extends State<ClaudePane> {
                 listenable: _conversation!,
                 builder: (_, _) => ClaudeTaskDock(tasks: taskListFrom(_conversation!.items)),
               ),
+              // Messages sent mid-turn wait here, editable and dismissable,
+              // until the turn ends (T-587). Renders nothing when empty.
+              if (_session != null)
+                StreamBuilder<List<QueuedMessage>>(
+                  stream: _session!.queuedStream,
+                  initialData: _session!.queued,
+                  builder: (_, snap) => QueuedMessagesDock(
+                    messages: snap.data ?? const [],
+                    onDismiss: (id) => _session?.dismissQueued(id),
+                    onEdit: (id, text) => _session?.editQueued(id, text),
+                    onEditStart: () => _session?.holdQueue(),
+                    onEditEnd: () => _session?.releaseQueue(),
+                  ),
+                ),
               // An open prompt takes the composer's space and hides the text
               // input until it's answered, so interaction stays out of the
               // conversation stream (D-78). The /model picker uses the same

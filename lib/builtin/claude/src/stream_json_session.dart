@@ -177,6 +177,16 @@ class ModelOption {
   final String description;
 }
 
+/// A user message waiting for the running turn to end (T-587). Pure data.
+class QueuedMessage {
+  const QueuedMessage({required this.id, required this.text});
+
+  /// clide-local id, stable across edits — the handle for edit / dismiss.
+  final String id;
+
+  final String text;
+}
+
 /// Effort levels `claude --effort` accepts (probed against 2.1.175). There is
 /// NO set_effort control subtype (probed: rejected), so changing effort
 /// respawns the session with the flag — resume keeps the conversation (T-412).
@@ -652,6 +662,11 @@ class StreamJsonSession {
     // The `init` event carries permission mode (no `permission-mode` record
     // exists in stream-json); fold it in alongside the parsed deltas.
     _mergeStatus(parsed.status.merge(_statusFromEvent(ev)));
+    // Last, so the finished turn's items, status and outcome all land before
+    // the next queued message starts a new one (T-587). An interrupted turn
+    // ends with a `result` too: the queue is visible and dismissable, so a
+    // message the user left in it is one they still want sent.
+    if (ev['type'] == 'result') _flushQueued();
   }
 
   /// Handle a `stream_event` (a wrapped Anthropic streaming delta). We render
@@ -995,6 +1010,83 @@ class StreamJsonSession {
     _setBusy(true);
   }
 
+  final _queued = <QueuedMessage>[];
+  final _queuedCtl = ValueStream<List<QueuedMessage>>.seeded(const []);
+
+  /// Messages the user submitted while a turn was running, oldest first
+  /// (T-587). Held here — NOT written to stdin — so they can still be
+  /// dismissed; once written, the CLI owns them.
+  List<QueuedMessage> get queued => List.unmodifiable(_queued);
+
+  /// Emits [queued] whenever it changes. Replay-latest.
+  Stream<List<QueuedMessage>> get queuedStream => _queuedCtl.stream;
+
+  void _emitQueued() => _queuedCtl.add(List.unmodifiable(_queued));
+
+  /// The user's send (T-587): immediate when idle, queued while a turn runs.
+  /// A queued message goes out when the turn's `result` arrives — one per
+  /// turn, so each keeps its own turn exactly as if it had been sent then —
+  /// and only renders in the conversation once it is actually sent.
+  ///
+  /// [send] stays the immediate write for callers that mean "now": a prompt's
+  /// follow-up note must ride with the approval mid-turn, and team delivery /
+  /// injection hand off to the CLI's own merging.
+  void submit(String text) {
+    // A non-empty queue means something is waiting its turn (or the queue is
+    // held for an edit) — never let a later message jump ahead of it.
+    if (!_busy && _queued.isEmpty) {
+      send(text);
+      return;
+    }
+    _queued.add(QueuedMessage(id: 'queued-${_localSeq++}', text: text));
+    _emitQueued();
+    _flushQueued(); // idle with a released queue: the head goes now
+  }
+
+  /// Drop a queued message so it is never sent (T-587). False when [id] is
+  /// unknown or already sent.
+  bool dismissQueued(String id) {
+    final i = _queued.indexWhere((m) => m.id == id);
+    if (i < 0) return false;
+    _queued.removeAt(i);
+    _emitQueued();
+    return true;
+  }
+
+  /// Replace a queued message's text (T-587). Empty text dismisses it. False
+  /// when [id] is unknown or already sent.
+  bool editQueued(String id, String text) {
+    if (text.trim().isEmpty) return dismissQueued(id);
+    final i = _queued.indexWhere((m) => m.id == id);
+    if (i < 0) return false;
+    _queued[i] = QueuedMessage(id: id, text: text);
+    _emitQueued();
+    return true;
+  }
+
+  bool _queueHeld = false;
+
+  /// Whether the queue is held — nothing is sent from it until [releaseQueue].
+  bool get queueHeld => _queueHeld;
+
+  /// Stop sending from the queue, e.g. while the user edits a queued message
+  /// (T-587) — the message must not go out half-edited when the turn ends.
+  void holdQueue() => _queueHeld = true;
+
+  /// Resume the queue; if the session went idle meanwhile, the head goes now.
+  void releaseQueue() {
+    _queueHeld = false;
+    _flushQueued();
+  }
+
+  /// Send the head of the queue once a turn has ended.
+  void _flushQueued() {
+    if (_busy || _queueHeld || _queued.isEmpty || _end != null) return;
+    final next = _queued.removeAt(0);
+    _emitQueued();
+    send(next.text);
+  }
+
   /// Inject a clide-local notice card into the conversation — nothing is sent
   /// to claude. Used by the slash-command router for TUI-only commands
   /// (T-411); renders as the muted synthetic "clide" card.
@@ -1127,6 +1219,11 @@ class StreamJsonSession {
       _queue.clear();
       _pendingCtl.add(null);
     }
+    // Nor can a queued message ever be sent (T-587).
+    if (_queued.isNotEmpty) {
+      _queued.clear();
+      _emitQueued();
+    }
     _endCtl.add(_end!);
   }
 
@@ -1147,6 +1244,7 @@ class StreamJsonSession {
     await _sessionIdCtl.close();
     await _pendingCtl.close();
     await _busyCtl.close();
+    await _queuedCtl.close();
     await _endCtl.close();
     await _modelErrorCtl.close();
     await _phaseCtl.close();

@@ -845,6 +845,115 @@ void main() {
     expect(busy, [false, true, false]);
   });
 
+  group('queued messages (T-587)', () {
+    String result() => jsonEncode({'type': 'result', 'subtype': 'success'});
+    List<String> sentTexts() => [
+      for (final w in proc.writes)
+        if ((jsonDecode(w) as Map)['type'] == 'user') ((jsonDecode(w) as Map)['message'] as Map)['content'] as String,
+    ];
+    List<String> userItems() => [for (final i in items.whereType<UserMessage>()) i.text];
+
+    test('submit while idle sends immediately', () async {
+      session.submit('hi');
+      await pumpEventQueue();
+      expect(sentTexts(), ['hi']);
+      expect(session.queued, isEmpty);
+    });
+
+    test('submit mid-turn queues: nothing written, nothing in the conversation yet', () async {
+      session.submit('first');
+      session.submit('second');
+      await pumpEventQueue();
+      expect(sentTexts(), ['first']);
+      expect(session.queued.map((m) => m.text), ['second']);
+      expect(userItems(), ['first'], reason: 'a queued message only renders once sent');
+    });
+
+    test('each result sends the next queued message — one per turn', () async {
+      session.submit('a');
+      session.submit('b');
+      session.submit('c');
+      proc.emit(result());
+      await pumpEventQueue();
+      expect(sentTexts(), ['a', 'b']);
+      expect(session.busy, isTrue, reason: 'the flushed message started a turn');
+      expect(session.queued.map((m) => m.text), ['c']);
+      proc.emit(result());
+      await pumpEventQueue();
+      expect(sentTexts(), ['a', 'b', 'c']);
+      expect(userItems(), ['a', 'b', 'c']);
+      expect(session.queued, isEmpty);
+    });
+
+    test('a dismissed message is never sent', () async {
+      session.submit('a');
+      session.submit('drop me');
+      final id = session.queued.single.id;
+      expect(session.dismissQueued(id), isTrue);
+      expect(session.dismissQueued(id), isFalse, reason: 'already gone');
+      proc.emit(result());
+      await pumpEventQueue();
+      expect(sentTexts(), ['a']);
+      expect(userItems(), ['a']);
+    });
+
+    test('an edited message is sent with its new text; editing to empty dismisses', () async {
+      session.submit('a');
+      session.submit('typo');
+      session.submit('also drop');
+      final [edit, drop] = session.queued;
+      expect(session.editQueued(edit.id, 'fixed'), isTrue);
+      expect(session.editQueued(drop.id, '   '), isTrue);
+      expect(session.queued.map((m) => m.text), ['fixed']);
+      proc.emit(result());
+      await pumpEventQueue();
+      expect(sentTexts(), ['a', 'fixed']);
+    });
+
+    test('a held queue sends nothing when the turn ends; release sends the head', () async {
+      session.submit('a');
+      session.submit('b');
+      session.holdQueue();
+      proc.emit(result());
+      await pumpEventQueue();
+      expect(session.busy, isFalse);
+      expect(sentTexts(), ['a'], reason: 'held for an edit');
+
+      // Idle but held: a new message queues behind rather than jumping ahead.
+      session.submit('c');
+      expect(sentTexts(), ['a']);
+      expect(session.queued.map((m) => m.text), ['b', 'c']);
+
+      session.releaseQueue();
+      await pumpEventQueue();
+      expect(sentTexts(), ['a', 'b']);
+      expect(session.queued.map((m) => m.text), ['c']);
+    });
+
+    test('queuedStream replays the current queue and tracks changes', () async {
+      final seen = <List<String>>[];
+      session.submit('a');
+      session.submit('b');
+      session.queuedStream.listen((q) => seen.add([for (final m in q) m.text]));
+      await pumpEventQueue();
+      session.dismissQueued(session.queued.single.id);
+      await pumpEventQueue();
+      expect(seen, [
+        ['b'],
+        <String>[],
+      ]);
+    });
+
+    test('process exit clears the queue — it can never be sent', () async {
+      session.submit('a');
+      session.submit('b');
+      proc.exit.complete(1);
+      await pumpEventQueue();
+      expect(session.queued, isEmpty);
+      expect(sentTexts(), ['a']);
+    });
+  });
+
   test('dispose kills the process', () async {
     await session.dispose();
     expect(proc.killed, isTrue);

@@ -51,3 +51,33 @@ Likely shape: while `busy`, `send` holds the message in a clide-side queue inste
 Open: whether several queued messages flush one per turn or all at once (the CLI merges consecutive queued messages into one turn today — verify); CLI parity (D-6) — e.g. a `clide claude queue list|drop` verb.
 
 Acceptance: sending during a running turn shows the message as queued; dismissing it removes it and nothing reaches the session; an undismissed message sends when the turn ends and then renders as a normal user turn; covered by stream_json_session + pane tests.', NULL, '2026-09-23 06:28:23', '2026-09-23 06:28:23.349', '2026-09-23 06:28:23.349', NULL, '9e90adf5f505d2bad1518da52f901f68', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCSWVHN0QF86TPSEFGW2JXFW', 'status', 'backlog', 'in_progress', NULL, '2026-09-23 06:28:47', '2026-09-23 06:28:47.325', '2026-09-23 06:28:47.325', NULL, '2a911a339087c671e6871fb0ab429646', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCSY64ZNRTGVRWGX504JH3TM', 'description', NULL, 'D-6 parity for the Claude pane''s queued messages (T-587): the UI can list, edit and dismiss messages queued mid-turn, but no `clide` verb can. Wanted: `clide claude queue list | edit <id> <text> | drop <id>` against the primary session.
+
+There is no `claude` session surface on the CLI at all today (not even send), so this needs the bridge first: the dispatcher handler is Flutter-free and the queue lives on `StreamJsonSession` in the Claude extension. Pattern to follow: `claude account` (dispatcher publishes on the bus, extension acts), plus an injected read callback for `list` since it must return data.
+
+Session API already exists: `queued`, `editQueued`, `dismissQueued`, `holdQueue` / `releaseQueue`.', NULL, '2026-09-23 06:34:12', '2026-09-23 06:34:12.275', '2026-09-23 06:34:12.275', NULL, '90ca887f27c56e63c50bff2972b15ed1', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCSWVHN0QF86TPSEFGW2JXFW', 'description', 'A message sent from the Claude composer while a turn is still running is queued by the CLI, but clide renders it as an ordinary user turn — the user can''t tell it hasn''t been picked up yet, and can''t take it back.
+
+Want: a message sent mid-turn shows as **queued** (distinct styling, e.g. muted with a "queued" tag) until the session actually consumes it, and while queued it has a **dismiss** affordance that removes it so it is never sent.
+
+Today: `StreamJsonSession.send` writes the stream-json user message to stdin immediately and echoes it locally as a normal user item; clide tracks no queue (the only `_queue` is permission prompts). Once written to stdin the CLI owns the message, so dismiss is not possible in the current design.
+
+Likely shape: while `busy`, `send` holds the message in a clide-side queue instead of writing it (echo it as a queued item); on the turn''s `result`, flush the head to stdin and flip it to a normal user item. Dismiss drops it from the queue and removes the echo. Queued items belong in/near the interaction zone (D-78), not as inline interactive widgets in the conversation stream.
+
+Open: whether several queued messages flush one per turn or all at once (the CLI merges consecutive queued messages into one turn today — verify); CLI parity (D-6) — e.g. a `clide claude queue list|drop` verb.
+
+Acceptance: sending during a running turn shows the message as queued; dismissing it removes it and nothing reaches the session; an undismissed message sends when the turn ends and then renders as a normal user turn; covered by stream_json_session + pane tests.', 'A message sent from the Claude composer while a turn is still running is queued by the CLI, but clide renders it as an ordinary user turn — the user can''t tell it hasn''t been picked up yet, and can''t take it back.
+
+Want: a message sent mid-turn shows as **queued** (distinct styling, e.g. muted with a "queued" tag) until the session actually consumes it, and while queued it has a **dismiss** affordance that removes it so it is never sent.
+
+Today: `StreamJsonSession.send` writes the stream-json user message to stdin immediately and echoes it locally as a normal user item; clide tracks no queue (the only `_queue` is permission prompts). Once written to stdin the CLI owns the message, so dismiss is not possible in the current design.
+
+Likely shape: while `busy`, `send` holds the message in a clide-side queue instead of writing it (echo it as a queued item); on the turn''s `result`, flush the head to stdin and flip it to a normal user item. Dismiss drops it from the queue and removes the echo. Queued items belong in/near the interaction zone (D-78), not as inline interactive widgets in the conversation stream.
+
+Open: whether several queued messages flush one per turn or all at once (the CLI merges consecutive queued messages into one turn today — verify); CLI parity (D-6) — e.g. a `clide claude queue list|drop` verb.
+
+Acceptance: sending during a running turn shows the message as queued; dismissing it removes it and nothing reaches the session; an undismissed message sends when the turn ends and then renders as a normal user turn; covered by stream_json_session + pane tests.
+
+Done: clide-side queue on StreamJsonSession (submit/editQueued/dismissQueued/holdQueue/releaseQueue), flushed one per turn on result; QueuedMessagesDock above the composer with edit (holds the queue while editing) and dismiss. CLI verb split out to T-588.', NULL, '2026-09-23 06:34:13', '2026-09-23 06:34:13.635', '2026-09-23 06:34:13.635', NULL, '71dcc0b9f1b8f43f474396b780601b5d', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCSWVHN0QF86TPSEFGW2JXFW', 'status', 'in_progress', 'done', NULL, '2026-09-23 06:34:14', '2026-09-23 06:34:14.140', '2026-09-23 06:34:14.140', NULL, 'b924f50226cac7af44c61206bc2c1023', 2) ON CONFLICT(hash) DO NOTHING;

@@ -20,6 +20,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 - **`clide pane list` names what a detail pane shows** (T-246) — the open
   ticket, decision, or editor file comes back as `subject`.
+- **Messages sent while Claude is working wait in a queue** (T-587) — shown
+  above the composer, where each can be edited or dismissed before it sends.
 
 ### Changed
 

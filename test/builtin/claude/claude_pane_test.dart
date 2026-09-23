@@ -17,6 +17,7 @@ import 'package:clide/builtin/claude/src/claude_pane.dart';
 import 'package:clide/builtin/claude/src/conversation_view.dart';
 import 'package:clide/builtin/claude/src/model_picker_card.dart';
 import 'package:clide/builtin/claude/src/permission_mode_control.dart';
+import 'package:clide/builtin/claude/src/queued_messages_dock.dart';
 import 'package:clide/builtin/claude/src/session_naming.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/session_picker.dart';
@@ -415,6 +416,32 @@ void main() {
     expect(find.byType(SessionPickerDialog), findsNothing);
     expect(created, hasLength(1));
     expect(proc.killed, isFalse);
+  });
+
+  testWidgets('a message sent mid-turn waits in the queue dock; dismissed ones never send (T-587)', (tester) async {
+    await mount(tester, const ClaudePane(showChrome: false));
+    final proc = created.single;
+    List<String> sent() => [
+      for (final w in proc.writes)
+        if ((jsonDecode(w) as Map)['type'] == 'user') ((jsonDecode(w) as Map)['message'] as Map)['content'] as String,
+    ];
+
+    await act(tester, () => composer(tester).onSubmit('start a turn'));
+    await act(tester, () => composer(tester).onSubmit('drop this one'));
+    await act(tester, () => composer(tester).onSubmit('send this one'));
+    expect(sent(), ['start a turn']);
+    expect(find.byType(QueuedMessagesDock), findsOneWidget);
+    expect(find.text('drop this one'), findsOneWidget);
+
+    final dropId = orch.byId('primary')!.session.queued.first.id;
+    await tester.tap(find.byKey(Key('queued-dismiss-$dropId')));
+    await tester.pump();
+    expect(find.text('drop this one'), findsNothing);
+
+    await act(tester, () => proc.feed({'type': 'result', 'subtype': 'success'}));
+    expect(sent(), ['start a turn', 'send this one']);
+    expect(find.text('queued'), findsNothing, reason: 'queue drained');
+    expect(find.text('send this one'), findsOneWidget, reason: 'now a normal user turn');
   });
 
   testWidgets('/login hosts claude auth login, then respawns so the session picks up the credentials', (tester) async {
