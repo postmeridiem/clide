@@ -89,6 +89,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - **Terminal commands skip non-executable files on PATH** (T-81) — a
   same-named non-executable file or directory earlier on PATH no longer
   shadows the real program.
+- **File → New Window no longer attaches to the opening window's workspace**
+  (T-421) — a clide launched from inside a clide terminal passed on that
+  window's `CLIDE_SOCK` / `CLIDE_WORKSPACE`, so the new window could talk to
+  the wrong IPC server.
 
 ## [2.14.1] — 2026-09-09
 

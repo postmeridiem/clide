@@ -45,6 +45,27 @@ void main() {
     expect(f.services.project.isOpen, isFalse);
   });
 
+  group('newWindowEnvironment (T-421)', () {
+    test("strips this window's IPC identity and keeps everything else", () {
+      final env = FileActions.newWindowEnvironment(const {
+        'CLIDE_SOCK': '/run/user/1000/clide-abc.sock',
+        'CLIDE_WORKSPACE': '/home/me/repo-a',
+        'PATH': '/usr/bin',
+        'HOME': '/home/me',
+        'CLIDE_TIMEOUT_MS': '750',
+      });
+      expect(env, {'PATH': '/usr/bin', 'HOME': '/home/me', 'CLIDE_TIMEOUT_MS': '750'});
+    });
+
+    test('matches the identity keys case-insensitively (Windows env names)', () {
+      expect(FileActions.newWindowEnvironment(const {'clide_sock': 'x', 'Clide_Workspace': 'y', 'Path': 'z'}), {'Path': 'z'});
+    });
+
+    test('an environment without the keys passes through unchanged', () {
+      expect(FileActions.newWindowEnvironment(const {'PATH': '/usr/bin'}), {'PATH': '/usr/bin'});
+    });
+  });
+
   Widget harness(Widget child) => Directionality(
     textDirection: TextDirection.ltr,
     child: ClideKernel(

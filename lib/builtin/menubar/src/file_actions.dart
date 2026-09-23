@@ -27,9 +27,32 @@ class FileActions {
   }
 
   /// Launch a second clide window as a detached process.
+  ///
+  /// With an explicit, scrubbed environment ([newWindowEnvironment]): a new
+  /// window must work out its own IPC identity from its own workspace, never
+  /// inherit this one's (T-421).
   void newWindow() {
-    Process.start(Platform.resolvedExecutable, const [], mode: ProcessStartMode.detached);
+    Process.start(
+      Platform.resolvedExecutable,
+      const [],
+      mode: ProcessStartMode.detached,
+      environment: newWindowEnvironment(Platform.environment),
+      includeParentEnvironment: false,
+    );
   }
+
+  /// Variables that bind a process to ONE window's IPC server (T-215). They
+  /// reach this process's environment whenever clide itself was launched from
+  /// a clide-hosted terminal or agent.
+  static const windowIdentityKeys = {'CLIDE_SOCK', 'CLIDE_WORKSPACE'};
+
+  /// [parent] minus [windowIdentityKeys] — everything else (PATH, HOME,
+  /// display vars…) still passes through. Keys compare case-insensitively:
+  /// Windows environment names do.
+  static Map<String, String> newWindowEnvironment(Map<String, String> parent) => {
+    for (final e in parent.entries)
+      if (!windowIdentityKeys.contains(e.key.toUpperCase())) e.key: e.value,
+  };
 
   /// Close the current workspace (back to the welcome screen).
   void closeWorkspace() => services.project.close();
