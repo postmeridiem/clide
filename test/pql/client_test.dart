@@ -1,12 +1,12 @@
 /// Integration tests for `lib/src/pql/client.dart`. Drives the real
-/// `pql` binary against the working directory's vault for happy-path
-/// methods; uses a fake pql path for the error-handling tail.
+/// `pql` binary against a small fixture vault for the happy paths (see
+/// `helpers/pql_vault.dart` for what it holds); uses a fake pql script for
+/// the error-handling tail.
 ///
-/// Tagged `serial`: each happy-path test spawns a real `pql` process that
-/// opens the shared on-disk `.pql/pql.db`. Run in the parallel pool these
-/// contend for the SQLite lock and flake with `PqlException(69)` (db busy).
-/// They pass reliably one-at-a-time — isolation is the real fix here (T-193).
-@Tags(['serial'])
+/// The vault is private to this file (T-639). These tests used to run on
+/// clide's own `.pql/` planning DB, so they asserted on the live plan and
+/// fought other suites for its SQLite lock — which is why they needed the
+/// `serial` tag. They don't any more.
 library;
 
 import 'dart:io';
@@ -15,11 +15,16 @@ import 'package:clide/kernel/src/toolchain_paths.dart';
 import 'package:clide/src/pql/client.dart';
 import 'package:test/test.dart';
 
+import '../helpers/pql_vault.dart';
+
 void main() {
+  late PqlFixtureVault vault;
   late PqlClient pql;
+  setUpAll(() async => vault = await PqlFixtureVault.create());
+  tearDownAll(() => vault.dispose());
   setUp(() {
     final toolchain = ToolchainView.resolved(resolveToolchainPaths());
-    pql = PqlClient(workDir: Directory.current, toolchain: toolchain);
+    pql = PqlClient(workDir: vault.dir, toolchain: toolchain);
   });
 
   group('PqlException', () {
@@ -30,106 +35,119 @@ void main() {
     });
   });
 
-  group('PqlClient — query surface (real pql against clide repo)', () {
+  group('PqlClient — query surface (fixture vault)', () {
     test('files with glob + limit narrows results', () async {
-      final all = await pql.files(limit: 3);
-      expect(all, isNotEmpty);
-      expect(all.length, lessThanOrEqualTo(3));
-      final scoped = await pql.files(glob: 'CLAUDE.md');
-      expect(scoped, isNotEmpty);
-      expect(scoped.first['path'], contains('CLAUDE.md'));
+      final all = await pql.files();
+      expect(all.map((f) => f['path']), containsAll(['notes/alpha.md', 'notes/beta.md']));
+      expect(await pql.files(limit: 1), hasLength(1));
+      final scoped = await pql.files(glob: 'notes/*.md');
+      expect(scoped.map((f) => f['path']).toSet(), {'notes/alpha.md', 'notes/beta.md'});
     });
 
-    test('backlinks returns inbound references', () async {
-      final links = await pql.backlinks('CLAUDE.md');
-      // CLAUDE.md may have no inbound links; just verify the call succeeds
-      // and returns the right shape.
-      expect(links, isA<List>());
+    test('backlinks and outlinks follow the wikilinks', () async {
+      expect((await pql.backlinks('notes/beta.md')).map((l) => l['path']), ['notes/alpha.md']);
+      expect(await pql.outlinks('notes/alpha.md'), isNotEmpty);
     });
 
-    test('tags returns the tag list (with limit)', () async {
-      final tags = await pql.tags(limit: 5);
-      expect(tags, isA<List>());
-      expect(tags.length, lessThanOrEqualTo(5));
+    test('tags returns frontmatter and inline tags (with limit)', () async {
+      final tags = await pql.tags();
+      expect(tags.map((t) => t['tag']), containsAll(['fixture', 'inline-tag']));
+      expect(await pql.tags(limit: 1), hasLength(1));
+    });
+
+    test('meta returns a file\'s frontmatter', () async {
+      final m = await pql.meta('notes/alpha.md');
+      expect(m.toString(), contains('Alpha'));
     });
 
     test('query runs a DSL with limit and returns rows', () async {
       final rows = await pql.query('SELECT name', limit: 2);
-      expect(rows, isA<List>());
-      expect(rows.length, lessThanOrEqualTo(2));
+      expect(rows, hasLength(2));
     });
 
-    test('search runs a ranked search with limit', () async {
-      final hits = await pql.search('clide', limit: 2);
-      expect(hits, isA<List>());
-      expect(hits.length, lessThanOrEqualTo(2));
+    test('search ranks the matching note first', () async {
+      final hits = await pql.search('Alpha', limit: 2);
+      expect(hits.first['path'], 'notes/alpha.md');
     });
   });
 
   group('PqlClient — decisions surface', () {
-    test('decisionValidate runs the validator', () async {
+    test('decisionSync reports the fixture decisions', () async {
+      final r = await pql.decisionSync();
+      expect(r['synced'], 2);
+    });
+
+    test('decisionValidate passes on the fixture', () async {
       final result = await pql.decisionValidate();
       // Validator returns either a map (with errors) or null (ok).
       expect(result, anyOf(isNull, isA<Map>()));
     });
 
-    test('decisionList with domain + status filters', () async {
+    test('decisionList with domain + type filters', () async {
       final architecture = await pql.decisionList(type: 'confirmed', domain: 'architecture');
-      expect(architecture, isNotEmpty);
-      expect(architecture.every((d) => d['domain'] == 'architecture'), isTrue);
+      expect(architecture.map((d) => d['id']).toSet(), {'D-1', 'D-2'});
+      expect(await pql.decisionList(domain: 'nowhere'), isEmpty);
     });
 
     test('decisionShow with --with-refs joins cross-refs', () async {
-      final d = await pql.decisionShow('D-1', withRefs: true);
-      expect(d['id'], 'D-1');
+      final d = await pql.decisionShow('D-2', withRefs: true);
+      expect(d['id'], 'D-2');
+      expect((d['refs'] as List).map((r) => (r as Map)['target_id']), contains('D-1'));
     });
 
     test('decisionShow with --with-tickets joins ticket refs', () async {
       final d = await pql.decisionShow('D-1', withTickets: true);
       expect(d['id'], 'D-1');
+      expect(d.toString(), contains('T-2'));
     });
 
     test('decisionRead returns the full markdown body', () async {
       final d = await pql.decisionRead('D-1');
       expect(d['id'], 'D-1');
+      expect(d['body'], contains('The fixture has a decision.'));
     });
   });
 
   group('PqlClient — ticket surface', () {
     test('ticketList without filters returns all tickets', () async {
       final tickets = await pql.ticketList();
-      expect(tickets, isNotEmpty);
+      expect(tickets.map((t) => t['id']).toSet(), {'T-1', 'T-2'});
     });
 
     test('ticketList with status filter narrows', () async {
-      final done = await pql.ticketList(status: 'done');
-      expect(done, isNotEmpty);
-      expect(done.every((t) => t['status'] == 'done'), isTrue);
+      expect(await pql.ticketList(status: 'done'), isEmpty);
+      expect(await pql.ticketList(status: 'backlog'), hasLength(2));
     });
 
     test('ticketList with team / assigned / decision exercises all flags', () async {
-      // No team-or-assignment filter likely to match in clide; just verify
-      // the call succeeds and returns the right shape.
-      final scoped = await pql.ticketList(team: 'nope', assigned: 'nobody', decision: 'D-1');
-      expect(scoped, isA<List>());
+      expect((await pql.ticketList(decision: 'D-1')).map((t) => t['id']), ['T-2']);
+      expect(await pql.ticketList(team: 'nope', assigned: 'nobody', decision: 'D-1'), isEmpty);
     });
 
     test('ticketShow with context + blockers joins both', () async {
-      // T-1 exists in clide's plan.
-      final t = await pql.ticketShow('T-1', withContext: true, withBlockers: true);
-      expect(t['id'], 'T-1');
+      final t = await pql.ticketShow('T-2', withContext: true, withBlockers: true);
+      expect(t['id'], 'T-2');
     });
 
     test('ticketShow with children returns the children array (T-595)', () async {
-      // T-6 is a closed epic in clide's plan whose children include T-1.
-      final t = await pql.ticketShow('T-6', withChildren: true);
-      expect(t['id'], 'T-6');
-      expect((t['children'] as List).map((c) => (c as Map)['id']), contains('T-1'));
+      final t = await pql.ticketShow('T-1', withChildren: true);
+      expect(t['id'], 'T-1');
+      expect((t['children'] as List).map((c) => (c as Map)['id']), ['T-2']);
+    });
+
+    test('ticketSetStatus moves a ticket', () async {
+      final r = await pql.ticketSetStatus(['T-2'], 'ready');
+      expect(r, isA<List>());
+      expect((await pql.ticketShow('T-2'))['status'], 'ready');
     });
 
     test('ticketBoard with team filter', () async {
       final board = await pql.ticketBoard(team: 'nope');
       expect(board, isA<List>());
+    });
+
+    test('planStatus returns the dashboard', () async {
+      expect(await pql.planStatus(), isA<Map>());
     });
   });
 

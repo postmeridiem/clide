@@ -1,29 +1,30 @@
-/// Drives the pql.* daemon handlers against the real `pql` binary and the
-/// working directory's vault.
+/// Drives the pql.* daemon handlers against the real `pql` binary and a
+/// private fixture vault (`helpers/pql_vault.dart`).
 ///
-/// Tagged `serial`: each handler spawns a real `pql` process that opens the
-/// shared on-disk `.pql/pql.db`. Run in the parallel pool these contend for
-/// the SQLite lock and flake (`PqlException(69)`, db busy); one-at-a-time they
-/// pass — isolation is the real fix (T-193). The error-path companion
-/// (`pql_commands_errors_test.dart`) points at a fake binary, so it needs no
-/// such tag.
-@Tags(['serial'])
+/// These ran on clide's own `.pql/` planning DB until T-639: they read the
+/// live plan, wrote to it through `decisions.sync`, and needed the `serial`
+/// tag because they fought other suites for its SQLite lock. The error-path
+/// companion (`pql_commands_errors_test.dart`) points at a fake binary.
 library;
-
-import 'dart:io';
 
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/src/toolchain_paths.dart';
 import 'package:clide/src/daemon/pql_commands.dart';
 import 'package:test/test.dart';
 
+import '../helpers/pql_vault.dart';
+
 void main() {
+  late PqlFixtureVault vault;
   late DaemonDispatcher dispatcher;
   late PqlClient pql;
 
+  setUpAll(() async => vault = await PqlFixtureVault.create());
+  tearDownAll(() => vault.dispose());
+
   setUp(() {
     final toolchain = ToolchainView.resolved(resolveToolchainPaths());
-    pql = PqlClient(workDir: Directory.current, toolchain: toolchain);
+    pql = PqlClient(workDir: vault.dir, toolchain: toolchain);
     dispatcher = DaemonDispatcher();
     registerPqlCommands(dispatcher, pql);
   });
@@ -44,9 +45,9 @@ void main() {
   });
 
   test('pql.meta returns file metadata', () async {
-    final r = await call('pql.meta', {'path': 'CLAUDE.md'});
+    final r = await call('pql.meta', {'path': 'notes/alpha.md'});
     expect(r.ok, isTrue);
-    expect(r.data['path'], 'CLAUDE.md');
+    expect(r.data['path'], 'notes/alpha.md');
     expect(r.data.containsKey('outlinks'), isTrue);
   });
 
@@ -57,7 +58,7 @@ void main() {
   });
 
   test('pql.outlinks returns links from a file', () async {
-    final r = await call('pql.outlinks', {'path': 'CLAUDE.md'});
+    final r = await call('pql.outlinks', {'path': 'notes/alpha.md'});
     expect(r.ok, isTrue);
     final links = r.data['links'] as List;
     expect(links, isNotEmpty);
@@ -80,8 +81,7 @@ void main() {
   test('pql.decisions.sync parses decisions', () async {
     final r = await call('pql.decisions.sync');
     expect(r.ok, isTrue);
-    expect(r.data.containsKey('synced'), isTrue);
-    expect((r.data['synced'] as num).toInt(), greaterThan(0));
+    expect((r.data['synced'] as num).toInt(), 2);
   });
 
   test('pql.decisions.list returns confirmed decisions', () async {
@@ -133,14 +133,14 @@ void main() {
   });
 
   test('pql.files with glob + limit narrows the result', () async {
-    final r = await call('pql.files', {'glob': 'CLAUDE.md', 'limit': 1});
+    final r = await call('pql.files', {'glob': 'notes/*.md', 'limit': 1});
     expect(r.ok, isTrue);
     final files = r.data['files'] as List;
     expect(files.length, lessThanOrEqualTo(1));
   });
 
   test('pql.backlinks with a path returns links list', () async {
-    final r = await call('pql.backlinks', {'path': 'CLAUDE.md'});
+    final r = await call('pql.backlinks', {'path': 'notes/alpha.md'});
     expect(r.ok, isTrue);
     expect(r.data['links'], isA<List>());
   });
@@ -167,7 +167,7 @@ void main() {
     final missing = await call('pql.search');
     expect(missing.ok, isFalse);
     expect(missing.error!.kind, 'user_error');
-    final hit = await call('pql.search', {'terms': 'clide', 'limit': 2});
+    final hit = await call('pql.search', {'terms': 'Alpha', 'limit': 2});
     expect(hit.ok, isTrue);
   });
 
@@ -208,10 +208,10 @@ void main() {
   });
 
   test('pql.tickets.show forwards withChildren (T-595)', () async {
-    // T-6 is a closed epic in clide's plan whose children include T-1.
-    final r = await call('pql.tickets.show', {'id': 'T-6', 'withChildren': true});
+    // The fixture's T-1 is an epic over T-2.
+    final r = await call('pql.tickets.show', {'id': 'T-1', 'withChildren': true});
     expect(r.ok, isTrue);
-    expect((r.data['children'] as List).map((c) => (c as Map)['id']), contains('T-1'));
+    expect((r.data['children'] as List).map((c) => (c as Map)['id']), ['T-2']);
   });
 
   test('pql.tickets.status requires ids + status', () async {

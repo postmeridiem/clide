@@ -30,7 +30,7 @@ coverage=0
 #
 # `flutter test --tags serial` with no paths COMPILES AND LOADS EVERY SUITE to
 # discover which ones carry the tag, and at --concurrency=1 that load is
-# serial: measured at 156s to run 50 tests, versus 6s when the three files are
+# serial: measured at 156s to run 50 tests, versus 6s when the files are
 # named. It was 75% of the suite's wall clock for 1% of its tests. The tag is
 # still passed so the filter inside these files stays honest.
 #
@@ -38,8 +38,6 @@ coverage=0
 # job — it fails if a suite carries the tag and is not named here, so a new
 # serial test cannot silently stop running.
 SERIAL_TESTS=(
-  test/daemon/pql_commands_test.dart
-  test/pql/client_test.dart
   test/search/grep_engine_test.dart
 )
 
