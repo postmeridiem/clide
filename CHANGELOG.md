@@ -18,6 +18,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- A development container serves the web build over TLS with cross-origin isolation: run `make ui-container`, then open `https://localhost:8443/u/0/w/<repo>/` (T-663).
+
 ### Changed
 
 ### Fixed

@@ -46,6 +46,7 @@ test/                    # All tests (core subsystems + widgets + goldens + a11y
 assets/                  # Fonts, themes, grammars, licenses, logo
 linux/, macos/, web/     # Flutter platform directories
 native/                  # Vendored native libs (libtree-sitter.so, dugite)
+docker/                  # Container images — web/ is the web UI's edge (D-117)
 governance/              # D/Q/R records (decisions/, questions/, rejected/ subdirs)
 docs/                    # Design docs, wireframes
 legacy/                  # Python Textual clide v1.2 (frozen)

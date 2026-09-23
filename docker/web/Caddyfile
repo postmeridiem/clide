@@ -1,0 +1,39 @@
+# Caddy for the web UI's walking skeleton (T-663, D-117): the edge serves the
+# WebAssembly bundle itself. The broker and hosts come later (C2 onwards).
+{
+	# The container runs unprivileged, so no port below 1024.
+	http_port 8080
+	https_port 8443
+	# Certificates come from Caddy's internal CA only, never from ACME. An
+	# unprivileged process can't add that CA to the system trust store, so
+	# Caddy doesn't try.
+	local_certs
+	skip_install_trust
+	auto_https disable_redirects
+	admin off
+}
+
+localhost:8443 {
+	tls internal
+
+	# Cross-origin isolation, for Skwasm's threads (SharedArrayBuffer).
+	header {
+		Cross-Origin-Opener-Policy same-origin
+		Cross-Origin-Embedder-Policy require-corp
+		# Flutter's web output has fixed names, not content hashes, so every
+		# response is revalidated. An upgraded image then can't be masked by
+		# a cached old main.dart.wasm.
+		Cache-Control no-cache
+	}
+
+	root * /srv/web
+
+	# Workspace URLs (D-116) all load the app. Any other missing path stays a
+	# 404, so a lost asset fails loudly instead of returning index.html.
+	@workspace path /u/*
+	rewrite @workspace /index.html
+
+	file_server {
+		precompressed br gzip
+	}
+}

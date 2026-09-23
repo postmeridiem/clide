@@ -227,6 +227,16 @@ ui-smoke: ## Build + serve + run Playwright smoke + stop.
 	tools/ui/serve.sh
 	@sh -c 'trap "tools/ui/stop.sh >/dev/null 2>&1" EXIT; cd tools/ui && npx playwright test smoke.spec.ts'
 
+.PHONY: ui-container
+ui-container: ## Build and run the web UI's walking-skeleton container (Caddy + wasm bundle) on https://localhost:8443 (T-663).
+	docker build -f docker/web/Dockerfile -t clide-web:dev --build-arg COMMIT=$(COMMIT) --build-arg DATE=$(DATE) .
+	docker run -d --rm --name clide-web -p 127.0.0.1:8443:8443 clide-web:dev
+	@echo "clide web: https://localhost:8443/u/0/w/clide/ (Caddy's internal CA: the browser warns until you trust its root)"
+
+.PHONY: ui-container-stop
+ui-container-stop: ## Stop the web UI's walking-skeleton container.
+	docker stop clide-web
+
 .PHONY: build
 build: clide-cli build-$(FLUTTER_OS) ## flutter build for the current OS (via build-<os>) + bundle the C CLI client.
 	@install -m 755 $(CLIDE_CLI_BIN) $(CLI_BUNDLE_DEST)

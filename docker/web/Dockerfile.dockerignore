@@ -1,0 +1,20 @@
+# Build context for docker/web/Dockerfile (BuildKit reads <Dockerfile>.dockerignore).
+# The web build needs the Flutter package: pubspec, lib/, assets/, web/. The
+# rest is heavy (build output, native libraries, git history) or irrelevant.
+.git
+.dart_tool
+build
+coverage
+tmp
+native
+legacy
+linux
+macos
+windows
+integration_test
+test
+docs
+governance
+tools/ui/node_modules
+tools/ui/out
+**/*.idmap.json

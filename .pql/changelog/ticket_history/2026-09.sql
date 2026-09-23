@@ -2437,3 +2437,120 @@ Re-parented 2026-09-23 under Epic B (T-650) of the web UI initiative (T-648, D-1
 3. **`smoke.spec.ts` is stale.** The Welcome view says "Open folder…" and "New project…", not "Open project". On web the status bar reads "checking…", because no host sits behind it (Epic C), not "disconnected".
 4. **`driver.ts` is fixed.** It now dispatches the click on the semantics placeholder; Playwright refused the forced click because the placeholder sits outside the viewport.
 5. **Where it ran.** The pinned `mcr.microsoft.com/playwright:v1.50.0-noble` image ran the harness without node on the host, via `--network host` against a local server.', NULL, '2026-09-23 19:48:01', '2026-09-23 19:48:01.016', '2026-09-23 19:48:01.016', NULL, 'c29867321e46715554e529a5c9cbe429', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXB9P1XVWRZ68QGCPY31SZR', 'description', 'The first container, before any host exists. Caddy serves the wasm bundle, which proves the build, TLS and serving path end to end (D-117).
+
+**Scope:**
+- A dev Dockerfile: one stage builds `flutter build web --wasm` with the Flutter version from `.fvmrc`, and Caddy serves the output.
+- Caddy config:
+  - TLS, using Caddy''s internal CA for local use;
+  - SPA fallback, so `/u/<N>/w/<slug>/` loads the app;
+  - COOP/COEP headers;
+  - precompressed assets;
+  - cache headers.
+- A `make` target that builds and runs it locally.
+
+**Out of scope:** the broker, the hosts and authentication (C2 onwards); release hardening (Epic F).
+
+**Done when:**
+- The image builds reproducibly from a clean clone.
+- A browser at `https://localhost:<port>/u/0/w/demo/` reports `crossOriginIsolated === true`, and the app boots as far as the web build currently does.
+
+**Refinement (2026-09-23)**
+
+**Decisions (maintainer):**
+- Container files live in `docker/web/`: the Dockerfile and the Caddyfile. `make ui-container` and `make ui-container-stop` join the existing `ui-*` targets. Add `docker/` to the repo layout in CLAUDE.md.
+- The Flutter build stage uses a plain base image. It downloads the exact SDK pinned in `.fvmrc` and verifies its checksum, applying the vendoring discipline of D-59/D-63 from day one. No third-party Flutter image.
+
+**Routing:** no URL-strategy change belongs here, because `lib/` has no router. Keep the base href at `/`. Caddy serves the bundle from the origin root, and only the SPA fallback knows about the `/u/<N>/w/<slug>/` prefix.
+
+**Caddy:**
+- Build it from source with a plain `go build` at a pinned commit, with a `BUILD.md` per D-63.
+- `forward_auth` is core, so no plugins and no `xcaddy` until the broker needs one.
+
+**No CDN:** build with `--no-web-resources-cdn` (T-660), so the image never reaches a CDN.
+
+**Compression:** `flutter build web` emits no `.br` or `.gz` files. Add a compression pass, otherwise `file_server precompressed` has nothing to serve.
+
+**Caching:**
+- Flutter''s web output uses fixed names (`main.dart.wasm`, `canvaskit/*`, `assets/*`), not content hashes.
+- An `immutable` cache policy would therefore pin stale code after an upgrade. Revalidate instead, with ETags or `no-cache`.
+- Confirm this against real build output.
+
+**Done-check:** read `crossOriginIsolated` directly with `page.evaluate`. Don''t wait for the app to paint; that depends on T-577.
+
+**Caddyfile sketch, to adapt:**
+- a `localhost` site with `tls internal`;
+- COOP `same-origin` and COEP `require-corp` headers;
+- `root * /srv/web`;
+- `try_files {path} /index.html`;
+- `file_server { precompressed br gzip }`;
+- revalidating cache headers.', 'The first container, before any host exists. Caddy serves the wasm bundle, which proves the build, TLS and serving path end to end (D-117).
+
+**Scope:**
+- A dev Dockerfile: one stage builds `flutter build web --wasm` with the Flutter version from `.fvmrc`, and Caddy serves the output.
+- Caddy config:
+  - TLS, using Caddy''s internal CA for local use;
+  - SPA fallback, so `/u/<N>/w/<slug>/` loads the app;
+  - COOP/COEP headers;
+  - precompressed assets;
+  - cache headers.
+- A `make` target that builds and runs it locally.
+
+**Out of scope:** the broker, the hosts and authentication (C2 onwards); release hardening (Epic F).
+
+**Done when:**
+- The image builds reproducibly from a clean clone.
+- A browser at `https://localhost:<port>/u/0/w/demo/` reports `crossOriginIsolated === true`, and the app boots as far as the web build currently does.
+
+**Refinement (2026-09-23)**
+
+**Decisions (maintainer):**
+- Container files live in `docker/web/`: the Dockerfile and the Caddyfile. `make ui-container` and `make ui-container-stop` join the existing `ui-*` targets. Add `docker/` to the repo layout in CLAUDE.md.
+- The Flutter build stage uses a plain base image. It downloads the exact SDK pinned in `.fvmrc` and verifies its checksum, applying the vendoring discipline of D-59/D-63 from day one. No third-party Flutter image.
+
+**Routing:** no URL-strategy change belongs here, because `lib/` has no router. Keep the base href at `/`. Caddy serves the bundle from the origin root, and only the SPA fallback knows about the `/u/<N>/w/<slug>/` prefix.
+
+**Caddy:**
+- Build it from source with a plain `go build` at a pinned commit, with a `BUILD.md` per D-63.
+- `forward_auth` is core, so no plugins and no `xcaddy` until the broker needs one.
+
+**No CDN:** build with `--no-web-resources-cdn` (T-660), so the image never reaches a CDN.
+
+**Compression:** `flutter build web` emits no `.br` or `.gz` files. Add a compression pass, otherwise `file_server precompressed` has nothing to serve.
+
+**Caching:**
+- Flutter''s web output uses fixed names (`main.dart.wasm`, `canvaskit/*`, `assets/*`), not content hashes.
+- An `immutable` cache policy would therefore pin stale code after an upgrade. Revalidate instead, with ETags or `no-cache`.
+- Confirm this against real build output.
+
+**Done-check:** read `crossOriginIsolated` directly with `page.evaluate`. Don''t wait for the app to paint; that depends on T-577.
+
+**Caddyfile sketch, to adapt:**
+- a `localhost` site with `tls internal`;
+- COOP `same-origin` and COEP `require-corp` headers;
+- `root * /srv/web`;
+- `try_files {path} /index.html`;
+- `file_server { precompressed br gzip }`;
+- revalidating cache headers.
+
+**Done (2026-09-23).** `make ui-container` builds `docker/web/Dockerfile` and serves the app at `https://localhost:8443/u/<N>/w/<slug>/`. `make ui-container-stop` stops it.
+
+**How it is built.** Every input is pinned:
+- the base, Debian bookworm-slim, by digest;
+- the Flutter SDK named in `.fvmrc` (3.44.1), downloaded and checked against its published SHA-256;
+- Go 1.25.14, also by SHA-256;
+- Caddy v2.11.4 at commit `e2eee6a7`, built with `go build -mod=readonly`.
+
+The bundle is built with `--no-web-resources-cdn` and precompressed with brotli and gzip. Caddy runs unprivileged (uid 10001) on port 8443, using its internal CA. The admin API is off.
+
+**Caddyfile.**
+- COOP `same-origin` and COEP `require-corp`.
+- `Cache-Control: no-cache` everywhere, because Flutter''s output names are not content-hashed.
+- `/u/*` is rewritten to the app, and any other missing path stays a 404.
+
+**Verified.**
+- curl: HTTP/2 200 with the headers above; a missing asset returns 404; `main.dart.wasm` is served as brotli.
+- `tools/ui/tests/container-isolation.spec.ts` passes 2/2: `isSecureContext`, `crossOriginIsolated`, and the 404.
+- In Chromium at 1920×1080 the Welcome view paints with no page errors, and `crossOriginIsolated` is true, which means the Skwasm threaded path.
+- The image is 263 MB.', NULL, '2026-09-23 19:58:43', '2026-09-23 19:58:43.305', '2026-09-23 19:58:43.305', NULL, 'c7b0ee2eb4869ad8bb3a5882523cd1f8', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXB9P1XVWRZ68QGCPY31SZR', 'status', 'in_progress', 'done', NULL, '2026-09-23 19:58:43', '2026-09-23 19:58:43.522', '2026-09-23 19:58:43.522', NULL, '01a9cda6dc63f9c247267446a68b7251', 2) ON CONFLICT(hash) DO NOTHING;
