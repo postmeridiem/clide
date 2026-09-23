@@ -1,11 +1,13 @@
 /// Tests for the `files.*` command handlers.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:clide/clide.dart';
 import 'package:clide/src/daemon/files_commands.dart';
+import 'package:clide/src/files/watcher.dart' show FileChange;
 import 'package:test/test.dart';
 
 void main() {
@@ -339,6 +341,17 @@ void main() {
     // FilesService.startWatching wires watcher.stream → events.emit;
     // exercising the emit branch is the goal — the consumer-side
     // assertion is covered in test/files/watcher_test.dart.
+  });
+
+  test('addChangeListener hears watcher changes in-process (T-291)', () async {
+    final heard = Completer<FileChange>();
+    files.addChangeListener((c) {
+      if (c.path == '.editorconfig' && !heard.isCompleted) heard.complete(c);
+    });
+    await call('files.watch', const {});
+    await File('${sandbox.path}/.editorconfig').writeAsString('root = true\n');
+    final change = await heard.future.timeout(const Duration(seconds: 5));
+    expect(change.isDirectory, isFalse);
   });
 
   test('shutdown stops the watcher delivering into the bus (T-367)', () async {

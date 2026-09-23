@@ -57,6 +57,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - **Picking up a ticket tells Claude how to finish it** (T-543) — set it in
   progress, commit through `/git-commit`, and leave it in `review` for you
   rather than closing it.
+- **Editor settings follow `.editorconfig` changes made outside clide**
+  (T-291) — editing one in another editor, or switching branches, updates
+  the indent, whitespace and line-ending settings of open buffers.
 
 ### Fixed
 

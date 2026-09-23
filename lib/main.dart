@@ -393,6 +393,9 @@ Future<void> main() async {
     // visible to `pane list` by snapshotting the kernel PanelRegistry +
     // LayoutArrangement at request time — no mirrored state to drift.
     registerPaneCommands(dispatcher, paneRegistry, viewPanes: () => snapshotViewPanes(panels, arrangement, subjects: viewSubjects()));
+    // External .editorconfig edits (another editor, a branch switch) re-resolve
+    // open buffers off the files watcher rather than a second watch (T-291).
+    filesService.addChangeListener((change) => editorRegistry.onFileChanged(change.path));
     final gitClient = GitClient(toolchain: tc, workDir: workRoot);
     registerGitCommands(dispatcher, gitClient, eventSink);
     // `clide project new <name>` (T-487): create + git-init a new project dir.

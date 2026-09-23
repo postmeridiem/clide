@@ -48,6 +48,14 @@ class FilesService {
 
   FileWatcher? _watcher;
 
+  final List<void Function(FileChange change)> _changeListeners = [];
+
+  /// Hear every change the workspace watcher reports, in-process — for
+  /// subsystems that react to files on disk (the editor re-resolving
+  /// `.editorconfig`, T-291) without a watcher of their own. Only fires once
+  /// [startWatching] has run.
+  void addChangeListener(void Function(FileChange change) listener) => _changeListeners.add(listener);
+
   Future<void> startWatching() async {
     if (_watcher != null) return;
     final w = FileWatcher(root: root, ignore: ignore);
@@ -55,6 +63,9 @@ class FilesService {
     await w.start();
     w.stream.listen((change) {
       events.emit(IpcEvent(subsystem: 'files', kind: 'files.changed', timestamp: DateTime.now().toUtc(), data: change.toJson()));
+      for (final listener in _changeListeners) {
+        listener(change);
+      }
     });
   }
 

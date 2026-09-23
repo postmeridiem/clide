@@ -231,6 +231,53 @@ void main() {
     });
   });
 
+  group('.editorconfig changed outside clide (T-291)', () {
+    late EditorRegistry fast;
+    setUp(() => fast = EditorRegistry(events: sink, workspaceRoot: sandbox, editorConfigDebounce: const Duration(milliseconds: 20)));
+    tearDown(() => fast.shutdown());
+
+    Future<void> settle() => Future<void>.delayed(const Duration(milliseconds: 60));
+
+    test('a burst of watcher changes re-resolves open buffers once, after the debounce', () async {
+      final readme = await fast.open('README.md');
+      expect(readme.settings.indentSize, isNull);
+      sink.events.clear();
+
+      // Written by another editor / a checkout — not through the registry.
+      await File('${sandbox.path}/.editorconfig').writeAsString('root = true\n[*]\nindent_size = 4\n');
+      fast.onFileChanged('.editorconfig');
+      fast.onFileChanged('.editorconfig');
+      expect(readme.settings.indentSize, isNull, reason: 'debounced, not immediate');
+
+      await settle();
+      expect(readme.settings.indentSize, 4);
+      expect(sink.ofKind('editor.settings-changed'), hasLength(1));
+    });
+
+    test('only buffers under the changed config are re-resolved; other paths are ignored', () async {
+      await File('${sandbox.path}/.editorconfig').writeAsString('[*]\nindent_size = 2\n');
+      Directory('${sandbox.path}/sub').createSync();
+      await File('${sandbox.path}/sub/a.txt').writeAsString('a');
+      final readme = await fast.open('README.md');
+      final nested = await fast.open('sub/a.txt');
+      expect(readme.settings.indentSize, 2);
+      expect(nested.settings.indentSize, 2);
+
+      // A new nested config, plus the root one edited too — but only the
+      // nested one is reported, so the root-level README must not be touched.
+      await File('${sandbox.path}/sub/.editorconfig').writeAsString('[*]\nindent_size = 8\n');
+      await File('${sandbox.path}/.editorconfig').writeAsString('[*]\nindent_size = 3\n');
+      sink.events.clear();
+      fast.onFileChanged('sub/.editorconfig');
+      fast.onFileChanged('README.md'); // not a config: no effect
+      await settle();
+
+      expect(nested.settings.indentSize, 8);
+      expect(readme.settings.indentSize, 2);
+      expect(sink.ofKind('editor.settings-changed').map((e) => e.data['id']), [nested.id]);
+    });
+  });
+
   // T-363: editor.open/save returned absolute paths verbatim and did no
   // `..` normalization — an unconfined read AND write primitive over IPC
   // while files.read was carefully guarded.

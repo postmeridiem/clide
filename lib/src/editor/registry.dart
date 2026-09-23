@@ -6,6 +6,7 @@
 /// events through the [DaemonEventSink].
 library;
 
+import 'dart:async';
 import 'dart:io';
 
 import '../files/path_safety.dart';
@@ -16,9 +17,12 @@ import 'buffer.dart';
 import 'editor_settings_resolver.dart';
 
 class EditorRegistry {
-  EditorRegistry({required this.events, required this.workspaceRoot});
+  EditorRegistry({required this.events, required this.workspaceRoot, this.editorConfigDebounce = const Duration(milliseconds: 200)});
 
   final DaemonEventSink events;
+
+  /// How long [onFileChanged] waits for `.editorconfig` changes to settle.
+  final Duration editorConfigDebounce;
 
   /// Workspace root used to resolve repo-relative paths to disk.
   final Directory workspaceRoot;
@@ -27,6 +31,8 @@ class EditorRegistry {
   final Map<String, String> _pathToId = {}; // repo-rel path → id
   int _nextId = 1;
   String? _activeId;
+  Timer? _configDebounce;
+  final Set<String> _pendingConfigDirs = {}; // dirs of changed .editorconfigs
 
   Iterable<EditorBuffer> get buffers => _buffers.values;
   EditorBuffer? get(String id) => _buffers[id];
@@ -156,15 +162,37 @@ class EditorRegistry {
     buf.dirty = false;
     _emit('editor.saved', {'id': id, 'path': buf.path});
 
-    if (_isEditorConfigPath(buf.path)) _reresolveSettings();
+    if (_isEditorConfigPath(buf.path)) reresolveSettings();
     return true;
   }
 
-  /// Recompute every open buffer's effective settings from its sources and tell
+  /// Tell the registry a workspace file changed on disk (repo-relative path,
+  /// from the files watcher). A `.editorconfig` change made outside clide — another
+  /// editor, a branch switch — re-resolves the open buffers it can affect
+  /// (T-291). Debounced: a checkout touching several configs, or an editor's
+  /// write-rename dance, settles into one pass.
+  void onFileChanged(String path) {
+    if (!_isEditorConfigPath(path)) return;
+    final slash = path.lastIndexOf('/');
+    _pendingConfigDirs.add(slash == -1 ? '' : path.substring(0, slash));
+    _configDebounce?.cancel();
+    _configDebounce = Timer(editorConfigDebounce, () {
+      _configDebounce = null;
+      final dirs = _pendingConfigDirs.toList();
+      _pendingConfigDirs.clear();
+      reresolveSettings(under: dirs);
+    });
+  }
+
+  /// Recompute open buffers' effective settings from their sources and tell
   /// the UI about the ones that changed. Called when a `.editorconfig` is saved
-  /// in-app (the file's rules changed under the open buffers).
-  void _reresolveSettings() {
+  /// in-app or changes on disk (the file's rules changed under the open
+  /// buffers). With [under], only buffers inside one of those repo-relative
+  /// directories are checked (`''` is the workspace root) — a config can only
+  /// affect files at or below its own directory.
+  void reresolveSettings({Iterable<String>? under}) {
     for (final buf in _buffers.values) {
+      if (under != null && !under.any((dir) => _isUnder(buf.path, dir))) continue;
       final next = resolveEditorSettings(workspaceRoot, buf.path);
       if (next.toJson().toString() == buf.settings.toJson().toString()) continue;
       buf.settings = next;
@@ -173,6 +201,15 @@ class EditorRegistry {
   }
 
   bool _isEditorConfigPath(String path) => path == '.editorconfig' || path.endsWith('/.editorconfig');
+
+  /// Whether buffer [path] sits in repo-relative directory [dir]. Buffers may be
+  /// opened by absolute path, so strip the workspace prefix first.
+  bool _isUnder(String path, String dir) {
+    if (dir.isEmpty) return true;
+    final rootPrefix = '${workspaceRoot.absolute.path}/';
+    final rel = path.startsWith(rootPrefix) ? path.substring(rootPrefix.length) : path;
+    return rel.startsWith('$dir/');
+  }
 
   /// Close a buffer. Idempotent.
   void close(String id) {
@@ -192,6 +229,9 @@ class EditorRegistry {
   }
 
   Future<void> shutdown() async {
+    _configDebounce?.cancel();
+    _configDebounce = null;
+    _pendingConfigDirs.clear();
     _buffers.clear();
     _pathToId.clear();
     _activeId = null;
