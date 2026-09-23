@@ -14,10 +14,10 @@ void main() {
     });
 
     test('permissionModeLabel humanises CC modes', () {
-      expect(permissionModeLabel('acceptEdits'), 'accept-edits');
-      expect(permissionModeLabel('bypassPermissions'), 'bypass');
-      expect(permissionModeLabel('plan'), 'plan');
-      expect(permissionModeLabel('default'), 'default');
+      expect(permissionModeLabel('acceptEdits'), 'Accept edits');
+      expect(permissionModeLabel('bypassPermissions'), 'Bypass permissions');
+      expect(permissionModeLabel('plan'), 'Plan');
+      expect(permissionModeLabel('default'), 'Manual');
       expect(permissionModeLabel('something-new'), 'something-new');
     });
 
@@ -37,7 +37,7 @@ void main() {
   group('formatStatusLine', () {
     test('joins the present fields', () {
       const s = SessionStatus(model: 'claude-opus-4-7', permissionMode: 'acceptEdits', contextTokens: 21000);
-      expect(formatStatusLine(s), 'opus 4.7  ·  accept-edits  ·  21k ctx');
+      expect(formatStatusLine(s), 'opus 4.7  ·  Accept edits  ·  21k ctx');
     });
 
     test('omits absent fields', () {
@@ -70,38 +70,48 @@ void main() {
       const s = SessionStatus(model: 'claude-opus-4-7', permissionMode: 'default', contextTokens: 21000, contextWindow: 1000000, cost: 0.05);
       final line = formatStatusLine(s);
       expect(line, contains('opus 4.7'));
-      expect(line, contains('default'));
+      expect(line, contains('Manual'));
       expect(line, contains('21k / 1.0M ctx'));
       expect(line, contains('\$0.05'));
     });
   });
 
-  group('nextSafePermissionMode (T-226)', () {
-    test('cycles the safe trio and wraps', () {
-      expect(nextSafePermissionMode('default'), 'acceptEdits');
-      expect(nextSafePermissionMode('acceptEdits'), 'plan');
-      expect(nextSafePermissionMode('plan'), 'default');
+  group('permission-mode cycle (T-226, T-597)', () {
+    String next(String m, {bool auto = false, bool bypass = false}) => nextPermissionMode(m, autoAvailable: auto, bypassAllowed: bypass);
+
+    test('Manual → Accept edits → Plan and wraps when nothing optional is available', () {
+      expect(next('default'), 'acceptEdits');
+      expect(next('acceptEdits'), 'plan');
+      expect(next('plan'), 'default');
     });
 
-    test('bypassPermissions / unknown restarts at default (never cycles into bypass)', () {
-      expect(nextSafePermissionMode('bypassPermissions'), 'default');
-      expect(nextSafePermissionMode('whatever'), 'default');
-      expect(kSafePermissionCycle, isNot(contains('bypassPermissions')));
+    test('auto slots in after Plan when available, as in the CLI', () {
+      expect(permissionModeCycle(autoAvailable: true, bypassAllowed: false), ['default', 'acceptEdits', 'plan', 'auto']);
+      expect(next('plan', auto: true), 'auto');
+      expect(next('auto', auto: true), 'default');
+    });
+
+    test('bypass joins only when allowed, before auto', () {
+      expect(permissionModeCycle(autoAvailable: true, bypassAllowed: true), ['default', 'acceptEdits', 'plan', 'bypassPermissions', 'auto']);
+      expect(next('plan', bypass: true), 'bypassPermissions');
+      expect(permissionModeCycle(autoAvailable: true, bypassAllowed: false), isNot(contains('bypassPermissions')));
+    });
+
+    test('a mode outside the cycle goes to Manual — as the first press from auto does', () {
+      expect(next('auto'), 'default', reason: 'auto no longer available');
+      expect(next('bypassPermissions'), 'default');
+      expect(next('dontAsk'), 'default');
+      expect(next('whatever'), 'default');
     });
   });
 
-  group('nextPermissionMode (T-510)', () {
-    test('cycles the full list including bypass and wraps', () {
-      expect(nextPermissionMode('default'), 'acceptEdits');
-      expect(nextPermissionMode('acceptEdits'), 'plan');
-      expect(nextPermissionMode('plan'), 'bypassPermissions');
-      expect(nextPermissionMode('bypassPermissions'), 'default');
-    });
-
-    test('unknown restarts at default', () {
-      expect(nextPermissionMode('whatever'), 'default');
-      expect(kFullPermissionCycle, contains('bypassPermissions'));
-    });
+  test('permission mode labels follow Claude Code: default is Manual (T-597)', () {
+    expect(permissionModeLabel('default'), 'Manual');
+    expect(permissionModeLabel('manual'), 'Manual');
+    expect(permissionModeLabel('acceptEdits'), 'Accept edits');
+    expect(permissionModeLabel('plan'), 'Plan');
+    expect(permissionModeLabel('auto'), 'Auto');
+    expect(permissionModeLabel('bypassPermissions'), 'Bypass permissions');
   });
 
   group('statusSegmentsAroundMode (T-226)', () {

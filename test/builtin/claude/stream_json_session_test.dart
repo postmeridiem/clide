@@ -845,6 +845,109 @@ void main() {
     expect(busy, [false, true, false]);
   });
 
+  group('permission modes (T-597)', () {
+    String handshake(Object? rid, {bool autoOk = true}) => jsonEncode({
+      'type': 'control_response',
+      'response': {
+        'subtype': 'success',
+        'request_id': rid,
+        'response': {
+          'models': [
+            {'value': 'default', 'resolvedModel': 'claude-opus-5-5[1m]', 'supportsAutoMode': autoOk},
+            {'value': 'haiku', 'resolvedModel': 'claude-haiku-4-5', 'supportsAutoMode': false},
+          ],
+          'current_permission_mode': 'default',
+        },
+      },
+    });
+    String reply(String rid, {String? mode, String? error}) => jsonEncode({
+      'type': 'control_response',
+      'response': error != null
+          ? {'subtype': 'error', 'request_id': rid, 'error': error}
+          : {
+              'subtype': 'success',
+              'request_id': rid,
+              'response': {'mode': mode},
+            },
+    });
+    String lastRid(_FakeProc p) => (jsonDecode(p.writes.last) as Map)['request_id'] as String;
+
+    Future<(StreamJsonSession, _FakeProc)> started({bool autoOk = true, bool bypassAllowed = false}) async {
+      final p = _FakeProc();
+      final s = StreamJsonSession(p, bypassAllowed: bypassAllowed);
+      addTearDown(s.dispose);
+      s.start();
+      p.emit(handshake((jsonDecode(p.writes.single) as Map)['request_id'], autoOk: autoOk));
+      await pumpEventQueue();
+      return (s, p);
+    }
+
+    test('auto is offered when the current model supports it, never before the handshake', () async {
+      final p = _FakeProc();
+      final s = StreamJsonSession(p);
+      addTearDown(s.dispose);
+      s.start();
+      expect(s.autoModeAvailable, isFalse, reason: 'nothing known yet');
+      final (ready, _) = await started();
+      expect(ready.autoModeAvailable, isTrue);
+      expect(ready.availableModes.map((m) => m.value), ['default', 'acceptEdits', 'plan', 'auto']);
+    });
+
+    test('auto follows the model: a model without support hides it', () async {
+      final (s, p) = await started();
+      p.emit(
+        jsonEncode({
+          'type': 'assistant',
+          'message': {'model': 'claude-haiku-4-5', 'content': <Object>[]},
+        }),
+      );
+      await pumpEventQueue();
+      expect(s.status.model, 'claude-haiku-4-5');
+      expect(s.autoModeAvailable, isFalse);
+    });
+
+    test('bypass is offered only to a session launched allowing it', () async {
+      final (plain, _) = await started();
+      expect(plain.availableModes.map((m) => m.value), isNot(contains('bypassPermissions')));
+      final (allowed, _) = await started(bypassAllowed: true);
+      expect(allowed.availableModes.map((m) => m.value), contains('bypassPermissions'));
+    });
+
+    test('a refused mode rolls the status back and says why', () async {
+      final (s, p) = await started();
+      final errors = <String>[];
+      s.permissionModeErrors.listen(errors.add);
+      s.setPermissionMode('bypassPermissions');
+      expect(s.status.permissionMode, 'bypassPermissions', reason: 'optimistic');
+      p.emit(
+        reply(lastRid(p), error: 'Cannot set permission mode to bypassPermissions because the session was not launched with --dangerously-skip-permissions'),
+      );
+      await pumpEventQueue();
+      expect(s.status.permissionMode, 'default', reason: 'rolled back — the UI must not claim a mode the CLI refused');
+      expect(errors.single, contains('--dangerously-skip-permissions'));
+    });
+
+    test('a refused auto stops offering auto for the rest of the session', () async {
+      final (s, p) = await started();
+      s.setPermissionMode('auto');
+      p.emit(reply(lastRid(p), error: 'auto mode is unavailable'));
+      await pumpEventQueue();
+      expect(s.autoModeAvailable, isFalse);
+      expect(s.availableModes.map((m) => m.value), isNot(contains('auto')));
+    });
+
+    test('`manual` is sent as default, and the CLI\'s answer wins over the guess', () async {
+      final (s, p) = await started();
+      s.setPermissionMode('acceptEdits');
+      s.setPermissionMode('manual');
+      final sent = jsonDecode(p.writes.last) as Map;
+      expect((sent['request'] as Map)['mode'], 'default');
+      p.emit(reply(lastRid(p), mode: 'default'));
+      await pumpEventQueue();
+      expect(s.status.permissionMode, 'default');
+    });
+  });
+
   group('queued messages (T-587)', () {
     String result() => jsonEncode({'type': 'result', 'subtype': 'success'});
     List<String> sentTexts() => [

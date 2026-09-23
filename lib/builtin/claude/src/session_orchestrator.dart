@@ -87,6 +87,8 @@ class SpawnSpec {
     this.memberName,
     this.forkSourceSessionId,
     this.effort,
+    this.permissionMode,
+    this.allowBypass = false,
     this.profile = SessionProfile.agent,
     this.systemPrompt,
     this.model,
@@ -157,6 +159,16 @@ class SpawnSpec {
   /// default (settings.json `effortLevel`). No set_effort control subtype
   /// exists, so changing effort means respawn-with-resume carrying this.
   final String? effort;
+
+  /// Permission mode the session starts in (`--permission-mode`, T-597). At
+  /// launch rather than as a control request: the CLI then falls back to
+  /// Manual on its own when auto isn't available. Null: the CLI's default.
+  final String? permissionMode;
+
+  /// Launch able to enter bypassPermissions
+  /// (`--allow-dangerously-skip-permissions`, T-597) — the CLI refuses the
+  /// mode otherwise. Makes it selectable; doesn't enter it.
+  final bool allowBypass;
 
   /// Whether this spec spawns a forked session.
   bool get isFork => forkSourceSessionId != null;
@@ -368,12 +380,14 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
         preambles.join('\n\n'),
         ...bootstrap.extraArgs,
         if (spec.effort != null) ...['--effort', spec.effort!],
+        if (spec.permissionMode != null) ...['--permission-mode', spec.permissionMode!],
+        if (spec.allowBypass) '--allow-dangerously-skip-permissions',
         ...sessionArgs,
       ],
     };
 
     final proc = await _factory(sessionArgs: sessionArgs, cwd: spec.cwd, env: bootstrap.envDelta);
-    final session = StreamJsonSession(proc, mcpServers: mcpServers)..start();
+    final session = StreamJsonSession(proc, mcpServers: mcpServers, bypassAllowed: spec.profile == SessionProfile.agent && spec.allowBypass)..start();
     final seed = spec.resume && spec.transcriptPath != null ? await _readTranscriptTail(spec.transcriptPath!) : null;
     final conversation = ConversationController(stream: session.items, seed: seed, onDispose: session.dispose);
     final managed = ManagedSession(

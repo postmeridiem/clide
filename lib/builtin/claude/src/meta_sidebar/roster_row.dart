@@ -2,8 +2,9 @@
 /// controls (T-171). Split out of claude_meta_sidebar.dart (T-395).
 ///
 /// Controls (trailing region):
-/// - permission-mode badge (T-181) — D/A/P cycles the safe trio; shift-click
-///   reaches bypassPermissions behind a confirm
+/// - permission-mode badge (T-181, T-597) — M/E/P/A cycles the modes the
+///   session can enter; shift-click reaches bypassPermissions behind a confirm
+///   when the session was launched with it allowed
 /// - eye / eye-slash — show / hide the session pane
 /// - speaker / speaker-slash — mute / unmute broker delivery
 /// - inject (chat icon) — expand the inline message input
@@ -11,7 +12,7 @@
 /// - close (×) — kill the session
 library;
 
-import 'package:clide/builtin/claude/src/claude_status.dart' show formatTokenCount, permissionModeLabel, shortModelLabel;
+import 'package:clide/builtin/claude/src/claude_status.dart' show formatTokenCount, nextPermissionMode, permissionModeLabel, shortModelLabel;
 import 'package:clide/builtin/claude/src/meta_sidebar/icon_button.dart';
 import 'package:clide/builtin/claude/src/meta_sidebar/inject_field.dart';
 import 'package:clide/builtin/claude/src/meta_sidebar/permission_badge.dart';
@@ -117,11 +118,10 @@ class _AgentRosterRowState extends State<AgentRosterRow> {
                       PermissionModeBadge(
                         mode: currentMode,
                         tokens: tokens,
-                        onCycle: () {
-                          final next = _nextSafeMode(currentMode);
-                          widget.onSetPermissionMode(widget.member.name, next);
-                        },
-                        onBypass: () => setState(() => _confirmingBypass = true),
+                        onCycle: () => _cycle(managed, currentMode),
+                        // Bypass only exists for a session launched with it
+                        // allowed (T-597); otherwise shift-click just cycles.
+                        onBypass: managed.session.bypassAllowed ? () => setState(() => _confirmingBypass = true) : () => _cycle(managed, currentMode),
                       ),
                   ],
                 ),
@@ -141,11 +141,11 @@ class _AgentRosterRowState extends State<AgentRosterRow> {
     );
   }
 
-  /// Safe-mode cycle: default → acceptEdits → plan → default (T-181).
-  static String _nextSafeMode(String current) {
-    const cycle = ['default', 'acceptEdits', 'plan'];
-    final idx = cycle.indexOf(current);
-    return cycle[(idx + 1) % cycle.length];
+  /// The composer's cycle (T-597), bounded by what this member's session can
+  /// enter: auto when its model supports it, bypass when launched allowing it.
+  void _cycle(ManagedSession managed, String current) {
+    final s = managed.session;
+    widget.onSetPermissionMode(widget.member.name, nextPermissionMode(current, autoAvailable: s.autoModeAvailable, bypassAllowed: s.bypassAllowed));
   }
 
   Widget _buildBypassConfirm(SurfaceTokens tokens) {

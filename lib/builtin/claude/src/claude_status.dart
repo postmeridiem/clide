@@ -40,29 +40,25 @@ String shortModelLabel(String model) {
   return s;
 }
 
-/// The safe permission-mode cycle: default → acceptEdits → plan → default
-/// (T-226/T-181). `bypassPermissions` is intentionally excluded from the
-/// plain chord — it lives in [kFullPermissionCycle] behind the shift
-/// modifier (T-510).
-const List<String> kSafePermissionCycle = ['default', 'acceptEdits', 'plan'];
+/// The permission-mode cycle, matching Claude Code's own Shift+Tab (T-597):
+/// Manual → Accept edits → Plan → [Bypass, when the session allows it] →
+/// [Auto, when available] → back to Manual. The optional modes slot in after
+/// Plan with bypass first and auto last, as in the CLI.
+List<String> permissionModeCycle({required bool autoAvailable, required bool bypassAllowed}) => [
+  'default',
+  'acceptEdits',
+  'plan',
+  if (bypassAllowed) 'bypassPermissions',
+  if (autoAvailable) 'auto',
+];
 
-/// The full cycle including the bypass footgun. Reachable only through
-/// shift-modified gestures (Ctrl/Cmd+Shift+M, shift-click on the popup's
-/// bypass row) — holding shift is the explicit opt-in (T-510).
-const List<String> kFullPermissionCycle = ['default', 'acceptEdits', 'plan', 'bypassPermissions'];
-
-/// The next mode in [kSafePermissionCycle] after [current] (wraps). An
-/// unknown or `bypassPermissions` current restarts the cycle at `default`.
-String nextSafePermissionMode(String current) {
-  final i = kSafePermissionCycle.indexOf(current);
-  return kSafePermissionCycle[(i + 1) % kSafePermissionCycle.length];
-}
-
-/// The next mode in [kFullPermissionCycle] after [current] (wraps). An
-/// unknown current restarts the cycle at `default`.
-String nextPermissionMode(String current) {
-  final i = kFullPermissionCycle.indexOf(current);
-  return kFullPermissionCycle[(i + 1) % kFullPermissionCycle.length];
+/// The mode after [current] in [permissionModeCycle] (wraps). A current mode
+/// outside the cycle — auto that just became unavailable, `dontAsk` — goes to
+/// Manual, as the CLI's first press from auto does.
+String nextPermissionMode(String current, {required bool autoAvailable, required bool bypassAllowed}) {
+  final cycle = permissionModeCycle(autoAvailable: autoAvailable, bypassAllowed: bypassAllowed);
+  final i = cycle.indexOf(current);
+  return i < 0 ? 'default' : cycle[(i + 1) % cycle.length];
 }
 
 /// Status-line segments split around the permission-mode badge so the UI can
@@ -78,17 +74,23 @@ String nextPermissionMode(String current) {
   return (leading: s.model != null ? shortModelLabel(s.model!) : null, trailing: trailing.isEmpty ? null : trailing);
 }
 
-/// Friendly label for Claude's permission modes.
+/// Label for Claude's permission modes — the names the desktop app, the IDE
+/// extensions and the CLI's own status bar use (T-597): `default` is Manual.
 String permissionModeLabel(String mode) {
   switch (mode) {
-    case 'acceptEdits':
-      return 'accept-edits';
-    case 'bypassPermissions':
-      return 'bypass';
-    case 'plan':
-      return 'plan';
     case 'default':
-      return 'default';
+    case 'manual':
+      return 'Manual';
+    case 'acceptEdits':
+      return 'Accept edits';
+    case 'plan':
+      return 'Plan';
+    case 'auto':
+      return 'Auto';
+    case 'dontAsk':
+      return "Don't ask";
+    case 'bypassPermissions':
+      return 'Bypass permissions';
     default:
       return mode;
   }

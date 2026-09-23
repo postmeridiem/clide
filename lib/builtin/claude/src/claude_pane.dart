@@ -84,6 +84,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   late final SessionReader _reader;
 
   StreamSubscription<SessionStatus>? _statusSub;
+  StreamSubscription<String>? _modeErrorSub;
   StreamSubscription<SessionEnd>? _endSub;
   StreamSubscription<ProjectOpened>? _projectSub;
   StreamSubscription<Message>? _commandSub;
@@ -204,6 +205,11 @@ class _ClaudePaneState extends State<ClaudePane> {
       _modelErrorSub = _reader.modelErrors.listen((msg) {
         _kernel?.notify.warn(msg, title: 'model');
       });
+      // Same for a refused permission-mode change (T-597) — e.g. auto turned
+      // off server-side. The status has already rolled back.
+      _modeErrorSub = _reader.permissionModeErrors.listen((msg) {
+        _kernel?.notify.warn(msg, title: 'permission mode');
+      });
       // Surface a dead process instead of letting it look thoughtful (T-361).
       // The reader replays an end that already happened, so the late-binder
       // case this pane used to handle by hand is handled for everyone now.
@@ -254,6 +260,8 @@ class _ClaudePaneState extends State<ClaudePane> {
     _endSub = null;
     _modelErrorSub?.cancel();
     _modelErrorSub = null;
+    _modeErrorSub?.cancel();
+    _modeErrorSub = null;
     _workflowsSub?.cancel();
     _workflowsSub = null;
     _reader.dispose();
@@ -332,6 +340,13 @@ class _ClaudePaneState extends State<ClaudePane> {
     // through --effort below; model + permission mode are applied post-spawn.
     final settings = ClideKernel.of(context).settings;
     _effort ??= defaultEffortFlag(settings);
+    // Permission mode goes in at launch (T-597). A respawn — effort change,
+    // /login, /resume — keeps the mode the session was in; otherwise the
+    // configured default (auto, which the CLI turns into Manual where it isn't
+    // available). Bypass is only launchable with the opt-in.
+    final allowBypass = allowBypassPermissions(settings);
+    final current = _status.permissionMode;
+    final startMode = current != null && (current != 'bypassPermissions' || allowBypass) ? current : defaultPermissionModeFlag(settings);
     var isNewSession = false;
     final ipc = _ipc();
     if (ipc == null || !ipc.isConnected) {
@@ -370,6 +385,8 @@ class _ClaudePaneState extends State<ClaudePane> {
             cwd: repoRoot,
             forkSourceSessionId: forkSource,
             effort: _effort,
+            permissionMode: startMode,
+            allowBypass: allowBypass,
           ),
         );
       } catch (e) {
@@ -402,6 +419,8 @@ class _ClaudePaneState extends State<ClaudePane> {
             resume: resume,
             transcriptPath: resume ? transcriptFile : null,
             effort: _effort,
+            permissionMode: startMode,
+            allowBypass: allowBypass,
           ),
         );
       } catch (e) {
@@ -570,11 +589,15 @@ class _ClaudePaneState extends State<ClaudePane> {
       setState(() => _permissionPickerOpen = true);
       return;
     }
-    if (!kPermissionModes.any((m) => m.value == arg)) {
-      s.addLocalNotice('unknown permission mode "$arg" — modes: ${kPermissionModes.map((m) => m.value).join(', ')}');
+    // Only modes this session can actually enter (T-597); `manual` is the
+    // CLI's alias for `default`.
+    final modes = s.availableModes;
+    final mode = arg == 'manual' ? 'default' : arg;
+    if (!modes.any((m) => m.value == mode)) {
+      s.addLocalNotice('unavailable permission mode "$arg" — modes: ${modes.map((m) => m.value).join(', ')}');
       return;
     }
-    s.setPermissionMode(arg);
+    s.setPermissionMode(mode);
   }
 
   void _pickPermissionMode(String value) {
@@ -640,23 +663,15 @@ class _ClaudePaneState extends State<ClaudePane> {
     if (list.isEmpty || list.last != text) list.add(text);
   }
 
-  /// Cycle this pane's session through the safe permission-mode trio
-  /// (default → acceptEdits → plan → default), sent over the stream-json
-  /// control channel (T-226). bypassPermissions is not in the plain chord —
-  /// it's in the shift-modified full cycle ([_cycleModeFull], T-510).
+  /// Cycle this pane's session through the permission modes it can enter —
+  /// Claude Code's own Shift+Tab order (T-226, T-597): Manual → Accept edits →
+  /// Plan → [Bypass] → [Auto]. Bypass is in the cycle only when the session
+  /// was launched with it allowed (a setting), so the Ctrl/Cmd+Shift+M chord
+  /// that once gated it (T-510) now runs the same cycle.
   void _cycleMode() {
     final s = _session;
     if (s == null) return;
-    s.setPermissionMode(nextSafePermissionMode(_status.permissionMode ?? 'default'));
-  }
-
-  /// Cycle through the full mode list including bypassPermissions —
-  /// Ctrl/Cmd+Shift+M, where holding shift is the explicit opt-in for the
-  /// footgun (T-510).
-  void _cycleModeFull() {
-    final s = _session;
-    if (s == null) return;
-    s.setPermissionMode(nextPermissionMode(_status.permissionMode ?? 'default'));
+    s.setPermissionMode(nextPermissionMode(_status.permissionMode ?? 'default', autoAvailable: s.autoModeAvailable, bypassAllowed: s.bypassAllowed));
   }
 
   /// Focus the composer when the user taps empty conversation area (T-227).
@@ -869,7 +884,7 @@ class _ClaudePaneState extends State<ClaudePane> {
               else if (_permissionPickerOpen && _session != null)
                 ModelPickerCard(
                   title: 'permissions',
-                  models: kPermissionModes,
+                  models: _session!.availableModes,
                   currentModel: _status.permissionMode,
                   isCurrent: (o, c) => c != null && o.value == c,
                   onPick: _pickPermissionMode,
@@ -887,9 +902,10 @@ class _ClaudePaneState extends State<ClaudePane> {
                     busy: busySnap.data ?? false,
                     onInterrupt: _session?.interrupt,
                     onCycleMode: _cycleMode,
-                    onCycleModeFull: _cycleModeFull,
+                    onCycleModeFull: _cycleMode,
                     permissionMode: _status.permissionMode,
                     onSetPermissionMode: _session != null ? (m) => _session!.setPermissionMode(m) : null,
+                    permissionModes: [for (final m in _session?.availableModes ?? const <ModelOption>[]) m.value],
                     onSubmit: _send,
                     pasteResolver: () => resolveClipboardAttachment(const NativeClipboard()),
                     initialValue: _sessionId == null ? null : _drafts[_sessionId],

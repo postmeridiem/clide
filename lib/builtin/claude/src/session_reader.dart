@@ -82,6 +82,7 @@ class SessionReader extends ChangeNotifier {
   final _items = StreamController<ConversationItem>.broadcast();
   final _ended = StreamController<SessionEnd>.broadcast();
   final _modelErrors = StreamController<String>.broadcast();
+  final _modeErrors = StreamController<String>.broadcast();
   final _outcomes = StreamController<TurnOutcome>.broadcast();
   final _usage = StreamController<TurnUsage>.broadcast();
 
@@ -106,6 +107,9 @@ class SessionReader extends ChangeNotifier {
   Stream<ConversationItem> get items => _items.stream;
   Stream<SessionEnd> get ended => _ended.stream;
   Stream<String> get modelErrors => _modelErrors.stream;
+
+  /// The CLI's reason for a refused permission-mode change (T-597).
+  Stream<String> get permissionModeErrors => _modeErrors.stream;
   Stream<TurnOutcome> get turnOutcomes => _outcomes.stream;
 
   /// What each turn spent, as a per-turn delta (T-556).
@@ -182,6 +186,7 @@ class SessionReader extends ChangeNotifier {
       ..add(session.pendingPromptStream.listen(_pending.add))
       ..add(session.items.listen(_forward(_items)))
       ..add(session.modelErrors.listen(_forward(_modelErrors)))
+      ..add(session.permissionModeErrors.listen(_forward(_modeErrors)))
       ..add(session.turnOutcomes.listen(_forward(_outcomes)))
       ..add(session.turnUsage.listen(_forward(_usage)));
 
@@ -225,6 +230,7 @@ class SessionReader extends ChangeNotifier {
     _items.close();
     _ended.close();
     _modelErrors.close();
+    _modeErrors.close();
     _outcomes.close();
     _usage.close();
     super.dispose();

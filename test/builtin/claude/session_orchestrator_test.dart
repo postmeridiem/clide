@@ -53,6 +53,23 @@ void main() {
     expect(spawnedArgs.single, isNot(contains('--effort')));
   });
 
+  test('the starting permission mode goes in at launch, not as a control request (T-597)', () async {
+    await orch.spawn(SpawnSpec(id: 'p1', role: 'primary', sessionId: 'p1-uuid', cwd: '/repo', permissionMode: 'auto'));
+    final args = spawnedArgs.single;
+    final i = args.indexOf('--permission-mode');
+    expect(i, isNonNegative, reason: 'sessionArgs: $args');
+    expect(args[i + 1], 'auto');
+    expect(args, isNot(contains('--allow-dangerously-skip-permissions')));
+    expect(created.single.writes.where((w) => w.contains('set_permission_mode')), isEmpty);
+    expect(orch.byId('p1')!.session.bypassAllowed, isFalse);
+  });
+
+  test('the bypass opt-in launches with --allow-dangerously-skip-permissions and says so on the session', () async {
+    await orch.spawn(SpawnSpec(id: 'b1', role: 'primary', sessionId: 'b1-uuid', cwd: '/repo', allowBypass: true));
+    expect(spawnedArgs.single, contains('--allow-dangerously-skip-permissions'));
+    expect(orch.byId('b1')!.session.bypassAllowed, isTrue);
+  });
+
   test('the workspace PATH preset reaches the spawned session env (D-106)', () async {
     final envs = <Map<String, String>?>[];
     final preset = ClaudeSessionOrchestrator(

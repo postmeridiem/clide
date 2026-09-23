@@ -9,7 +9,7 @@ import 'package:clide/builtin/claude/src/account_roadblock_dialog.dart';
 import 'package:clide/builtin/claude/src/account_settings_control.dart';
 import 'package:clide/builtin/claude/src/activity_cluster.dart' show foldLevelFromName, kActivityFoldLevelKey, nextFoldLevel;
 import 'package:clide/builtin/claude/src/claude_config.dart';
-import 'package:clide/builtin/claude/src/claude_status.dart' show nextSafePermissionMode;
+import 'package:clide/builtin/claude/src/claude_status.dart' show nextPermissionMode;
 import 'package:clide/builtin/claude/src/conversation_view.dart' show claudeAccent;
 import 'package:clide/builtin/claude/src/claude_session_host.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
@@ -166,10 +166,24 @@ class ClaudeExtension extends ClideExtension {
                 kind: SettingsFieldKind.select,
                 label: 'Permission mode',
                 labelKey: 'settings.claude.permissionMode.label',
-                help: 'Starting permission mode for new sessions.',
+                help: 'Starting permission mode for new sessions. Auto falls back to Manual where it isn\'t available.',
                 helpKey: 'settings.claude.permissionMode.help',
-                defaultValue: 'default',
-                options: [for (final p in kPermissionModes) SettingsOption(value: p.value, label: p.displayName)],
+                defaultValue: kDefaultPermissionModeDefault,
+                options: [
+                  for (final p in kPermissionModes)
+                    if (p.value != 'bypassPermissions') SettingsOption(value: p.value, label: p.displayName),
+                ],
+              ),
+              SettingsField(
+                key: kAllowBypassKey,
+                kind: SettingsFieldKind.toggle,
+                label: 'Allow bypass permissions mode',
+                labelKey: 'settings.claude.allowBypass.label',
+                help:
+                    'Offers Bypass permissions in the mode picker: no checks at all, so only use it on isolated machines. '
+                    'Auto mode is the safer way to skip prompts. Applies to new sessions.',
+                helpKey: 'settings.claude.allowBypass.help',
+                defaultValue: false,
               ),
             ],
           ),
@@ -316,9 +330,11 @@ class ClaudeExtension extends ClideExtension {
     ),
     // T-181: set permission mode for an agent session (D-6 CLI/UI parity).
     // Usage: clide claude.agent.set-permission-mode <sessionId> <mode>
-    // <mode> must be one of: default, acceptEdits, plan, bypassPermissions.
-    // Note: bypassPermissions is accepted via CLI — the footgun guard is the
-    // UI's confirm dialog; the CLI caller is responsible for their own safety.
+    // <mode> is one the session can enter (T-597): default (or its alias
+    // manual), acceptEdits, plan, auto when available, bypassPermissions only
+    // when the session was launched with it allowed. The CLI would refuse the
+    // others anyway; checking here gives the caller a clear error instead of a
+    // later toast.
     CommandContribution(
       id: 'claude.agent.set-permission-mode',
       command: 'claude.agent.set-permission-mode',
@@ -328,18 +344,26 @@ class ClaudeExtension extends ClideExtension {
       run: (args) async {
         final id = args.firstOrNull;
         if (id == null) return _userErr('missing session id');
-        final mode = args.length >= 2 ? args[1] : null;
-        if (mode == null) return _userErr('missing mode (default|acceptEdits|plan|bypassPermissions)');
-        const valid = {'default', 'acceptEdits', 'plan', 'bypassPermissions'};
-        if (!valid.contains(mode)) {
-          return _userErr('unknown mode "$mode"; use one of: ${valid.join(', ')}');
+        final raw = args.length >= 2 ? args[1] : null;
+        if (raw == null) return _userErr('missing mode (default|acceptEdits|plan|auto|bypassPermissions)');
+        final mode = raw == 'manual' ? 'default' : raw;
+        if (!kPermissionModes.any((m) => m.value == mode)) {
+          return _userErr('unknown mode "$raw"; use one of: ${kPermissionModes.map((m) => m.value).join(', ')}');
         }
-        _orchestrator?.byId(id)?.session.setPermissionMode(mode);
+        // An unknown id stays a no-op, as the other roster verbs are.
+        final session = _orchestrator?.byId(id)?.session;
+        if (session != null) {
+          final valid = [for (final m in session.availableModes) m.value];
+          if (!valid.contains(mode)) {
+            return _userErr('mode "$raw" is not available to this session; use one of: ${valid.join(', ')}');
+          }
+          session.setPermissionMode(mode);
+        }
         return IpcResponse.ok(id: '', data: {'id': id, 'mode': mode, 'status': 'sent'});
       },
     ),
-    // T-226: cycle the primary session's permission mode through the safe
-    // trio. Palette-discoverable counterpart to the composer's Ctrl/Cmd+M.
+    // T-226: cycle the primary session's permission mode — the same cycle as
+    // the composer's Ctrl/Cmd+M (T-597), of which this is the palette twin.
     CommandContribution(
       id: 'claude.mode.cycle',
       command: 'claude.mode.cycle',
@@ -349,7 +373,8 @@ class ClaudeExtension extends ClideExtension {
       run: (_) async {
         final managed = _orchestrator?.byId('primary');
         if (managed == null) return _notFound('no primary session');
-        final next = nextSafePermissionMode(managed.session.status.permissionMode ?? 'default');
+        final s = managed.session;
+        final next = nextPermissionMode(s.status.permissionMode ?? 'default', autoAvailable: s.autoModeAvailable, bypassAllowed: s.bypassAllowed);
         managed.session.setPermissionMode(next);
         return IpcResponse.ok(id: '', data: {'mode': next, 'status': 'sent'});
       },

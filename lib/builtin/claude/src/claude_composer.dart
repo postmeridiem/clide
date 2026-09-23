@@ -53,6 +53,7 @@ class ClaudeComposer extends StatefulWidget {
     this.onCycleModeFull,
     this.permissionMode,
     this.onSetPermissionMode,
+    this.permissionModes = const ['default', 'acceptEdits', 'plan'],
     this.initialValue,
     this.onDraftChanged,
     this.history = const [],
@@ -105,6 +106,10 @@ class ClaudeComposer extends StatefulWidget {
 
   /// Set a specific permission mode from the trailing control's menu (T-275).
   final ValueChanged<String>? onSetPermissionMode;
+
+  /// The modes the control's menu offers — the ones the session can enter
+  /// right now (T-597: auto only when available, bypass only when allowed).
+  final List<String> permissionModes;
 
   /// Seed value (text + selection) the composer mounts with — the
   /// persisted per-session draft (T-228). The composer restores this on
@@ -540,7 +545,7 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
                     const SizedBox(width: 8),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 2),
-                      child: PermissionModeControl(mode: widget.permissionMode!, onSelect: widget.onSetPermissionMode!),
+                      child: PermissionModeControl(mode: widget.permissionMode!, modes: widget.permissionModes, onSelect: widget.onSetPermissionMode!),
                     ),
                   ],
                 ],

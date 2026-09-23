@@ -27,12 +27,18 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   quits them all. Opt out under Settings → General.
 - **The tray icon turns once when clide raises a notification** (T-55) — so a
   hidden window still catches your eye. On macOS the Dock icon bounces.
+- **Auto permission mode** (T-597) — a safety check reviews each action
+  instead of asking you. It's in the mode picker when your model supports it,
+  and new sessions now start in it.
 
 ### Changed
 
 - **Settings has a General tab** (T-590) — Language moves there from
   Appearance, the log level gets a home, and the one-field Activity tab folds
   into Claude as a Conversation section. Stored settings are unchanged.
+- **Permission modes use Claude Code's names** (T-597) — Manual, Accept
+  edits, Plan, Auto, Bypass permissions. Bypass is offered only once you turn
+  on "Allow bypass permissions mode" in Settings → Claude.
 
 ### Fixed
 
@@ -43,6 +49,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   and restarts the session on the new credentials. Account sign-in ran
   `claude login`, which the CLI treats as a prompt; it now runs
   `claude auth login`.
+- **Choosing a permission mode Claude refuses no longer shows it as active**
+  (T-597) — picking bypass showed "bypass" while the session stayed in its
+  old mode. A refused change now rolls back and says why.
 
 ## [2.14.1] — 2026-09-09
 

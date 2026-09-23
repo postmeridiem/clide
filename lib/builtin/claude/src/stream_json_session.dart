@@ -165,7 +165,7 @@ abstract class McpServer {
 /// A model selectable for a session, from the `initialize` control_response's
 /// `models[]` (T-408). Pure data, Flutter-free.
 class ModelOption {
-  const ModelOption({required this.value, required this.displayName, this.description = ''});
+  const ModelOption({required this.value, required this.displayName, this.description = '', this.resolvedModel, this.supportsAutoMode = false});
 
   /// The id/alias sent in `set_model` — e.g. `default`, `sonnet`, `opus`.
   final String value;
@@ -175,6 +175,14 @@ class ModelOption {
 
   /// One-line blurb shown muted next to the label.
   final String description;
+
+  /// The concrete model id the alias resolves to (`claude-opus-5-5`), with any
+  /// `[1m]` context-variant suffix dropped. From the handshake; null otherwise.
+  final String? resolvedModel;
+
+  /// Whether auto permission mode works with this model (T-597). Auto needs a
+  /// recent model; the handshake says per model.
+  final bool supportsAutoMode;
 }
 
 /// A user message waiting for the running turn to end (T-587). Pure data.
@@ -199,14 +207,25 @@ const List<ModelOption> kEffortLevels = [
   ModelOption(value: 'max', displayName: 'max', description: 'maximum thinking budget'),
 ];
 
-/// Permission modes for the /permissions picker (T-413), set over the
-/// set_permission_mode control request. Bypass is last and explicit — the
-/// footgun stays visible but never the default reach (T-181).
+/// Every permission mode clide offers, in picker order, set over the
+/// set_permission_mode control request (T-413, T-597). Labels follow the
+/// desktop app and IDE extensions: `default` is **Manual**. Not every mode is
+/// always offered — [availablePermissionModes] filters auto (model support)
+/// and bypass (launch opt-in). `dontAsk` is a CI mode and stays out.
 const List<ModelOption> kPermissionModes = [
-  ModelOption(value: 'default', displayName: 'default', description: 'ask before sensitive tools'),
-  ModelOption(value: 'acceptEdits', displayName: 'acceptEdits', description: 'auto-approve file edits'),
-  ModelOption(value: 'plan', displayName: 'plan', description: 'read-only planning mode'),
-  ModelOption(value: 'bypassPermissions', displayName: 'bypassPermissions', description: 'no prompts at all — careful'),
+  ModelOption(value: 'default', displayName: 'Manual', description: 'ask before edits, commands and network'),
+  ModelOption(value: 'acceptEdits', displayName: 'Accept edits', description: 'edit files without asking'),
+  ModelOption(value: 'plan', displayName: 'Plan', description: 'research and propose, no edits'),
+  ModelOption(value: 'auto', displayName: 'Auto', description: 'a safety classifier reviews each action instead of you'),
+  ModelOption(value: 'bypassPermissions', displayName: 'Bypass permissions', description: 'no checks at all — isolated machines only'),
+];
+
+/// [kPermissionModes] narrowed to what a session can actually enter: auto
+/// only when [autoAvailable], bypass only when [bypassAllowed] (the session
+/// was launched with it enabled — the CLI refuses it otherwise).
+List<ModelOption> availablePermissionModes({required bool autoAvailable, required bool bypassAllowed}) => [
+  for (final m in kPermissionModes)
+    if ((m.value != 'auto' || autoAvailable) && (m.value != 'bypassPermissions' || bypassAllowed)) m,
 ];
 
 /// Fallback picker entries for when the `initialize` response hasn't arrived
@@ -329,7 +348,14 @@ class SessionEnd {
 }
 
 class StreamJsonSession {
-  StreamJsonSession(this._proc, {List<McpServer> mcpServers = const [], DateTime Function()? now}) : _mcpServers = mcpServers, _now = now ?? DateTime.now;
+  StreamJsonSession(this._proc, {List<McpServer> mcpServers = const [], DateTime Function()? now, this.bypassAllowed = false})
+    : _mcpServers = mcpServers,
+      _now = now ?? DateTime.now;
+
+  /// Whether this session was launched able to enter bypassPermissions
+  /// (`--allow-dangerously-skip-permissions`, T-597). The CLI refuses the mode
+  /// otherwise, so the pickers only offer it when this is true.
+  final bool bypassAllowed;
 
   final StreamJsonProcess _proc;
 
@@ -1112,28 +1138,61 @@ class StreamJsonSession {
     );
   }
 
-  /// Set the session's permission mode (T-181, D-77). Sends a
-  /// `set_permission_mode` control_request; fire-and-forget, mirroring
-  /// [interrupt]. [mode] must be one of the claude-recognised strings:
-  /// `default`, `acceptEdits`, `plan`, `bypassPermissions`.
+  /// Set the session's permission mode (T-181, D-77, T-597). Sends a
+  /// `set_permission_mode` control_request. [mode] is a CLI mode string —
+  /// `default` (Manual; `manual` is accepted as an alias), `acceptEdits`,
+  /// `plan`, `auto`, `dontAsk`, `bypassPermissions`.
   ///
-  /// The safe trio (default → acceptEdits → plan → default) is cycled by the
-  /// cockpit badge's plain click; bypassPermissions is reachable only via a
-  /// confirmed shift-click (T-181).
+  /// The status merges optimistically so the badge moves at once (T-250), and
+  /// is corrected by the reply: the CLI answers with the mode it actually
+  /// entered, or an error — bypass without the launch opt-in, auto when the
+  /// server has it off — which rolls the status back and surfaces on
+  /// [permissionModeErrors]. Until T-597 this was fire-and-forget, so a refused
+  /// bypass left the UI claiming a mode the session never entered.
   void setPermissionMode(String mode) {
+    final normalized = mode == 'manual' ? 'default' : mode;
+    final rid = 'set-perm-${_localSeq++}';
+    _pendingSetMode[rid] = (previous: _status.permissionMode, requested: normalized);
     _proc.writeLine(
       jsonEncode({
         'type': 'control_request',
-        'request_id': 'set-perm-${_localSeq++}',
-        'request': {'subtype': 'set_permission_mode', 'mode': mode},
+        'request_id': rid,
+        'request': {'subtype': 'set_permission_mode', 'mode': normalized},
       }),
     );
-    // Optimistically reflect the change so the badge / status line update
-    // immediately (T-250) — the control_request emits no status event, and a
-    // fresh system/init only arrives later. The next init reconciles if the
-    // process ends up in a different mode.
-    _mergeStatus(SessionStatus(permissionMode: mode));
+    _mergeStatus(SessionStatus(permissionMode: normalized));
   }
+
+  /// In-flight `set_permission_mode` request ids → the mode before the
+  /// optimistic merge (for rollback) and the mode asked for (T-597).
+  final _pendingSetMode = <String, ({String? previous, String requested})>{};
+
+  final _modeErrorCtl = StreamController<String>.broadcast();
+
+  /// The CLI's reason for a refused permission-mode change (T-597).
+  Stream<String> get permissionModeErrors => _modeErrorCtl.stream;
+
+  /// Set once the CLI refuses auto mode for this session (server-side off,
+  /// `disableAutoMode`). The docs: such a session keeps auto off until it ends.
+  bool _autoRefused = false;
+
+  /// Whether this session can enter auto mode (T-597): the current model
+  /// supports it (per the handshake) and the CLI hasn't refused it. Before the
+  /// handshake nothing is known, so auto isn't offered yet.
+  bool get autoModeAvailable {
+    if (_autoRefused) return false;
+    final current = _status.model;
+    for (final m in _availableModels) {
+      if (current != null && m.resolvedModel == current) return m.supportsAutoMode;
+    }
+    for (final m in _availableModels) {
+      if (m.value == 'default') return m.supportsAutoMode;
+    }
+    return false;
+  }
+
+  /// The modes this session can enter right now — what the pickers offer.
+  List<ModelOption> get availableModes => availablePermissionModes(autoAvailable: autoModeAvailable, bypassAllowed: bypassAllowed);
 
   /// Set the model for subsequent turns (T-408). Sends a `set_model`
   /// control_request; [model] is an alias (`sonnet`, `opus`) or full id, and
@@ -1175,6 +1234,8 @@ class StreamJsonSession {
                 value: m['value'] as String,
                 displayName: m['displayName'] as String? ?? m['value'] as String,
                 description: m['description'] as String? ?? '',
+                resolvedModel: (m['resolvedModel'] as String?)?.replaceFirst(RegExp(r'\[.*\]$'), ''),
+                supportsAutoMode: m['supportsAutoMode'] == true,
               ),
         ]);
         for (final m in models) {
@@ -1203,6 +1264,20 @@ class StreamJsonSession {
       if (isError) {
         if (previous != null) _mergeStatus(SessionStatus(model: previous));
         _modelErrorCtl.add(resp['error'] as String? ?? 'model change rejected');
+      }
+    }
+    final pendingMode = _pendingSetMode.remove(rid);
+    if (pendingMode != null) {
+      if (isError) {
+        if (pendingMode.requested == 'auto') _autoRefused = true;
+        if (pendingMode.previous != null) _mergeStatus(SessionStatus(permissionMode: pendingMode.previous));
+        _modeErrorCtl.add(resp['error'] as String? ?? 'permission mode change rejected');
+      } else {
+        // The CLI answers with the mode it actually entered (`manual` comes
+        // back as `default`) — believe it over the optimistic guess.
+        final result = resp['response'];
+        final entered = result is Map ? result['mode'] : null;
+        if (entered is String) _mergeStatus(SessionStatus(permissionMode: entered));
       }
     }
   }
@@ -1247,6 +1322,7 @@ class StreamJsonSession {
     await _queuedCtl.close();
     await _endCtl.close();
     await _modelErrorCtl.close();
+    await _modeErrorCtl.close();
     await _phaseCtl.close();
     await _outcomeCtl.close();
     await _usageCtl.close();

@@ -8,16 +8,20 @@ import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart' show HardwareKeyboard;
 import 'package:flutter/widgets.dart';
 
-/// Maps a permission-mode string to a single-letter badge label.
+/// Maps a permission-mode string to a single-letter badge label (T-597
+/// labels): Manual, Edits, Plan, Auto, Bypass.
 String permissionModeBadgeLabel(String mode) => switch (mode) {
-  'acceptEdits' => 'A',
+  'acceptEdits' => 'E',
   'plan' => 'P',
+  'auto' => 'A',
   'bypassPermissions' => 'B',
-  _ => 'D', // default
+  _ => 'M', // default — Manual
 };
 
-/// - Plain click → cycles the safe trio: default → acceptEdits → plan → default.
-/// - Shift-click → shows the bypass confirm inline in the parent row.
+/// - Plain click → cycles the modes the member's session can enter (the
+///   composer's cycle, T-597).
+/// - Shift-click → shows the bypass confirm inline in the parent row, when the
+///   session was launched with bypass allowed; otherwise it cycles like a click.
 ///
 /// The badge reflects the LIVE mode from `SessionStatus.permissionMode`
 /// (T-157). It is a custom painted label (no Material), consistent with the
@@ -38,15 +42,13 @@ class PermissionModeBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = permissionModeBadgeLabel(mode);
     final isBypass = mode == 'bypassPermissions';
-    final badgeColor = isBypass ? const Color(0xFFF06C6F) : tokens.globalFocus;
+    final badgeColor = isBypass ? tokens.statusError : tokens.globalFocus;
 
     final tooltip = ClideSettings.i18n.interpolated(
       context,
       'permissionBadge.tooltip',
       namespace: 'builtin.claude',
-      placeholder:
-          'Permission mode: ${permissionModeLabel(mode)}. '
-          'Click to cycle default/acceptEdits/plan; Shift-click for bypassPermissions.',
+      placeholder: 'Permission mode: ${permissionModeLabel(mode)}. Click to cycle modes.',
       replacers: [I18nReplacer(from: '{mode}', replace: permissionModeLabel(mode))],
     );
 

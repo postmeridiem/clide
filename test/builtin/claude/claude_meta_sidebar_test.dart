@@ -249,7 +249,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.text('explorer  ·  opus 4.7  ·  accept-edits  ·  21k ctx'), findsOneWidget);
+    expect(find.text('explorer  ·  opus 4.7  ·  Accept edits  ·  21k ctx'), findsOneWidget);
   });
 
   testWidgets('Activity degrades to a no-activity message with empty stats', (tester) async {
@@ -485,9 +485,16 @@ void main() {
       return (orch, writes);
     }
 
-    Future<(ClaudeSessionOrchestrator, List<String>)> spawnAndShow(WidgetTester tester, {String name = 'Scout', String agentId = 'b1'}) async {
+    Future<(ClaudeSessionOrchestrator, List<String>)> spawnAndShow(
+      WidgetTester tester, {
+      String name = 'Scout',
+      String agentId = 'b1',
+      bool allowBypass = false,
+    }) async {
       final (orch, writes) = orchCapturing();
-      await orch.spawn(SpawnSpec(id: 'teammate:$name', role: 'teammate', sessionId: '$name-uuid', cwd: '/repo', team: true, memberName: name));
+      await orch.spawn(
+        SpawnSpec(id: 'teammate:$name', role: 'teammate', sessionId: '$name-uuid', cwd: '/repo', team: true, memberName: name, allowBypass: allowBypass),
+      );
       await tester.pumpWidget(harness(f, sidebar(orchestrator: orch, initialTab: SidebarTab.team)));
       f.services.events.emit(TeamMemberJoined(team: 't', agentId: agentId, name: name, agentType: 'coder', paneId: '%1', color: 'blue'));
       await tester.pump();
@@ -495,18 +502,18 @@ void main() {
       return (orch, writes);
     }
 
-    testWidgets('badge renders with label D when permissionMode is null/default', (tester) async {
+    testWidgets('badge renders with label M (Manual) when permissionMode is null/default', (tester) async {
       final semantics = tester.ensureSemantics();
       final (orch, _) = await spawnAndShow(tester);
 
-      // The badge Semantics label is 'Permission mode: D' for the default mode.
-      expect(find.bySemanticsLabel('Permission mode: D'), findsOneWidget);
+      // The badge Semantics label is 'Permission mode: M' for the default mode.
+      expect(find.bySemanticsLabel('Permission mode: M'), findsOneWidget);
 
       semantics.dispose();
       orch.dispose();
     });
 
-    testWidgets('badge label reflects live permissionMode from status (A for acceptEdits)', (tester) async {
+    testWidgets('badge label reflects live permissionMode from status (E for acceptEdits)', (tester) async {
       final semantics = tester.ensureSemantics();
       final (orch, _) = await spawnAndShow(tester);
 
@@ -519,7 +526,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.bySemanticsLabel('Permission mode: A'), findsOneWidget);
+      expect(find.bySemanticsLabel('Permission mode: E'), findsOneWidget);
 
       semantics.dispose();
       orch.dispose();
@@ -531,7 +538,7 @@ void main() {
 
       final preCount = writes.length;
 
-      await tester.tap(find.bySemanticsLabel('Permission mode: D').first);
+      await tester.tap(find.bySemanticsLabel('Permission mode: M').first);
       await tester.pump();
 
       // One new write for the set_permission_mode control_request.
@@ -545,12 +552,30 @@ void main() {
       orch.dispose();
     });
 
-    testWidgets('shift-click shows the bypass confirm inline', (tester) async {
+    testWidgets('without the bypass opt-in, shift-click just cycles — no confirm (T-597)', (tester) async {
       final semantics = tester.ensureSemantics();
-      final (orch, _) = await spawnAndShow(tester);
+      final (orch, writes) = await spawnAndShow(tester);
+      final preCount = writes.length;
 
       await tester.sendKeyDownEvent(LogicalKeyboardKey.shift);
-      await tester.tap(find.bySemanticsLabel('Permission mode: D').first);
+      await tester.tap(find.bySemanticsLabel('Permission mode: M').first);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shift);
+      await tester.pump();
+
+      expect(find.bySemanticsLabel('Confirm bypass'), findsNothing);
+      expect(writes.length, preCount + 1);
+      expect(((jsonDecode(writes.last) as Map)['request'] as Map)['mode'], 'acceptEdits');
+
+      semantics.dispose();
+      orch.dispose();
+    });
+
+    testWidgets('shift-click shows the bypass confirm inline', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final (orch, _) = await spawnAndShow(tester, allowBypass: true);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shift);
+      await tester.tap(find.bySemanticsLabel('Permission mode: M').first);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.shift);
       await tester.pump();
 
@@ -565,12 +590,12 @@ void main() {
 
     testWidgets('bypass confirm OK sends bypassPermissions and dismisses the prompt', (tester) async {
       final semantics = tester.ensureSemantics();
-      final (orch, writes) = await spawnAndShow(tester);
+      final (orch, writes) = await spawnAndShow(tester, allowBypass: true);
 
       final preCount = writes.length;
 
       await tester.sendKeyDownEvent(LogicalKeyboardKey.shift);
-      await tester.tap(find.bySemanticsLabel('Permission mode: D').first);
+      await tester.tap(find.bySemanticsLabel('Permission mode: M').first);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.shift);
       await tester.pump();
 
@@ -592,12 +617,12 @@ void main() {
 
     testWidgets('bypass confirm Cancel dismisses without sending', (tester) async {
       final semantics = tester.ensureSemantics();
-      final (orch, writes) = await spawnAndShow(tester);
+      final (orch, writes) = await spawnAndShow(tester, allowBypass: true);
 
       final preCount = writes.length;
 
       await tester.sendKeyDownEvent(LogicalKeyboardKey.shift);
-      await tester.tap(find.bySemanticsLabel('Permission mode: D').first);
+      await tester.tap(find.bySemanticsLabel('Permission mode: M').first);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.shift);
       await tester.pump();
 
