@@ -34,14 +34,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   settings through clide** (T-602) — `clide files write` refuses anything
   under `.git/` or `.claude/`. Edit those yourself.
 - **Claude sessions are pre-approved only for clide's read and display
-  commands** (T-602, T-616) — previously every `clide` command ran without
-  a prompt, including ones that run code. Workspace writes now get Claude's
-  normal permission prompt. `clide capabilities` shows each command's risk
-  tier, and `clide capabilities --allow-rules` prints the rules to paste
-  into your own projects. This repo's committed Claude settings now list
-  specific commands in place of broad `dart`, `flutter`, `make` and
-  `git config` rules, and deny more force-push, discard and
-  `--no-verify` forms.
+  commands** (T-602) — previously every `clide` command ran without a
+  prompt, including ones that run code. Workspace writes now get Claude's
+  normal prompt. `clide capabilities --allow-rules` prints the rules for
+  your own projects.
+- **This repo's committed Claude settings are narrower** (T-616) — specific
+  `dart`, `flutter` and `make` commands instead of wildcards, no
+  `git config`, and more force-push and discard forms denied.
 - **clide's MCP tools can't run code** (T-602) — commands that run code or
   change trust are no longer offered to an `/ide`-connected Claude, and
   calling one by name is refused too; previously a hidden tool could still
