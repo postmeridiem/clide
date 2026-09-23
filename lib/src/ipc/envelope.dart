@@ -36,9 +36,34 @@ class IpcRequest extends IpcMessage {
   @override
   Map<String, Object?> toJson() => {'type': 'request', 'v': ipcSchemaVersion, 'id': id, 'cmd': cmd, 'args': args};
 
-  factory IpcRequest.fromJson(Map<String, Object?> j) =>
-      IpcRequest(id: j['id']! as String, cmd: j['cmd']! as String, args: (j['args'] as Map?)?.cast<String, Object?>() ?? const {});
+  /// Throws [FormatException] — which the server answers as a userError — for
+  /// a missing or wrong-type field, or a schema version it doesn't speak. A
+  /// bare cast used to throw a TypeError instead, reported as an internal
+  /// toolError with an empty id (test audit #10).
+  factory IpcRequest.fromJson(Map<String, Object?> j) {
+    final v = j['v'];
+    if (v != null && v != ipcSchemaVersion) {
+      throw FormatException('unsupported IPC schema version $v (this clide speaks $ipcSchemaVersion)');
+    }
+    final id = j['id'];
+    if (id is! String) throw FormatException('request "id" must be a string, got ${_typeName(id)}');
+    final cmd = j['cmd'];
+    if (cmd is! String) throw FormatException('request "cmd" must be a string, got ${_typeName(cmd)}');
+    final args = j['args'];
+    if (args != null && args is! Map) throw FormatException('request "args" must be an object, got ${_typeName(args)}');
+    return IpcRequest(id: id, cmd: cmd, args: (args as Map?)?.cast<String, Object?>() ?? const {});
+  }
 }
+
+String _typeName(Object? v) => switch (v) {
+  null => 'nothing',
+  String() => 'a string',
+  num() => 'a number',
+  bool() => 'a boolean',
+  List() => 'a list',
+  Map() => 'an object',
+  _ => v.runtimeType.toString(),
+};
 
 class IpcResponse extends IpcMessage {
   IpcResponse.ok({required this.id, this.data = const {}}) : ok = true, error = null;

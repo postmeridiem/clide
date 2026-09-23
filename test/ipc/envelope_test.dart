@@ -104,5 +104,21 @@ void main() {
     test('throws on malformed JSON', () {
       expect(() => IpcMessage.decode('{this is not json'), throwsA(isA<FormatException>()));
     });
+
+    // T-635: wrong-type fields are FormatExceptions naming the field — the
+    // server answers those as a userError — never a TypeError.
+    test('a request field of the wrong type names the field', () {
+      Matcher names(String field) => throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('"$field"')));
+      expect(() => IpcMessage.decode('{"type":"request","id":1,"cmd":"ping"}'), names('id'));
+      expect(() => IpcMessage.decode('{"type":"request","id":"1","cmd":7}'), names('cmd'));
+      expect(() => IpcMessage.decode('{"type":"request","id":"1"}'), names('cmd'));
+      expect(() => IpcMessage.decode('{"type":"request","id":"1","cmd":"ping","args":[1]}'), names('args'));
+    });
+
+    test('a schema version this clide does not speak is refused; none at all is accepted', () {
+      expect(() => IpcMessage.decode('{"type":"request","v":99,"id":"1","cmd":"ping"}'), throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('version'))));
+      expect(IpcMessage.decode('{"type":"request","id":"1","cmd":"ping"}'), isA<IpcRequest>());
+      expect(IpcMessage.decode('{"type":"request","v":1,"id":"1","cmd":"ping"}'), isA<IpcRequest>());
+    });
   });
 }

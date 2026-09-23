@@ -10,6 +10,8 @@ import 'package:clide/src/ipc/schema_v1.dart';
 import 'package:clide/src/ipc/server.dart';
 import 'package:test/test.dart';
 
+import '../helpers/timeouts.dart';
+
 /// Tests run with `XDG_RUNTIME_DIR` overridden to a per-test tempdir
 /// so the production `socketDirectory()` resolves under our control.
 /// Workspace roots are arbitrary strings; we don't need a real git
@@ -102,6 +104,20 @@ void main() {
       final reply = IpcMessage.decode(line) as IpcResponse;
       expect(reply.ok, isFalse);
       expect(reply.error?.kind, IpcErrorKind.userError);
+    });
+
+    test('a wrong-type field is a userError naming the field, not an internal error (T-635)', () async {
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      await server.start();
+      final c = await Socket.connect(InternetAddress(server.socketPath, type: InternetAddressType.unix), 0);
+      c.write('{"type":"request","v":1,"id":1,"cmd":"ping"}\n');
+      await c.flush();
+      final line = await c.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).first.timeout(ioTimeout);
+      await c.close();
+      final reply = IpcMessage.decode(line) as IpcResponse;
+      expect(reply.ok, isFalse);
+      expect(reply.error?.kind, IpcErrorKind.userError);
+      expect(reply.error?.message, contains('"id"'));
     });
 
     test('multi-connection accept loop: two simultaneous clients both get replies', () async {
