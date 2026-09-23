@@ -72,6 +72,17 @@ class DaemonDispatcher {
   /// [cmd]'s risk tier, or null when no such command is registered.
   CommandRisk? riskOf(String cmd) => _risk[cmd];
 
+  /// Whether MCP may list and call [cmd]. Not when it registered with
+  /// `mcpExpose: false` (D-86), not when it escalates (D-115: approving
+  /// clide's MCP tools must never grant execution), and never a transport
+  /// sentinel like `_argv`, which would re-dispatch any inner command.
+  /// Unknown commands answer true so a call reports "unknown command".
+  bool mcpCallable(String cmd) {
+    final risk = _risk[cmd];
+    if (risk == null) return true;
+    return !cmd.startsWith('_') && !_mcpHidden.contains(cmd) && risk.tier != RiskTier.escalate;
+  }
+
   Future<IpcResponse> dispatch(IpcRequest req) async {
     final h = _handlers[req.cmd];
     if (h == null) {
@@ -146,7 +157,7 @@ class DaemonDispatcher {
     final names = _handlers.keys.toList()..sort();
     final tools = <Map<String, Object?>>[];
     for (final cmd in names) {
-      if (_mcpHidden.contains(cmd)) continue;
+      if (!mcpCallable(cmd)) continue;
       final schema = _schemas[cmd];
       final props = <String, Object?>{};
       final required = <String>[];

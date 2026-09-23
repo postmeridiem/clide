@@ -314,8 +314,10 @@ void main() {
   group('McpServer (T-225) clide tool surface', () {
     late Directory disc;
     late McpServer srv;
+    final ran = <String>[];
 
     setUp(() async {
+      ran.clear();
       disc = await Directory.systemTemp.createTemp('clide-mcp-clide-');
       final dispatcher = DaemonDispatcher();
       dispatcher.register(
@@ -324,7 +326,20 @@ void main() {
         (req) async => IpcResponse.ok(id: req.id, data: {'echo': req.args['text']}),
       );
       // A poor MCP fit — withheld from the tool surface (D-86).
-      dispatcher.register('pane.tail', (req) async => IpcResponse.ok(id: req.id, data: const {}), mcpExpose: false);
+      dispatcher.register('pane.tail', (req) async {
+        ran.add('pane.tail');
+        return IpcResponse.ok(id: req.id, data: const {});
+      }, mcpExpose: false);
+      // An escalating verb and the argv transport: never reachable over MCP
+      // (D-115) — the transport would re-dispatch any inner command.
+      dispatcher.register('pane.spawn', (req) async {
+        ran.add('pane.spawn');
+        return IpcResponse.ok(id: req.id, data: const {});
+      });
+      dispatcher.register('_argv', (req) async {
+        ran.add('_argv');
+        return IpcResponse.ok(id: req.id, data: const {});
+      });
       srv = McpServer(workspaceRoot: '/x', log: _silent(), discoveryDirOverride: disc.path, dispatcher: dispatcher);
       await srv.start();
     });
@@ -378,7 +393,30 @@ void main() {
       expect(names, containsAll(['mcp__ide__getDiagnostics', 'mcp__clide__echo', 'mcp__clide__ping']));
       // The opt-out command is withheld.
       expect(names.contains('mcp__clide__pane.tail'), isFalse);
+      // Escalating verbs and the argv transport never appear (D-115).
+      expect(names.contains('mcp__clide__pane.spawn'), isFalse);
+      expect(names.contains('mcp__clide___argv'), isFalse);
     });
+
+    // D-115: withholding a tool from the list isn't enough — a client can
+    // call any name. Calls must refuse the same set the list omits.
+    for (final (id, cmd) in const [(20, 'pane.spawn'), (21, 'pane.tail'), (22, '_argv')]) {
+      test('tools/call refuses $cmd, which MCP does not expose', () async {
+        final (sid, events) = await connect();
+        final replyFuture = events.firstWhere((s) => s.contains('"id":$id'));
+        await post(sid, {
+          'jsonrpc': '2.0',
+          'id': id,
+          'method': 'tools/call',
+          'params': {'name': 'mcp__clide__$cmd', 'arguments': const {}},
+        });
+        final reply = jsonDecode(await replyFuture.timeout(const Duration(seconds: 2))) as Map<String, Object?>;
+        final result = reply['result'] as Map<String, Object?>;
+        expect(result['isError'], isTrue);
+        expect((result['content'] as List).first['text'], contains('not available over MCP'));
+        expect(ran, isEmpty, reason: '$cmd must not run');
+      });
+    }
 
     test('tools/call routes mcp__clide__ tools to the dispatcher', () async {
       final (sid, events) = await connect();
@@ -395,6 +433,26 @@ void main() {
       final reply = jsonDecode(await replyFuture.timeout(const Duration(seconds: 2))) as Map<String, Object?>;
       final content = ((reply['result'] as Map)['content'] as List).cast<Map<String, Object?>>();
       expect(jsonDecode(content.first['text'] as String), {'echo': 'hi'});
+    });
+
+    // The SSE stream was declared without a charset, so HttpResponse wrote it
+    // as Latin-1: the first reply carrying anything outside Latin-1 (a file
+    // with an em dash, an emoji) threw, and the session went silently dead.
+    test('replies carrying non-Latin-1 text arrive intact', () async {
+      final (sid, events) = await connect();
+      final replyFuture = events.firstWhere((s) => s.contains('"id":13'));
+      await post(sid, {
+        'jsonrpc': '2.0',
+        'id': 13,
+        'method': 'tools/call',
+        'params': {
+          'name': 'mcp__clide__echo',
+          'arguments': {'text': 'naïve — ✓ 日本'},
+        },
+      });
+      final reply = jsonDecode(await replyFuture.timeout(const Duration(seconds: 2))) as Map<String, Object?>;
+      final content = ((reply['result'] as Map)['content'] as List).cast<Map<String, Object?>>();
+      expect(jsonDecode(content.first['text'] as String), {'echo': 'naïve — ✓ 日本'});
     });
 
     test('a failing clide tool surfaces isError with the error message', () async {

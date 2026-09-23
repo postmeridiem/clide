@@ -24,6 +24,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 - **An image overwritten in place always shows its new content** — a quick
   overwrite that changed the file's size could still show the old picture.
+- **clide's MCP connection no longer dies on non-English text** — the first
+  tool reply containing a character like `—`, `✓` or any non-Latin script
+  silently ended the `/ide` session.
 
 ### Security
 
@@ -39,6 +42,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   specific commands in place of broad `dart`, `flutter`, `make` and
   `git config` rules, and deny more force-push, discard and
   `--no-verify` forms.
+- **clide's MCP tools can't run code** (T-602) — commands that run code or
+  change trust are no longer offered to an `/ide`-connected Claude, and
+  calling one by name is refused too; previously a hidden tool could still
+  be called directly. Use the `clide` CLI for those, behind clide's confirm.
 - **Claude's credentials are out of reach of `clide files read`** (T-602) —
   outside the workspace it reads only your Claude skills, agents and
   commands, not the rest of `~/.claude`.

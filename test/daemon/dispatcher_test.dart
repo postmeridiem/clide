@@ -132,7 +132,7 @@ void main() {
       // Non-const so a RegExp pattern can be supplied (covers the string
       // `pattern` mapping).
       d.register(
-        'git.checkout',
+        'git.log',
         (req) async => IpcResponse.ok(id: req.id, data: const {}),
         schema: CommandSchema(
           positional: const ['ref'],
@@ -173,8 +173,26 @@ void main() {
       expect(((readProps['globs'] as Map)['items'] as Map)['type'], 'string');
       expect((readProps['globs'] as Map)['maxItems'], 5);
 
-      final refProps = (byName['mcp__clide__git.checkout']!['inputSchema'] as Map)['properties'] as Map;
+      final refProps = (byName['mcp__clide__git.log']!['inputSchema'] as Map)['properties'] as Map;
       expect((refProps['ref'] as Map)['pattern'], r'^\w+$');
+    });
+
+    test('mcpTools and mcpCallable leave out escalating verbs and transports (D-115)', () {
+      Future<IpcResponse> noop(IpcRequest req) async => IpcResponse.ok(id: req.id, data: const {});
+      final d = DaemonDispatcher()
+        ..register('git.status', noop)
+        ..register('git.push', noop)
+        ..register('claude.account', noop)
+        ..register('_argv', noop);
+      final names = d.mcpTools().map((t) => t['name']).toSet();
+      expect(names, contains('mcp__clide__git.status'));
+      expect(names, isNot(contains('mcp__clide__git.push')));
+      expect(names, isNot(contains('mcp__clide__claude.account')), reason: 'an escalating command stays off even with a read-only action');
+      expect(names, isNot(contains('mcp__clide___argv')));
+      expect(d.mcpCallable('git.push'), isFalse);
+      expect(d.mcpCallable('_argv'), isFalse);
+      expect(d.mcpCallable('git.status'), isTrue);
+      expect(d.mcpCallable('no.such'), isTrue, reason: 'unknown commands fall through to the dispatcher\'s not-found error');
     });
 
     test('clear removes user handlers but keeps the built-ins', () async {

@@ -191,7 +191,10 @@ class McpServer {
 
   Future<void> _openSseStream(HttpRequest req) async {
     final sessionId = 's${_sessionCounter++}';
-    req.response.headers.contentType = ContentType('text', 'event-stream');
+    // charset=utf-8 makes HttpResponse encode as UTF-8 (its default is
+    // Latin-1). Without it the first reply carrying anything outside Latin-1
+    // threw, and the session went silently dead.
+    req.response.headers.contentType = ContentType('text', 'event-stream', charset: 'utf-8');
     req.response.headers.set('Cache-Control', 'no-cache');
     req.response.headers.set('Connection', 'keep-alive');
     req.response.headers.set('X-Accel-Buffering', 'no');
@@ -341,6 +344,16 @@ class McpServer {
       };
     }
     final cmd = name.substring(_clideToolPrefix.length);
+    // The same set tools/list omits: a client can name any tool, so hiding
+    // one from the list is not enough (D-86, D-115).
+    if (!d.mcpCallable(cmd)) {
+      return {
+        'content': [
+          {'type': 'text', 'text': '$cmd is not available over MCP — run `clide ${cmd.replaceFirst('.', ' ')}` instead'},
+        ],
+        'isError': true,
+      };
+    }
     final args = (params?['arguments'] as Map?)?.cast<String, Object?>() ?? const {};
     final resp = await d.dispatch(IpcRequest(id: 'mcp', cmd: cmd, args: args));
     if (resp.ok) {
