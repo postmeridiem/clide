@@ -32,6 +32,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - **Terminals no longer leak into other programs** (T-611) — every process
   clide started after opening a terminal inherited that terminal's handle,
   and with it the ability to read or type into it.
+- **Restoring Claude sessions after a restart works** (T-625) — the
+  remembered list was written in a form that didn't read back, so the
+  restore offer never appeared. Settings values starting with characters
+  like `*` or `[` could also break the whole settings file.
 
 ## [2.18.1] — 2026-09-23
 

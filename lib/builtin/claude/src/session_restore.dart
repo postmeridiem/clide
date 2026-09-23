@@ -31,19 +31,24 @@ class SecondarySessionStore {
   ];
 
   List<String> _load(String root) {
-    final raw = _settings.get<String>(keyFor(root));
-    if (raw == null || raw.isEmpty) return const [];
-    try {
-      final list = jsonDecode(raw);
-      return list is List
-          ? [
-              for (final e in list)
-                if (e is String && e.isNotEmpty) e,
-            ]
-          : const [];
-    } on FormatException {
-      return const [];
+    final raw = _settings.get<Object>(keyFor(root));
+    Object? list = raw;
+    if (raw is String) {
+      if (raw.isEmpty) return const [];
+      try {
+        list = jsonDecode(raw);
+      } on FormatException {
+        return const [];
+      }
     }
+    // A List straight from the settings file: 2.18.x wrote the JSON string
+    // unquoted, so it reloads as a YAML sequence (test audit #8).
+    return list is List
+        ? [
+            for (final e in list)
+              if (e is String && e.isNotEmpty) e,
+          ]
+        : const [];
   }
 
   Future<void> save(String root, List<String> ids) => _settings.set<String>(keyFor(root), jsonEncode(ids));

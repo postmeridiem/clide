@@ -358,8 +358,15 @@ void _emitScalar(StringBuffer buf, Object? v) {
   }
 }
 
+/// YAML indicator characters: a plain scalar can't start with one. Unquoted,
+/// `*.dart` reads as an alias, `[wip] x` as a broken flow sequence (the whole
+/// file then moves aside as `.broken`), and a JSON array as a List instead of
+/// the string that was stored (test audit #8).
+final RegExp _leadingIndicator = RegExp('^[-?:,\\[\\]{}#&*!|>\'"%@`]');
+
 bool _needsQuoting(String s) {
   if (s.isEmpty) return true;
+  if (_leadingIndicator.hasMatch(s)) return true;
   if (RegExp(r'[:\#\n\r\t]').hasMatch(s)) return true;
   if (s != s.trim()) return true;
   const reserved = {'true', 'false', 'null', 'yes', 'no', 'on', 'off', '~'};

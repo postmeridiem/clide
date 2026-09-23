@@ -23,6 +23,24 @@ void main() {
       }
     });
 
+    test('strings that start with a YAML indicator round-trip as strings (audit #8)', () async {
+      // Unquoted, `*.dart` is an alias, `[wip] x` a broken flow sequence (the
+      // file moves aside as .broken), and a JSON array reloads as a List.
+      const values = ['*.dart', '[wip] x', '["a","b"]', '{x}', '- item', '&anchor', '!tag', '|pipe', '>fold', "'q", '"dq', '%pct', '@at', '`tick', '? q', ', c'];
+      for (var i = 0; i < values.length; i++) {
+        await store.set<String>('app.indicator.k$i', values[i]);
+      }
+      final loaded = SettingsStore(appDir: tmp);
+      addTearDown(loaded.dispose);
+      final errors = <Object>[];
+      await SettingsStore(appDir: tmp, onError: errors.add).load();
+      expect(errors, isEmpty, reason: 'the file must stay valid YAML');
+      await loaded.load();
+      for (var i = 0; i < values.length; i++) {
+        expect(loaded.get<String>('app.indicator.k$i'), values[i], reason: 'value ${values[i]}');
+      }
+    });
+
     test('scope key validation — rejects non-standard prefixes', () async {
       expect(() => store.get<String>('nothing.here'), throwsA(isA<ArgumentError>()));
       expect(() => store.set('notascope.key', 'v'), throwsA(isA<ArgumentError>()));
