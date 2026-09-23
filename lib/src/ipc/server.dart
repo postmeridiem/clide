@@ -23,11 +23,24 @@ import 'package:clide/src/ipc/schema_v1.dart';
 /// D-72. Per-handler isolate offload is the dispatcher / handler's
 /// concern, not this layer's.
 class IpcServer {
-  IpcServer({required this.dispatcher, required this.workspaceRoot, required this.log, this.events, this.replayDepth = 16, this.eventLogDepth = 1024});
+  IpcServer({
+    required this.dispatcher,
+    required this.workspaceRoot,
+    required this.log,
+    this.events,
+    this.replayDepth = 16,
+    this.eventLogDepth = 1024,
+    this.socketDir,
+  });
 
   final DaemonDispatcher dispatcher;
   final String workspaceRoot;
   final Logger log;
+
+  /// Directory to bind in, replacing [socketDirectory]. Tests set it to a
+  /// temp dir: the default is shared with every running clide, and start()
+  /// probes and sweeps whatever sockets it finds there (T-639).
+  final String? socketDir;
 
   /// Bus the server subscribes to for events forwarded to
   /// `clide tail --events` subscribers. Optional — when null, the
@@ -71,7 +84,7 @@ class IpcServer {
   int _lastCursor = 0;
   int _droppedThrough = 0;
 
-  String get socketPath => _socketPath ?? workspaceSocketPath(workspaceRoot);
+  String get socketPath => _socketPath ?? workspaceSocketPath(workspaceRoot, directory: socketDir);
   bool get isRunning => _socket != null;
 
   /// Bind the socket and start accepting connections. Idempotent —
@@ -91,7 +104,7 @@ class IpcServer {
   /// for up to that long, polling, instead of refused at once.
   Future<void> start({Duration handoffWait = Duration.zero}) async {
     if (isRunning) return;
-    final path = workspaceSocketPath(workspaceRoot);
+    final path = workspaceSocketPath(workspaceRoot, directory: socketDir);
     await _prepareParentDir(path);
     await _sweepStaleSockets(path);
     final deadline = DateTime.now().add(handoffWait);

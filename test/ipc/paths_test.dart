@@ -3,6 +3,18 @@ import 'dart:io';
 import 'package:clide/src/ipc/paths.dart';
 import 'package:test/test.dart';
 
+/// The real platform rule, with the suite's test override (T-639) lifted.
+/// Computing the path touches nothing on disk.
+String realSocketDirectory() {
+  final saved = socketDirectoryOverride;
+  socketDirectoryOverride = null;
+  try {
+    return socketDirectory();
+  } finally {
+    socketDirectoryOverride = saved;
+  }
+}
+
 void main() {
   group('workspaceSocketPath (D-70)', () {
     test('returns the FNV-1a hashed path under the socket directory', () {
@@ -26,16 +38,25 @@ void main() {
       if (Platform.isMacOS) return;
       final xdg = Platform.environment['XDG_RUNTIME_DIR'];
       if (xdg != null && xdg.isNotEmpty) {
-        expect(socketDirectory(), '$xdg/clide');
+        expect(realSocketDirectory(), '$xdg/clide');
       } else {
-        expect(socketDirectory(), '/tmp/clide');
+        expect(realSocketDirectory(), '/tmp/clide');
       }
     });
 
     test('socketDirectory uses ~/Library/Caches on macOS', () {
       if (!Platform.isMacOS) return;
       final home = Platform.environment['HOME']!;
-      expect(socketDirectory(), '$home/Library/Caches/clide');
+      expect(realSocketDirectory(), '$home/Library/Caches/clide');
+    });
+
+    test('socketDirectoryOverride wins while set; an explicit directory wins over both (T-639)', () {
+      final saved = socketDirectoryOverride;
+      addTearDown(() => socketDirectoryOverride = saved);
+      socketDirectoryOverride = '/tmp/clide-override-probe';
+      expect(socketDirectory(), '/tmp/clide-override-probe');
+      expect(workspaceSocketPath('/r'), startsWith('/tmp/clide-override-probe/'));
+      expect(workspaceSocketPath('/r', directory: '/elsewhere'), startsWith('/elsewhere/'));
     });
   });
 
@@ -43,7 +64,7 @@ void main() {
     test('is a persistent, non-ephemeral location distinct from the socket dir', () {
       // The freeze evidence must survive a reboot, so logs must NOT live in
       // the ephemeral socket/runtime dir.
-      expect(logDirectory(), isNot(socketDirectory()));
+      expect(logDirectory(), isNot(realSocketDirectory()));
     });
 
     test('Linux: XDG_STATE_HOME/clide/logs when set, else ~/.local/state/...', () {

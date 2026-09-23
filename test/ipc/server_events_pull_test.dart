@@ -42,6 +42,7 @@ void main() {
       log: _silent(),
       events: bus,
       eventLogDepth: 4,
+      socketDir: '${ws.path}/sock', // never the shared runtime dir (T-639)
     );
     await server.start();
   });

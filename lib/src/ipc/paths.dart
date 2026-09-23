@@ -12,8 +12,11 @@ import 'dart:io';
 /// The C `clide` client and any other consumer derive the same path
 /// from the same workspace root, so server + client always agree
 /// without configuration.
-String workspaceSocketPath(String workspaceRoot) {
-  final dir = socketDirectory();
+///
+/// [directory] replaces [socketDirectory] — tests pass a temp dir so they
+/// never bind, probe or sweep a running clide's sockets (T-639).
+String workspaceSocketPath(String workspaceRoot, {String? directory}) {
+  final dir = directory ?? socketDirectory();
   return '$dir/${_hash(canonicalWorkspaceKey(workspaceRoot))}.sock';
 }
 
@@ -34,12 +37,21 @@ String canonicalWorkspaceKey(String workspaceRoot) {
   return String.fromCharCodes(units);
 }
 
+/// Test-only: when set, [socketDirectory] returns it. The test suite points
+/// it at a temp dir for the whole run (`test/flutter_test_config.dart`), so
+/// no test touches the real runtime dir — which holds the sockets and the
+/// `bin/clide` link of any clide running on the machine (T-639). Never set
+/// in the app.
+String? socketDirectoryOverride;
+
 /// Parent directory that holds every per-workspace socket for this
 /// user. Created with `0700` on bind (see D-71; on Windows the
 /// per-user ACL on `%LOCALAPPDATA%` is the equivalent gate). Exposed
 /// separately so the server can prepare/perm-fix the directory before
 /// binding.
 String socketDirectory() {
+  final override = socketDirectoryOverride;
+  if (override != null) return override;
   if (Platform.isWindows) {
     final local = Platform.environment['LOCALAPPDATA'];
     final base = (local != null && local.isNotEmpty) ? local : '${Platform.environment['USERPROFILE'] ?? r'C:\'}\\AppData\\Local';

@@ -12,19 +12,22 @@ import 'package:test/test.dart';
 
 import '../helpers/timeouts.dart';
 
-/// Tests run with `XDG_RUNTIME_DIR` overridden to a per-test tempdir
-/// so the production `socketDirectory()` resolves under our control.
-/// Workspace roots are arbitrary strings; we don't need a real git
-/// repo because the path resolver only hashes the string.
+/// Every server binds in a per-test temp dir ([sockDir]), never the real
+/// runtime dir: start() probes and sweeps whatever sockets it finds, and
+/// the real one holds the sockets of any clide running on this machine
+/// (T-639). Workspace roots are arbitrary strings; the path resolver only
+/// hashes them.
 
 void main() {
   late Directory xdg;
+  late String sockDir;
   late DaemonDispatcher dispatcher;
   late IpcServer server;
   late String workRoot;
 
   setUp(() async {
     xdg = await Directory.systemTemp.createTemp('clide-ipc-test-');
+    sockDir = '${xdg.path}/clide';
     workRoot = '${xdg.path}/workspace-${DateTime.now().microsecondsSinceEpoch}';
     dispatcher = DaemonDispatcher();
   });
@@ -36,48 +39,35 @@ void main() {
     if (xdg.existsSync()) xdg.deleteSync(recursive: true);
   });
 
-  Future<T> withXdg<T>(Future<T> Function() body) async {
-    // dart:io's Platform.environment is read-only at the language
-    // level but readable. Tests can't mutate it, so we mutate the
-    // process env via Process.environment-equivalent: spawn a child
-    // process. That's overkill — the simpler path is to override the
-    // env vars our function reads by setting them BEFORE the test
-    // runs. flutter_test exposes nothing for that. Easiest: skip if
-    // we can't influence the path.
-    //
-    // Instead, the paths.dart functions are pure — we pass the
-    // workspace root in. The XDG_RUNTIME_DIR fallback only matters
-    // for the directory side. We rely on whatever XDG_RUNTIME_DIR is
-    // set in the test runner's env; tests assert relative shape, not
-    // absolute paths.
-    return body();
-  }
-
   group('IpcServer (T-124)', () {
     test('start binds the socket at the per-workspace path', () async {
-      await withXdg(() async {
-        server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
-        await server.start();
-        expect(server.isRunning, isTrue);
-        expect(server.socketPath, endsWith('.sock'));
-        expect(File(server.socketPath).statSync().type, FileSystemEntityType.unixDomainSock);
-      });
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
+      await server.start();
+      expect(server.isRunning, isTrue);
+      expect(server.socketPath, endsWith('.sock'));
+      expect(File(server.socketPath).statSync().type, FileSystemEntityType.unixDomainSock);
+    });
+
+    test('socketDir confines the socket to that directory (T-639)', () async {
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
+      await server.start();
+      expect(File(server.socketPath).parent.path, sockDir);
+      expect(server.socketPath, workspaceSocketPath(workRoot, directory: sockDir));
+      expect(File(workspaceSocketPath(workRoot)).existsSync(), isFalse, reason: 'nothing bound in the real runtime dir');
     });
 
     test('socket file has mode 0600 and parent dir has 0700', () async {
-      await withXdg(() async {
-        server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
-        await server.start();
-        final sock = File(server.socketPath).statSync();
-        final parent = Directory(File(server.socketPath).parent.path).statSync();
-        // FileStat.mode masks to the low 9 bits we care about.
-        expect(sock.mode & 0x1ff, 0x180, reason: 'socket mode != 0600');
-        expect(parent.mode & 0x1ff, 0x1c0, reason: 'parent mode != 0700');
-      });
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
+      await server.start();
+      final sock = File(server.socketPath).statSync();
+      final parent = Directory(File(server.socketPath).parent.path).statSync();
+      // FileStat.mode masks to the low 9 bits we care about.
+      expect(sock.mode & 0x1ff, 0x180, reason: 'socket mode != 0600');
+      expect(parent.mode & 0x1ff, 0x1c0, reason: 'parent mode != 0700');
     });
 
     test('a connected client gets a JSON-line response to ping', () async {
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
       final reply = await _roundTrip(server.socketPath, IpcRequest(id: '1', cmd: 'ping'));
       expect(reply.ok, isTrue);
@@ -86,7 +76,7 @@ void main() {
     });
 
     test('unknown command returns a notFound IpcError', () async {
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
       final reply = await _roundTrip(server.socketPath, IpcRequest(id: '2', cmd: 'no.such.cmd'));
       expect(reply.ok, isFalse);
@@ -94,7 +84,7 @@ void main() {
     });
 
     test('malformed JSON line surfaces a userError', () async {
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
       final c = await Socket.connect(InternetAddress(server.socketPath, type: InternetAddressType.unix), 0);
       c.write('{not json\n');
@@ -107,7 +97,7 @@ void main() {
     });
 
     test('a wrong-type field is a userError naming the field, not an internal error (T-635)', () async {
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
       final c = await Socket.connect(InternetAddress(server.socketPath, type: InternetAddressType.unix), 0);
       c.write('{"type":"request","v":1,"id":1,"cmd":"ping"}\n');
@@ -121,7 +111,7 @@ void main() {
     });
 
     test('multi-connection accept loop: two simultaneous clients both get replies', () async {
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
       final results = await Future.wait([
         _roundTrip(server.socketPath, IpcRequest(id: 'a', cmd: 'ping')),
@@ -134,38 +124,38 @@ void main() {
     });
 
     test('stop removes the socket file and lets a fresh server bind the same path', () async {
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
       final path = server.socketPath;
       await server.stop();
       expect(File(path).existsSync(), isFalse);
       // Same path can be re-bound on a new server.
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
       expect(server.socketPath, path);
       expect(File(path).existsSync(), isTrue);
     });
 
     test('stale socket file left behind is unlinked on start', () async {
-      final path = workspaceSocketPath(workRoot);
+      final path = workspaceSocketPath(workRoot, directory: sockDir);
       Directory(File(path).parent.path).createSync(recursive: true);
       File(path).writeAsBytesSync([]); // stale node, not a live listener
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
       expect(server.isRunning, isTrue);
     });
 
     test('refuses to clobber a live listener on the same path', () async {
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
-      final other = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      final other = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       expect(() async => other.start(), throwsA(isA<StateError>()));
     });
 
     test('a handoff wait binds once the live listener goes away (D-113)', () async {
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
-      final successor = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      final successor = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       final bound = successor.start(handoffWait: const Duration(seconds: 5));
       await Future<void>.delayed(const Duration(milliseconds: 250));
       expect(successor.isRunning, isFalse, reason: 'still waiting on the old window');
@@ -176,14 +166,14 @@ void main() {
     });
 
     test('a handoff wait still refuses once it runs out', () async {
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
-      final other = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      final other = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await expectLater(other.start(handoffWait: const Duration(milliseconds: 300)), throwsA(isA<StateError>()));
     });
 
     test('startup sweeps dead orphan sockets from the runtime dir, keeps live ones (T-247)', () async {
-      final socketDir = Directory(File(workspaceSocketPath(workRoot)).parent.path);
+      final socketDir = Directory(File(workspaceSocketPath(workRoot, directory: sockDir)).parent.path);
       socketDir.createSync(recursive: true);
       final uniq = DateTime.now().microsecondsSinceEpoch;
       // A dead orphan (a socket node with no listener) and a live orphan
@@ -199,7 +189,7 @@ void main() {
         }
       });
 
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
 
       expect(dead.existsSync(), isFalse, reason: 'a dead orphan should be swept on startup');
@@ -207,21 +197,21 @@ void main() {
     });
 
     test('start is idempotent: second call on the same instance is a no-op', () async {
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
       await server.start();
       expect(server.isRunning, isTrue);
     });
 
     test('stop on a never-started server is a no-op', () async {
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.stop();
       expect(server.isRunning, isFalse);
     });
 
     test('a handler that throws surfaces as a toolError response', () async {
       dispatcher.register('boom', (_) async => throw StateError('handler crash'));
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
       final reply = await _roundTrip(server.socketPath, IpcRequest(id: 'x', cmd: 'boom'));
       expect(reply.ok, isFalse);
@@ -230,7 +220,7 @@ void main() {
     });
 
     test('stop closes an in-flight client connection', () async {
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
       final c = await Socket.connect(InternetAddress(server.socketPath, type: InternetAddressType.unix), 0);
       c.write('${IpcRequest(id: 'q', cmd: 'ping').encode()}\n');
@@ -244,7 +234,7 @@ void main() {
     });
 
     test('multiple sequential requests on the same connection each get a reply', () async {
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
       final c = await Socket.connect(InternetAddress(server.socketPath, type: InternetAddressType.unix), 0);
       final replies = c.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter());
@@ -272,7 +262,7 @@ void main() {
         order.add('${req.id}:end');
         return IpcResponse.ok(id: req.id);
       });
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
       final c = await Socket.connect(InternetAddress(server.socketPath, type: InternetAddressType.unix), 0);
       // Single write carrying both frames.
@@ -292,7 +282,7 @@ void main() {
         gotText = req.args['text'] as String?;
         return IpcResponse.ok(id: req.id, data: {'echo': gotText});
       });
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
       final c = await Socket.connect(InternetAddress(server.socketPath, type: InternetAddressType.unix), 0);
       final frame = utf8.encode('${IpcRequest(id: 'u1', cmd: 'echo', args: const {'text': 'héllo — ünïcode'}).encode()}\n');
@@ -311,33 +301,26 @@ void main() {
     });
 
     test('socketPath returns the resolved path before start (no bind)', () async {
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       // Before start, the getter falls back to workspaceSocketPath; it
       // must return the same path the server WOULD bind, so callers
       // can pre-publish it to clients.
-      expect(server.socketPath, workspaceSocketPath(workRoot));
+      expect(server.socketPath, workspaceSocketPath(workRoot, directory: sockDir));
       expect(server.isRunning, isFalse);
     });
 
     test('prepareParentDir creates the parent directory if it does not exist', () async {
-      // Remove the parent dir if it happens to exist (created by a
-      // previous test or by other clide instances on this host).
-      // The test asserts the create-if-missing branch fires.
-      final parent = Directory(socketDirectory());
-      if (parent.existsSync() && parent.listSync().isEmpty) {
-        parent.deleteSync();
-      } else if (parent.existsSync()) {
-        // Can't safely delete a populated shared dir; skip the
-        // create branch and at least exercise the chmod branch.
-      }
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      // The per-test socket dir doesn't exist until start() makes it.
+      final parent = Directory(sockDir);
+      expect(parent.existsSync(), isFalse);
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
       expect(parent.existsSync(), isTrue);
       expect((parent.statSync().mode) & 0x1ff, 0x1c0);
     });
 
     test('a non-request message (e.g. event) surfaces a userError', () async {
-      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog(), socketDir: sockDir);
       await server.start();
       final c = await Socket.connect(InternetAddress(server.socketPath, type: InternetAddressType.unix), 0);
       final evt = IpcEvent(subsystem: 'test', kind: 'wrong-shape', timestamp: DateTime.now().toUtc());

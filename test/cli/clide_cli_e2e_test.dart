@@ -30,6 +30,15 @@ void main() {
   late final DaemonDispatcher dispatcher;
   late final DaemonBus streamingBus;
 
+  // A private runtime dir for the server AND the client (T-639): the real
+  // one holds the sockets of any clide running on this machine, which
+  // `clide instances` would list and the server's startup sweep would probe.
+  late final Directory runtimeDir;
+  String clientSocketDir() => Platform.isMacOS ? '${runtimeDir.path}/Library/Caches/clide' : '${runtimeDir.path}/clide';
+
+  /// [extra] plus the vars the C client derives its socket dir from.
+  Map<String, String> cliEnv(Map<String, String> extra) => {'XDG_RUNTIME_DIR': runtimeDir.path, 'HOME': runtimeDir.path, ...extra};
+
   setUpAll(() async {
     final repoRoot = Directory.current.path;
     final ccProbe = await Process.run('sh', ['-c', 'command -v cc']);
@@ -52,11 +61,13 @@ void main() {
     dispatcher = DaemonDispatcher();
     registerArgvUnwrap(dispatcher);
     streamingBus = DaemonBus();
+    runtimeDir = Directory(Directory.systemTemp.createTempSync('clide-rt-').resolveSymbolicLinksSync());
     server = IpcServer(
       dispatcher: dispatcher,
       workspaceRoot: workspaceRoot.path,
       log: Logger(minLevel: LogLevel.error, sinks: const []),
       events: streamingBus,
+      socketDir: clientSocketDir(),
     );
     await server.start();
     // The `instance` command isn't a dispatcher builtin (main.dart registers it
@@ -74,6 +85,7 @@ void main() {
     if (workspaceRoot.existsSync()) {
       workspaceRoot.deleteSync(recursive: true);
     }
+    if (runtimeDir.existsSync()) runtimeDir.deleteSync(recursive: true);
   });
 
   // Clear any inherited CLIDE_SOCK so these tests exercise workspace discovery
@@ -81,7 +93,7 @@ void main() {
   // CLIDE_SOCK to child processes (T-247). Empty string reads as unset to the
   // client, which then falls back to per-workspace discovery.
   Future<ProcessResult> runCli(List<String> argv) {
-    return Process.run(binaryPath, argv, workingDirectory: workspaceRoot.path, environment: const {'CLIDE_SOCK': ''});
+    return Process.run(binaryPath, argv, workingDirectory: workspaceRoot.path, environment: cliEnv(const {'CLIDE_SOCK': ''}));
   }
 
   group('clide-cli (T-126)', () {
@@ -102,7 +114,7 @@ void main() {
       }
       final outside = Directory.systemTemp.createTempSync('clide-no-git-');
       addTearDown(() => outside.deleteSync(recursive: true));
-      final r = await Process.run(binaryPath, ['status'], workingDirectory: outside.path, environment: const {'CLIDE_SOCK': ''});
+      final r = await Process.run(binaryPath, ['status'], workingDirectory: outside.path, environment: cliEnv(const {'CLIDE_SOCK': ''}));
       expect(r.exitCode, 64);
       expect(r.stderr.toString(), contains('git repository'));
     });
@@ -154,7 +166,7 @@ void main() {
         binaryPath,
         ['tail', '--events', '--filter', 'pane'],
         workingDirectory: workspaceRoot.path,
-        environment: const {'CLIDE_SOCK': ''},
+        environment: cliEnv(const {'CLIDE_SOCK': ''}),
       );
       addTearDown(() => proc.kill());
       final lines = <String>[];
@@ -190,7 +202,7 @@ void main() {
       // still connects — it's the explicit target.
       final outside = Directory.systemTemp.createTempSync('clide-sock-');
       addTearDown(() => outside.deleteSync(recursive: true));
-      final r = await Process.run(binaryPath, ['ping'], workingDirectory: outside.path, environment: {'CLIDE_SOCK': server.socketPath});
+      final r = await Process.run(binaryPath, ['ping'], workingDirectory: outside.path, environment: cliEnv({'CLIDE_SOCK': server.socketPath}));
       expect(r.exitCode, 0, reason: 'stderr: ${r.stderr}');
       expect((jsonDecode(r.stdout.toString().trim()) as Map)['pong'], isTrue);
     });
@@ -203,7 +215,7 @@ void main() {
       // Run from the REAL workspace — discovery WOULD succeed — to prove the
       // bogus explicit target aborts instead of silently hitting another instance.
       final bogus = '${workspaceRoot.path}/DOES_NOT_EXIST.sock';
-      final r = await Process.run(binaryPath, ['ping'], workingDirectory: workspaceRoot.path, environment: {'CLIDE_SOCK': bogus});
+      final r = await Process.run(binaryPath, ['ping'], workingDirectory: workspaceRoot.path, environment: cliEnv({'CLIDE_SOCK': bogus}));
       expect(r.exitCode, isNot(0));
       expect(r.stderr.toString(), contains('cannot connect'));
       expect(r.stdout.toString().trim(), isEmpty, reason: 'must not return data from a different instance');
@@ -240,7 +252,7 @@ void main() {
         // Short deadline so the test asserts the mechanism, not the shipped
         // 30s default — which is deliberately generous because a deadline
         // cannot tell a wedged instance from a slow answer.
-        environment: {'CLIDE_SOCK': wedgedPath, 'CLIDE_TIMEOUT_MS': '750'},
+        environment: cliEnv({'CLIDE_SOCK': wedgedPath, 'CLIDE_TIMEOUT_MS': '750'}),
       );
       sw.stop();
 
@@ -273,7 +285,7 @@ void main() {
       });
 
       final sw = Stopwatch()..start();
-      final r = await Process.run(binaryPath, ['instances'], workingDirectory: workspaceRoot.path, environment: const {'CLIDE_SOCK': ''});
+      final r = await Process.run(binaryPath, ['instances'], workingDirectory: workspaceRoot.path, environment: cliEnv(const {'CLIDE_SOCK': ''}));
       sw.stop();
 
       expect(r.exitCode, 0, reason: 'stderr: ${r.stderr}');
@@ -286,7 +298,7 @@ void main() {
         markTestSkipped('cc not available');
         return;
       }
-      final r = await Process.run(binaryPath, ['instances'], workingDirectory: workspaceRoot.path, environment: const {'CLIDE_SOCK': ''});
+      final r = await Process.run(binaryPath, ['instances'], workingDirectory: workspaceRoot.path, environment: cliEnv(const {'CLIDE_SOCK': ''}));
       expect(r.exitCode, 0, reason: 'stderr: ${r.stderr}');
       // This test server is one live instance; its socket path must appear.
       // Other live clides on the machine may also be listed — assert ours is
