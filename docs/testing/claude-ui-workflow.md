@@ -72,10 +72,17 @@ npx playwright install chromium
 - **The placeholder button.** Flutter web ships semantics disabled by
   default, behind an invisible `<flt-semantics-placeholder>` button.
   `ClideDriver.waitUntilReady()` clicks it automatically.
-- **No daemon on web.** The WASM build has no unix socket; the status
-  indicator always says `disconnected`. That's honest — a web-hosted
-  clide has no local daemon to talk to. The Playwright flow is for
-  UI-only verification.
+- **Text-named buttons have no `aria-label`.** A button built from plain
+  text takes its accessible name from that text, so `byLabel` can't find
+  it. `button(name)` asks the browser by role and name instead.
+- **No host on web yet.** Nothing sits behind the browser build until the
+  web host lands ([D-116](../../governance/decisions/architecture.md#d-116-web-ui-mode--full-clide-in-the-browser-served-from-a-containerised-host)),
+  so the status bar reads `checking…`. The Playwright flow verifies the
+  UI only.
+- **A Dart exception arrives as a bare `Exception`.** The page error
+  carries no message; the Dart runtime prints it to the console instead.
+  `consoleTail()` returns the recent lines, and the smoke puts them in its
+  failure message.
 
 ## When Playwright is overkill
 

@@ -18,7 +18,7 @@ npx playwright install chromium
 ```bash
 # From repo root:
 make ui-dev                       # build web + start local server :4280
-cd tools/ui && npx playwright test
+cd tools/ui && npx playwright test --project=chromium
 
 # When done:
 make ui-stop                       # kill the local server
@@ -39,12 +39,14 @@ test('...', async ({ page }) => {
   const clide = new ClideDriver(page);
   await clide.goto('/');
 
-  await clide.click('Open project');
+  await clide.button('New project').click();
   await clide.type('Name', 'My project');
-  const text = await clide.readText('disconnected');
+  const text = await clide.readText('clide ');
 
   await clide.screenshot('out/my-state.png');
   const tree = await clide.dumpSemanticsTree();
+  const colors = await clide.paintedColors(); // 1 = nothing was drawn
+  expect(clide.pageErrors, clide.consoleTail()).toEqual([]);
 });
 ```
 
@@ -56,6 +58,22 @@ in for screen-reader support and gets enforced by
 
 ## CI
 
-`make ui-smoke` is the CI entry — builds the WASM bundle, runs the
-harness, cleans up. Enabling Gitea Actions will start running this on
-every push.
+`make test-e2e` runs as the `web-e2e` job in `.github/workflows/test.yml`. It
+builds the WASM bundle, serves it, runs every spec in the `chromium` project,
+and cleans up. The bundle has to boot, paint and show the Welcome view with no
+uncaught page errors.
+
+What the harness relies on:
+- Headless Chromium has no GPU. `playwright.config.ts` turns on software
+  WebGL so CI renders through WebGL, as users do. Without WebGL, Flutter still
+  paints, but through its CPU-only fallback.
+- Semantics come from the framework, not the renderer. With Flutter's surface
+  hidden, every semantics assertion still passes, so the smoke also checks
+  pixels (`paintedColors()`).
+- A Dart exception reaches the page as a bare `Exception`, and its message
+  goes to the console. Failures print the recent console lines
+  (`consoleTail()`).
+
+Specs named `container-*.spec.ts` run against the edge container instead:
+start it with `make ui-container`, then run the `container` project with
+`CLIDE_UI_URL=https://localhost:8443`.

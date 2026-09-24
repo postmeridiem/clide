@@ -27,9 +27,10 @@ Test pyramid, drivers, client-side constraint.
 
 ### D-26: Web driver — raw Playwright + Flutter semantics
 - **Date:** 2026-04-21
-- **Decision:** The browser-side E2E driver uses Playwright directly against Flutter's semantics tree (`flt-semantics[aria-label]`). No Patrol, no flutter_driver for web. The driver (`tools/ui/driver.ts`) clicks `flt-semantics-placeholder` on load to activate semantics, then queries by substring aria-label (Flutter merges sibling labels).
+- **Decision:** The browser-side E2E driver uses Playwright directly against Flutter's semantics tree (`flt-semantics[aria-label]`). No Patrol, no flutter_driver for web. The driver (`tools/ui/driver.ts`) clicks `flt-semantics-placeholder` on load to activate semantics, then queries by substring aria-label (Flutter merges sibling labels). A button built from plain text carries no aria-label, so the driver finds it by role and accessible name. Semantics show structure, not rendering, so the web smoke also checks pixels and uncaught page errors.
 - **Rationale:** Patrol adds a dependency for a capability we get from semantics + Playwright directly. Labels are the a11y tree we already contract to maintain ([D-20](accessibility.md#d-20-a11y-is-a-tier-0-contract)); reusing them for E2E is a win.
 - **Cost:** Driver has to know Flutter's sibling-merging behaviour — documented in `docs/testing/claude-ui-workflow.md`.
+- **Amended (2026-09-24):** role-and-name lookup for text-named buttons, which Flutter 3.44 renders without an aria-label; the pixel and page-error checks, added when the web e2e job was restored in CI (T-443).
 - **Raised by:** 2026-04-21 planning.
 
 ### D-27: Startup regression gate

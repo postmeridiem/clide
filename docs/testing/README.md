@@ -51,8 +51,15 @@ Claude Code drives the Flutter WASM build through a Playwright harness
 
 ## CI
 
-`.gitea/workflows/test.yml` is ready to run but Gitea Actions is not
-enabled on the instance yet. When the user flips it, four jobs kick off
-per push: `unit`, `integration`, `startup-bundle`, `e2e`. The workflow
-file is GitHub-Actions compatible — copying it to `.github/workflows/`
-is the entire migration if the repo moves to GitHub.
+GitHub Actions runs `.github/workflows/test.yml` on every push to `main` and
+on every pull request (D-32). Its jobs:
+- `unit`: analyze, format, the unit/widget/golden suites and the coverage gate;
+- `integration`: a real app boot under xvfb;
+- `startup-bundle`: the release bundle's smoke;
+- `web-wasm`: the wasm compile gate;
+- `web-e2e`: the wasm bundle boots, paints and shows the Welcome view in
+  Chromium, with no uncaught errors (`make test-e2e`, T-443);
+- `docs`.
+
+Semantics drive the harness, but they don't prove rendering: the tree fills in
+even when nothing is drawn. So the smoke checks pixels as well.

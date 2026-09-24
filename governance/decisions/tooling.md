@@ -13,10 +13,11 @@ Toolchain, supply chain, CI, ignore strategy.
 
 ### D-32: CI — GitHub Actions, Linux + Windows runners, active
 - **Date:** 2026-04-21 (amended 2026-06-15)
-- **Decision:** CI runs on **GitHub Actions** under `.github/workflows/`: `test.yml` (Linux — analyze + format + unit/widget/golden + coverage gate, with `pql` installed and `pql.db` rebuilt from the changelog), `windows.yml` + `windows-soak.yml` (ConPTY tests + the orphan-leak soak), and `release.yml` (version-tagged builds, the CHANGELOG section as release notes). macOS is tested locally (no macOS runner). The web-WASM Playwright e2e job is withheld pending the `dart:ffi` fence (D-100 / Q-50). Every job goes through `make` targets.
+- **Decision:** CI runs on **GitHub Actions** under `.github/workflows/`: `test.yml` (Linux — analyze + format + unit/widget/golden + coverage gate, with `pql` installed and `pql.db` rebuilt from the changelog), `windows.yml` + `windows-soak.yml` (ConPTY tests + the orphan-leak soak), and `release.yml` (version-tagged builds, the CHANGELOG section as release notes). macOS is tested locally (no macOS runner). `test.yml` also runs the web build: `web-wasm` compiles it (the `dart:ffi` fence gate, D-100), and `web-e2e` boots it in Chromium, where it must paint the Welcome view with no uncaught page errors. Every job goes through `make` targets.
 - **Rationale:** The repo moved to GitHub (origin `postmeridiem/clide`); GitHub Actions consumes the same workflow syntax the staged Gitea pipeline used, so the move was near-verbatim. Defining the CI story before flipping it on kept early red builds low-blast-radius.
-- **Cost:** macOS coverage is local-only; the browser/e2e surface stays dark until D-100's fence lands.
+- **Cost:** macOS coverage is local-only. The web e2e covers boot and first paint; the rest of the browser surface has no e2e yet.
 - **Amended (2026-06-15):** Superseded the original "Gitea primary, not yet activated" posture — the Gitea staging pipeline was never activated and is gone (only `legacy/.gitea/`, the frozen Python tree, remains); CI is live on GitHub Actions (commits `8e0f33b` Linux, `45aa2d9` Windows/release). Reconciled while closing out T-384.
+- **Amended (2026-09-24):** the withheld web e2e job is restored as `web-e2e`, now that the fence (D-100) and the boot fix (T-577) have landed (T-443).
 - **Raised by:** 2026-04-21 planning.
 
 ### D-42: Dependencies documented in `licenses.yaml`

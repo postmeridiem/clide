@@ -192,7 +192,7 @@ test-integration: gen-build-info ## Integration tests (real app boot; xvfb on he
 	ci/test_integration.sh
 
 .PHONY: test-e2e
-test-e2e: ## End-to-end Playwright smoke.
+test-e2e: gen-build-info ## End-to-end: the web build boots, paints and shows the Welcome view in Chromium (T-443).
 	ci/test_e2e.sh
 
 .PHONY: test-all
@@ -213,7 +213,7 @@ smoke-bundle: gen-build-info ## Build Linux release bundle and run it under xvfb
 # -- web UI harness ------------------------------------------------------
 
 .PHONY: ui-dev
-ui-dev: ## Build web WASM + start localhost:4280 in the background.
+ui-dev: gen-build-info ## Build web WASM + start localhost:4280 in the background.
 	tools/ui/build.sh
 	tools/ui/serve.sh
 
@@ -222,10 +222,10 @@ ui-stop: ## Stop the background web server.
 	tools/ui/stop.sh
 
 .PHONY: ui-smoke
-ui-smoke: ## Build + serve + run Playwright smoke + stop.
+ui-smoke: gen-build-info ## Build + serve + run Playwright smoke + stop.
 	tools/ui/build.sh
 	tools/ui/serve.sh
-	@sh -c 'trap "tools/ui/stop.sh >/dev/null 2>&1" EXIT; cd tools/ui && npx playwright test smoke.spec.ts'
+	@sh -c 'trap "tools/ui/stop.sh >/dev/null 2>&1" EXIT; cd tools/ui && npx playwright test --project=chromium smoke.spec.ts'
 
 .PHONY: ui-container
 ui-container: ## Build and run the web UI's walking-skeleton container (Caddy + wasm bundle) on https://localhost:8443 (T-663).

@@ -137,13 +137,39 @@ jobs:
       # Compile gate for the dart:ffi web fence (D-100 / T-438, resolving Q-50):
       # every native binding lives behind a `dart.library.ffi` conditional import
       # with a web stub. If a new one lands without its stub, this fails — the
-      # fence can't silently rot. Build-only for now; the full web-WASM Playwright
-      # e2e (`make test-e2e`: setup-node + playwright install in tools/ui +
-      # serve) is the follow-on once the harness is wired back up.
+      # fence can't silently rot. Compiling is not booting (T-577), and web-e2e
+      # below is what proves the bundle boots and paints.
       # gen-build-info writes lib/src/build_info.g.dart (gitignored) — the make
       # targets do it for every other job; this one calls flutter directly.
       - run: make gen-build-info
       - run: flutter build web --wasm
+
+  web-e2e:
+    name: web e2e (boots and paints in Chromium)
+    runs-on: ubuntu-latest
+    needs: web-wasm
+    steps:
+      - uses: actions/checkout@v4
+      - id: fvm   # the Flutter pin lives in .fvmrc — never float on `stable`
+        shell: bash
+        run: echo "flutter=$(jq -r .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: '${{ steps.fvm.outputs.flutter }}', channel: stable, cache: true }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - run: flutter pub get
+      # The harness's own pins (tools/ui/package-lock.json), then the Chromium
+      # build that matches them.
+      - run: npm ci
+        working-directory: tools/ui
+      - run: npx playwright install --with-deps chromium
+        working-directory: tools/ui
+      # Build, serve, and run every dev-server spec (T-443). The bundle has to
+      # boot, paint and show the Welcome view with no uncaught page errors.
+      - run: make test-e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with: { name: web-e2e-traces, path: tools/ui/out, retention-days: 7 }
 
   docs:
     name: dart doc (lib API)

@@ -13,14 +13,67 @@ import type { Page, Locator } from '@playwright/test';
 export class ClideDriver {
   readonly page: Page;
 
+  /** Uncaught page errors since this driver was created. */
+  readonly pageErrors: string[] = [];
+
+  /**
+   * The page's console output, oldest first. An uncaught Dart exception
+   * reaches [pageErrors] as a bare "Exception"; its message and stack are
+   * printed here.
+   */
+  readonly consoleLines: string[] = [];
+
   constructor(page: Page) {
     this.page = page;
+    // Attached before any navigation, so nothing thrown during boot is missed.
+    page.on('pageerror', (e) => this.pageErrors.push(String(e)));
+    page.on('console', (m) => this.consoleLines.push(`${m.type()}: ${m.text()}`));
+  }
+
+  /** The last [n] console lines, for a failure message. */
+  consoleTail(n: number = 20): string {
+    return this.consoleLines.slice(-n).join('\n');
+  }
+
+  /**
+   * How many distinct colours a screenshot of the page holds, sampled. A page
+   * Flutter never painted is one flat colour. The semantics tree comes from
+   * the framework, not the renderer, so it can be complete on a blank screen
+   * and can't stand in for this check (T-443). The browser's own image
+   * decoder reads the PNG, so the harness needs no image library.
+   */
+  async paintedColors(): Promise<number> {
+    const png = (await this.page.screenshot()).toString('base64');
+    return this.page.evaluate(async (b64) => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${b64}`;
+      await img.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0);
+      const px = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      const seen = new Set<number>();
+      // Every 97th pixel is plenty to tell a blank page from a painted one.
+      for (let i = 0; i < px.length; i += 4 * 97) seen.add((px[i] << 16) | (px[i + 1] << 8) | px[i + 2]);
+      return seen.size;
+    }, png);
   }
 
   /** Navigate to the app root and wait until Flutter has finished first-frame. */
   async goto(path: string = '/'): Promise<void> {
     await this.page.goto(path);
-    await this.waitUntilReady();
+    try {
+      await this.waitUntilReady();
+    } catch (e) {
+      // A boot that throws never builds its semantics, so the wait times out.
+      // Name what was thrown rather than only the timeout.
+      if (this.pageErrors.length === 0 && this.consoleLines.length === 0) throw e;
+      throw new Error(
+        `${e}\nUncaught page errors: ${this.pageErrors.join(', ') || 'none'}\nConsole:\n${this.consoleTail()}`,
+      );
+    }
   }
 
   /**
@@ -49,8 +102,19 @@ export class ClideDriver {
   }
 
   /**
+   * A button by its accessible name, which the browser computes. A button
+   * built from plain text has no `aria-label`; its name is its text (Flutter
+   * 3.44), so [byLabel] can't find it. The name matches as a substring.
+   */
+  button(name: string): Locator {
+    return this.page.getByRole('button', { name });
+  }
+
+  /**
    * Returns a locator for a Semantics node whose `aria-label` contains
-   * [label]. Flutter web merges sibling labels into one aria-label
+   * [label]. Only an explicit `Semantics(label:)` wrapper sets aria-label;
+   * plain text surfaces as the element's text instead (see [button]).
+   * Flutter web merges sibling labels into one aria-label
    * (newline-separated), so exact match wouldn't work. Substring match
    * is usually unique — narrow with `.filter()` if not.
    */

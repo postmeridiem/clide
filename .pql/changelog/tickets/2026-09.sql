@@ -2780,3 +2780,128 @@ The bundle is built with `--no-web-resources-cdn` and precompressed with brotli 
 - `tools/ui/tests/container-isolation.spec.ts` passes 2/2: `isSecureContext`, `crossOriginIsolated`, and the 404.
 - In Chromium at 1920×1080 the Welcome view paints with no page errors, and `crossOriginIsolated` is true, which means the Skwasm threaded path.
 - The image is 263 MB.', 'done', 'high', NULL, NULL, 'D-117', '2026-09-23 14:30:53.199', '2026-09-23 19:58:43.522', NULL, '3b3aac0081ab134327a37c9b63008d04', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCQZ47MAN835B215GSSMRV8W', 'task', '06GCXAZ7713854V2WXTFREB68C', 'Wire the web-WASM Playwright e2e back into CI (make test-e2e / ui-smoke)', 'Follow-up from T-438 (the `dart:ffi` web fence, D-100): with `flutter build web --wasm` compiling again and a compile gate in CI, restore the *full* web-WASM Playwright e2e — the remaining slice of T-438''s acceptance.
+
+**What''s already done (T-438).** The web build compiles; `.github/workflows/test.yml` has a `web-wasm` job that runs `flutter build web --wasm` (the anti-rot compile gate); `make ui-dev` (build + serve) works.
+
+**What this ticket adds.** The actual browser e2e, which needs runner provisioning the compile gate doesn''t:
+- `make test-e2e` / `make ui-smoke` run green locally and in CI (build → serve `localhost:4280` → Playwright smoke → teardown).
+- A GitHub Actions job: `setup-node`, `npm install` + `npx playwright install --with-deps` in `tools/ui/`, then `make test-e2e`. Add it to `.github/workflows/test.yml` (replacing the compile-only `web-wasm` job, or as a second job that `needs` it).
+- Confirm the Playwright driver (D-26) still matches the current web entrypoint after the fence (degraded web build: no terminal/native-git/highlighting — the smoke should assert what *does* render, e.g. the shell boots and a pane mounts).
+
+**Acceptance.** `make test-e2e` and `make ui-smoke` pass locally; a CI job runs the Playwright smoke against the wasm build on every push/PR; D-26/D-32 reflect the restored e2e job.
+
+**Refs:** T-438 (compile fence + gate), D-100 / Q-50 (fence decision), D-26 (Playwright driver), D-32 (CI; the withheld e2e job).
+
+Re-parented 2026-09-23 under Epic B (T-650) of the web UI initiative (T-648, D-116). The boot-and-first-paint gate is the positive check D-100''s compile gate lacked (T-577).
+
+**Refinement (2026-09-23)**
+
+**Blocked by T-577.** A first-paint gate cannot pass until the paint fix lands, and a softened gate would repeat the compile-only mistake (D-108).
+
+**The assertion:**
+- the booted Welcome view, read through the semantics tree, as `tools/ui/tests/smoke.spec.ts` already does;
+- plus zero uncaught page errors (`page.on(''pageerror'')`). Nothing checks today for the exception T-577 found.
+
+**Build-info prerequisite:**
+- `test-e2e`, `ui-dev` and `ui-smoke` (`Makefile:195,216,225`) lack the `gen-build-info` prerequisite that `test-a11y`, `test-integration` and `smoke-bundle` have (`:187,191,210`).
+- `lib/clide.dart` exports the gitignored `build_info.g.dart`, so a clean checkout likely fails.
+- Add the prerequisite.
+
+**CI:**
+- A new `web-e2e` job with `needs: web-wasm`.
+- `actions/setup-node` with a pinned Node version.
+- `npm ci` and `npx playwright install --with-deps chromium` in `tools/ui/`.
+- The run itself goes through a `make` target (D-32).
+- Raise the Playwright test timeout: the driver can wait twice for 30 s, against Playwright''s 30 s default.
+
+**T-660''s network check:** it lands as `tools/ui/tests/network-boundary.spec.ts`, and `ci/test_e2e.sh` should run every spec rather than one named file.
+
+**Docs drift:** `docs/testing/README.md` and `tools/ui/README.md` still describe Gitea CI. T-692 covers them.
+
+**Stale reference:** T-438''s closing note names T-440 as this follow-up; it meant this ticket.
+
+**Findings from verifying T-577 (2026-09-23).** Each one changes what this gate has to do.
+
+1. **Headless Chromium draws nothing without explicit software WebGL.** Launch it with `--enable-unsafe-swiftshader --use-angle=swiftshader`, set in `playwright.config.ts` under `launchOptions.args`. Without those flags, a correct build still screenshots blank.
+2. **Semantics are not a paint proxy.** Ninety `flt-semantics` nodes, the status bar label among them, were present while the canvas was blank. The first-paint assertion has to look at pixels: a screenshot that isn''t uniform, or a non-empty canvas inside Flutter''s shadow root. Semantics labels alone will pass on a build that shows nothing.
+3. **`smoke.spec.ts` is stale.** The Welcome view says "Open folder…" and "New project…", not "Open project". On web the status bar reads "checking…", because no host sits behind it (Epic C), not "disconnected".
+4. **`driver.ts` is fixed.** It now dispatches the click on the semantics placeholder; Playwright refused the forced click because the placeholder sits outside the viewport.
+5. **Where it ran.** The pinned `mcr.microsoft.com/playwright:v1.50.0-noble` image ran the harness without node on the host, via `--network host` against a local server.
+
+**Correction to finding 1, from mutation checks.** The software-WebGL flags are not what makes the page paint. With the pinned Chromium and no flags, Chromium falls back to software WebGL by itself, with a deprecation warning, and the Welcome view paints. With WebGL disabled outright, Flutter logs "Falling back to CPU-only rendering" and still paints. The earlier blank screenshots came from runs that changed several things at once, and the flags got the credit. They stay, so that CI keeps rendering through WebGL as users do once Chromium drops its own fallback.
+
+**Finding 2 holds, on direct evidence.** With Flutter''s surface hidden (`flt-glass-pane { visibility: hidden }`), every semantics assertion passes and the pixel check fails at a single colour.
+
+**Mutation checks for the smoke.** Each one failed the smoke as it should, and each was restored:
+- surface hidden: the pixel check fails and the semantics checks pass;
+- an uncaught error injected after boot: the page-error check fails;
+- the relaunch guard from T-577 reverted in `lib/main.dart`, with the bundle rebuilt: the boot never builds its semantics, and the failure names `Unsupported operation: Platform._environment`.
+
+A Dart exception reaches `pageerror` as a bare "Exception", with no message. The Dart runtime prints the message to the console, so the driver keeps the console and puts its tail in both failure messages.
+
+**Not yet run end to end:** `make test-e2e` itself, which needs node and a Python static server on the host. The specs ran in the pinned Playwright image against a static server instead, the `container` project included. The CI `web-e2e` job is the first full run, and closing this ticket waits on it being green.', 'backlog', 'medium', NULL, NULL, 'D-26', '2026-06-15 15:53:05', '2026-09-24 06:59:04.801', NULL, '148859e9f711328eb9dbc6823f7d42e3', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCQZ47MAN835B215GSSMRV8W', 'task', '06GCXAZ7713854V2WXTFREB68C', 'Wire the web-WASM Playwright e2e back into CI (make test-e2e / ui-smoke)', 'Follow-up from T-438 (the `dart:ffi` web fence, D-100): with `flutter build web --wasm` compiling again and a compile gate in CI, restore the *full* web-WASM Playwright e2e — the remaining slice of T-438''s acceptance.
+
+**What''s already done (T-438).** The web build compiles; `.github/workflows/test.yml` has a `web-wasm` job that runs `flutter build web --wasm` (the anti-rot compile gate); `make ui-dev` (build + serve) works.
+
+**What this ticket adds.** The actual browser e2e, which needs runner provisioning the compile gate doesn''t:
+- `make test-e2e` / `make ui-smoke` run green locally and in CI (build → serve `localhost:4280` → Playwright smoke → teardown).
+- A GitHub Actions job: `setup-node`, `npm install` + `npx playwright install --with-deps` in `tools/ui/`, then `make test-e2e`. Add it to `.github/workflows/test.yml` (replacing the compile-only `web-wasm` job, or as a second job that `needs` it).
+- Confirm the Playwright driver (D-26) still matches the current web entrypoint after the fence (degraded web build: no terminal/native-git/highlighting — the smoke should assert what *does* render, e.g. the shell boots and a pane mounts).
+
+**Acceptance.** `make test-e2e` and `make ui-smoke` pass locally; a CI job runs the Playwright smoke against the wasm build on every push/PR; D-26/D-32 reflect the restored e2e job.
+
+**Refs:** T-438 (compile fence + gate), D-100 / Q-50 (fence decision), D-26 (Playwright driver), D-32 (CI; the withheld e2e job).
+
+Re-parented 2026-09-23 under Epic B (T-650) of the web UI initiative (T-648, D-116). The boot-and-first-paint gate is the positive check D-100''s compile gate lacked (T-577).
+
+**Refinement (2026-09-23)**
+
+**Blocked by T-577.** A first-paint gate cannot pass until the paint fix lands, and a softened gate would repeat the compile-only mistake (D-108).
+
+**The assertion:**
+- the booted Welcome view, read through the semantics tree, as `tools/ui/tests/smoke.spec.ts` already does;
+- plus zero uncaught page errors (`page.on(''pageerror'')`). Nothing checks today for the exception T-577 found.
+
+**Build-info prerequisite:**
+- `test-e2e`, `ui-dev` and `ui-smoke` (`Makefile:195,216,225`) lack the `gen-build-info` prerequisite that `test-a11y`, `test-integration` and `smoke-bundle` have (`:187,191,210`).
+- `lib/clide.dart` exports the gitignored `build_info.g.dart`, so a clean checkout likely fails.
+- Add the prerequisite.
+
+**CI:**
+- A new `web-e2e` job with `needs: web-wasm`.
+- `actions/setup-node` with a pinned Node version.
+- `npm ci` and `npx playwright install --with-deps chromium` in `tools/ui/`.
+- The run itself goes through a `make` target (D-32).
+- Raise the Playwright test timeout: the driver can wait twice for 30 s, against Playwright''s 30 s default.
+
+**T-660''s network check:** it lands as `tools/ui/tests/network-boundary.spec.ts`, and `ci/test_e2e.sh` should run every spec rather than one named file.
+
+**Docs drift:** `docs/testing/README.md` and `tools/ui/README.md` still describe Gitea CI. T-692 covers them.
+
+**Stale reference:** T-438''s closing note names T-440 as this follow-up; it meant this ticket.
+
+**Findings from verifying T-577 (2026-09-23).** Each one changes what this gate has to do.
+
+1. **Headless Chromium draws nothing without explicit software WebGL.** Launch it with `--enable-unsafe-swiftshader --use-angle=swiftshader`, set in `playwright.config.ts` under `launchOptions.args`. Without those flags, a correct build still screenshots blank.
+2. **Semantics are not a paint proxy.** Ninety `flt-semantics` nodes, the status bar label among them, were present while the canvas was blank. The first-paint assertion has to look at pixels: a screenshot that isn''t uniform, or a non-empty canvas inside Flutter''s shadow root. Semantics labels alone will pass on a build that shows nothing.
+3. **`smoke.spec.ts` is stale.** The Welcome view says "Open folder…" and "New project…", not "Open project". On web the status bar reads "checking…", because no host sits behind it (Epic C), not "disconnected".
+4. **`driver.ts` is fixed.** It now dispatches the click on the semantics placeholder; Playwright refused the forced click because the placeholder sits outside the viewport.
+5. **Where it ran.** The pinned `mcr.microsoft.com/playwright:v1.50.0-noble` image ran the harness without node on the host, via `--network host` against a local server.
+
+**Correction to finding 1, from mutation checks.** The software-WebGL flags are not what makes the page paint. With the pinned Chromium and no flags, Chromium falls back to software WebGL by itself, with a deprecation warning, and the Welcome view paints. With WebGL disabled outright, Flutter logs "Falling back to CPU-only rendering" and still paints. The earlier blank screenshots came from runs that changed several things at once, and the flags got the credit. They stay, so that CI keeps rendering through WebGL as users do once Chromium drops its own fallback.
+
+**Finding 2 holds, on direct evidence.** With Flutter''s surface hidden (`flt-glass-pane { visibility: hidden }`), every semantics assertion passes and the pixel check fails at a single colour.
+
+**Mutation checks for the smoke.** Each one failed the smoke as it should, and each was restored:
+- surface hidden: the pixel check fails and the semantics checks pass;
+- an uncaught error injected after boot: the page-error check fails;
+- the relaunch guard from T-577 reverted in `lib/main.dart`, with the bundle rebuilt: the boot never builds its semantics, and the failure names `Unsupported operation: Platform._environment`.
+
+A Dart exception reaches `pageerror` as a bare "Exception", with no message. The Dart runtime prints the message to the console, so the driver keeps the console and puts its tail in both failure messages.
+
+**Not yet run end to end:** `make test-e2e` itself, which needs node and a Python static server on the host. The specs ran in the pinned Playwright image against a static server instead, the `container` project included. The CI `web-e2e` job is the first full run, and closing this ticket waits on it being green.', 'in_progress', 'medium', NULL, NULL, 'D-26', '2026-06-15 15:53:05', '2026-09-24 06:59:05.005', NULL, 'dbccf1882108364917b685f302cd4bf5', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXBAAZ74G7FGN0JKP5TPB94', 'story', '06GCXAZEKK2SE4HT79HGTKKH70', 'Architecture docs for the host/UI split', 'docs/architecture.md (stale since 2026-05-17), CONTRIBUTING, and tools/ui/README.md (still describes Gitea).
+
+The CI sections of `tools/ui/README.md` and `docs/testing/README.md` now describe GitHub Actions, rewritten with T-443. What remains here is `docs/architecture.md` and CONTRIBUTING.', 'backlog', 'medium', NULL, NULL, 'D-116', '2026-09-23 14:30:58.553', '2026-09-24 06:59:15.187', NULL, 'e3b7c70ee4f8886efc910ef3d3f62bae', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
