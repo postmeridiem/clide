@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:clide/src/broker/environment.dart';
+import 'package:clide/src/broker/store/broker_store.dart';
 import 'package:clide/src/broker/store/location.dart';
 import 'package:clide/src/broker/store/postgres/connection.dart';
 import 'package:clide/src/broker/store/postgres/wire.dart';
@@ -308,6 +309,46 @@ void main() {
         await c.startup();
       });
       await expectLater(open(), throwsA(isA<PostgresConnectionException>().having((e) => e.message, 'message', contains('dropped the connection'))));
+    });
+  });
+
+  group('BrokerStore.open', () {
+    const password = {'CLIDE_BROKER_STORE_PASSWORD': 'pw'};
+    Matcher unavailable(String part) => throwsA(isA<StoreUnavailableException>().having((e) => e.message, 'message', contains(part)));
+
+    test('reports a server that breaks the protocol as unavailable', () async {
+      server = await ScriptedServer.start((c) async {
+        await c.startup();
+        c.send(0x57, [0, 0]);
+        await c.untilClosed();
+      });
+      await expectLater(BrokerStore.open(at(), environment: password), unavailable('broke the protocol'));
+    });
+
+    test('reports a server that refuses for a reason other than configuration as unavailable', () async {
+      server = await ScriptedServer.start((c) async {
+        await c.startup();
+        c.error('53300', 'too many connections');
+        await c.untilClosed();
+      });
+      await expectLater(BrokerStore.open(at(), environment: password), unavailable('53300'));
+    });
+
+    test('reports a schema the server will not let it create, and closes the connection', () async {
+      final closed = Completer<void>();
+      server = await ScriptedServer.start((c) async {
+        await c.startup();
+        await c.scram('pw');
+        c.signedIn();
+        await c.query(tag: 'BEGIN', status: 'T');
+        await c.query(tag: 'SELECT 1', status: 'T');
+        await c.query(errorCode: '42501', status: 'E');
+        await c.query(tag: 'ROLLBACK');
+        await c.untilClosed();
+        closed.complete();
+      });
+      await expectLater(BrokerStore.open(at(), environment: password), unavailable('cannot be brought up to date'));
+      await closed.future.timeout(const Duration(seconds: 5));
     });
   });
 

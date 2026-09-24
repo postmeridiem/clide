@@ -28,6 +28,11 @@ void main() {
     expect(() => _rfcClient().verifyServerFinal(_serverFinal), _refusedWith('before the client sent its proof'));
   });
 
+  test('refuses a server signature that is not base64', () {
+    final client = _rfcClient()..clientFinalMessage(_serverFirst);
+    expect(() => client.verifyServerFinal('v=***'), _refusedWith('not base64'));
+  });
+
   test("refuses a server nonce that does not extend the client's", () {
     expect(() => _rfcClient().clientFinalMessage('r=someoneElse,s=W22ZaJ0SNY7soEsUEjb6gQ==,i=4096'), _refusedWith('nonce'));
     expect(() => _rfcClient().clientFinalMessage('r=rOprNGfwEbeRWgbNEkqO,s=W22ZaJ0SNY7soEsUEjb6gQ==,i=4096'), _refusedWith('nonce'));

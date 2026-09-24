@@ -65,6 +65,7 @@ void main() {
     expect(() => parse('postgres://clide_user@/clide'), refusedWith('names no host'));
     expect(() => parse('postgres://clide_user@db'), refusedWith('one database'));
     expect(() => parse('postgres://clide_user@db/a/b'), refusedWith('one database'));
+    expect(() => parse('postgres://clide_user@[::1/clide'), refusedWith('not a valid postgres:// URL'));
   });
 
   test('the password comes from its own variable, or from the file its _FILE variant names', () {

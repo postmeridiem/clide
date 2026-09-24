@@ -40,6 +40,13 @@ void main() {
     expect([code, err], [1, 'public_origin is not set.\n']);
   });
 
+  test('unset says when there was nothing stored, and refuses a secret', () async {
+    expect(await run(['settings', 'unset', 'signin.mode']), (0, '', 'signin.mode had no stored value.\n'));
+    final (code, _, err) = await run(['settings', 'unset', 'oidc.client_secret']);
+    expect(code, exitData);
+    expect(err, contains('never stored'));
+  });
+
   test('lists where each value came from, and never prints a secret', () async {
     environment['CLIDE_BROKER_OIDC_CLIENT_SECRET'] = 'hunter2';
     environment['CLIDE_BROKER_SIGNIN_MODE'] = 'oidc';
