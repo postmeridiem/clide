@@ -835,12 +835,14 @@ Core, rendering, IPC, kernel, panel manager.
 
 ### D-121: Broker store — SQLite in the state volume, or Postgres
 - **Date:** 2026-09-24
-- **Decision:** The broker keeps its settings and its sign-in state in one store: the settings, the access-token hash, sessions, single-use sign-in links and OIDC sign-ins in progress. One environment variable chooses the store.
-  - **SQLite by default:** one file in the state volume ([D-119](#d-119-web-workspaces--one-linux-account-per-web-user-its-clideprojects-folder-mounted)). clide binds the system `libsqlite3` through `dart:ffi` itself, as it binds libc for the PTY, so no package is added. WAL mode and a busy timeout let the CLI change a setting while the broker runs.
-  - **Postgres, optionally:** a connection URL, with the password taken from a variable or a file, never from the URL. It suits an install that already runs Postgres, and several brokers can share one store.
+- **Decision:** The broker keeps its settings and its sign-in state in one store: the settings, the access-token hash, sessions, single-use sign-in links and OIDC sign-ins in progress.
+  - **The environment chooses and addresses the store, and nothing else does.** `CLIDE_BROKER_STORE` holds either a `sqlite:` path in the state volume or a `postgres://` URL. A Postgres password comes from `CLIDE_BROKER_STORE_PASSWORD` or `CLIDE_BROKER_STORE_PASSWORD_FILE`. They are set where the container runs, in the compose file the installer writes or in a stack. The image carries no store configuration and no default, so without `CLIDE_BROKER_STORE` the broker refuses to start and names the variable.
+  - **SQLite, the installer's default:** one file in the state volume ([D-119](#d-119-web-workspaces--one-linux-account-per-web-user-its-clideprojects-folder-mounted)). clide binds the system `libsqlite3` through `dart:ffi` itself, as it binds libc for the PTY, so no package is added. WAL mode and a busy timeout let the CLI change a setting while the broker runs.
+  - **Postgres, optionally:** a connection URL without a password; a URL that carries one is refused. It suits an install that already runs Postgres, and several brokers can share one store.
   - **One schema and one set of statements** for both engines, written to what both accept: upserts by `ON CONFLICT`, times as integer milliseconds, no `RETURNING`. Every table is prefixed `broker_`, so a shared database can hold them. Numbered migrations run under a lock when the broker starts.
   - **Settings live in the store** and are changed with `clide_broker settings`. An environment variable named for a setting overrides it without writing it, for stacks kept as code. Secrets are write-only: they can be set, but never printed, and `settings set` reads a secret from standard input so it stays out of shell history.
 - **Rationale:**
+  - Choosing the store where the container runs keeps the image the same for every install. Its address and credentials belong to the deployment, and a value baked into an image is one that every install shares and no stack file shows.
   - A file-backed default keeps an install self-contained, with nothing to run beside the container.
   - Postgres serves installs that already have one: the store is backed up with everything else there, and brokers can share it.
   - One schema for both engines stops the second backend from drifting into a second product.
@@ -851,6 +853,6 @@ Core, rendering, IPC, kernel, panel manager.
   - Every statement has to run on both engines, so the store's tests run against both.
   - A setting kept in a database is invisible to a grep of the stack files. `clide_broker settings list` shows each value and where it came from.
 - **Cross-reference:** amends [D-118](#d-118-web-sign-in--a-token-link-and-form-or-oidc) (where sessions and the token hash live) and D-119 (the state volume holds the store only when it is SQLite); D-117; D-120; [Q-53](../questions/tooling.md#q-53-web-ui-distribution)(e).
-- **Raised by:** 2026-09-24 — user: "optionally connect to a postgress database … or run off a local sqlite database (in a docker mount) for broker coordination storage and settings".
+- **Raised by:** 2026-09-24 — user: "optionally connect to a postgress database … or run off a local sqlite database (in a docker mount) for broker coordination storage and settings", and "the selection and addresses of the sql databases should be managed in env vars to keep the inside of the image clean".
 
 ---
