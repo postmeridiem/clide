@@ -3360,3 +3360,44 @@ Tests: the store''s suite on SQLite (migrations, upserts, expiry sweeps, concurr
 **Secrets stay in their own variables (D-121).** The OIDC client secret is read only from `CLIDE_BROKER_OIDC_CLIENT_SECRET`, or the file `CLIDE_BROKER_OIDC_CLIENT_SECRET_FILE` names. The Postgres password is read only from `CLIDE_BROKER_STORE_PASSWORD` or its `_FILE` form. `clide_broker settings set` and `unset` refuse a secret and name its variable, and `settings list` shows only whether one is set. The store holds no secrets, only hashes.
 
 **Progress.** The store and its settings are built: the SQLite binding, migrations, the store contract, settings resolution and `clide_broker settings`. Next: token sign-in, sessions and forward-auth.', NULL, '2026-09-24 07:51:03', '2026-09-24 07:51:03.118', '2026-09-24 07:51:03.118', NULL, '7d7c198dacd77838e33ba79006fd0ffd', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GD4N6P6EZ9FFV5K2GRZMEM7C', 'description', 'The broker''s store (D-121) on Postgres, beside the SQLite default: the client, the adapter, and the store''s test suite run against Postgres in CI.
+
+**Goal.** The broker''s store runs on Postgres as well as on its SQLite default, with the same schema and statements (D-121).
+
+**Scope:**
+- **The client, decided first under D-31 and D-61.** Either clide owns the protocol subset the store needs, or it takes `package:postgres`. Owning it means: startup, SCRAM-SHA-256 authentication, the extended query protocol with text-format parameters and results, errors, and TLS when the URL asks for it. Taking the package means its maintainership and its transitive dependencies get the D-61 checklist.
+- **The adapter** behind the store interface T-664 defines. It is chosen by a `postgres://` store URL, with the password taken from `CLIDE_BROKER_STORE_PASSWORD` or its `_FILE` variant and refused in the URL.
+- **Migrations** take an advisory lock, so two brokers starting together apply them once.
+- **Tests.** The store''s suite runs against Postgres whenever a test server is configured. A CI job runs it against a Postgres service container. Without a server the Postgres cases skip, and the adapter stays thin enough that the coverage gate does not depend on them.
+- **Docs:** the store URL and the password variables in the broker''s configuration reference.
+
+**Done when:** the full store suite passes against Postgres in CI, and a broker pointed at Postgres signs in, keeps its sessions across a restart, and shows its settings with `clide_broker settings list`.', 'The broker''s store (D-121) on Postgres, beside the SQLite default: the client, the adapter, and the store''s test suite run against Postgres in CI.
+
+**Goal.** The broker''s store runs on Postgres as well as on its SQLite default, with the same schema and statements (D-121).
+
+**Scope:**
+- **The client, decided first under D-31 and D-61.** Either clide owns the protocol subset the store needs, or it takes `package:postgres`. Owning it means: startup, SCRAM-SHA-256 authentication, the extended query protocol with text-format parameters and results, errors, and TLS when the URL asks for it. Taking the package means its maintainership and its transitive dependencies get the D-61 checklist.
+- **The adapter** behind the store interface T-664 defines. It is chosen by a `postgres://` store URL, with the password taken from `CLIDE_BROKER_STORE_PASSWORD` or its `_FILE` variant and refused in the URL.
+- **Migrations** take an advisory lock, so two brokers starting together apply them once.
+- **Tests.** The store''s suite runs against Postgres whenever a test server is configured. A CI job runs it against a Postgres service container. Without a server the Postgres cases skip, and the adapter stays thin enough that the coverage gate does not depend on them.
+- **Docs:** the store URL and the password variables in the broker''s configuration reference.
+
+**Done when:** the full store suite passes against Postgres in CI, and a broker pointed at Postgres signs in, keeps its sessions across a restart, and shows its settings with `clide_broker settings list`.
+
+**Decided: clide owns the client (D-121).** It covers only the subset the store uses:
+- the startup message, and an optional TLS upgrade;
+- SCRAM-SHA-256 authentication. A clear-text password over a connection without TLS is refused, and so is MD5;
+- the extended query protocol, with an unnamed statement and portal and text-format parameters and results;
+- error recovery through Sync, and reconnecting between calls;
+- an advisory lock for migrations.
+
+TLS defaults to `sslmode=verify-full`. `require` and `disable` must be written into the URL, and `sslrootcert` names a private CA. Any other URL option is refused.
+
+**Tests:**
+- SCRAM against RFC 7677''s test vectors.
+- The message codec against hand-built bytes.
+- The connection''s state machine against a scripted server, which covers its error paths in the normal suite.
+- The store contract against a real Postgres whenever a test server is configured, plus Postgres-only checks: two connections racing for one link, two brokers migrating at once, and TLS verification.
+
+The store interface this waited on is now in place (T-664), so the block is lifted.', NULL, '2026-09-24 08:43:56', '2026-09-24 08:43:56.205', '2026-09-24 08:43:56.205', NULL, '3e2a0e9fb490e028a0e049396e6791e5', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GD4N6P6EZ9FFV5K2GRZMEM7C', 'status', 'backlog', 'in_progress', NULL, '2026-09-24 08:43:56', '2026-09-24 08:43:56.417', '2026-09-24 08:43:56.417', NULL, '29baf534937ca9e14f18e5dd13b18b3e', 2) ON CONFLICT(hash) DO NOTHING;
