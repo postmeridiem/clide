@@ -2905,3 +2905,123 @@ A Dart exception reaches `pageerror` as a bare "Exception", with no message. The
 INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXBAAZ74G7FGN0JKP5TPB94', 'story', '06GCXAZEKK2SE4HT79HGTKKH70', 'Architecture docs for the host/UI split', 'docs/architecture.md (stale since 2026-05-17), CONTRIBUTING, and tools/ui/README.md (still describes Gitea).
 
 The CI sections of `tools/ui/README.md` and `docs/testing/README.md` now describe GitHub Actions, rewritten with T-443. What remains here is `docs/architecture.md` and CONTRIBUTING.', 'backlog', 'medium', NULL, NULL, 'D-116', '2026-09-23 14:30:58.553', '2026-09-24 06:59:15.187', NULL, 'e3b7c70ee4f8886efc910ef3d3f62bae', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXB9QHG1T1ZPC753RGDNRZM', 'story', '06GCXAZ8KHR81WFY1WN4QQWSRC', 'Broker: forward-auth, session registry, spawn-or-attach, opaque pass-through', 'The internal Dart broker (D-117): the forward-auth endpoint Caddy calls (a token exchanged for a cookie; trusted-header mode refuses while unset), a session registry, spawn-or-attach per workspace, an idle policy, the workspace registry (slug and collision rules; onboarding per D-95), and an opaque WebSocket-to-unix-socket pass-through. Tested against a stub host until C4 lands.
+
+**Refinement (2026-09-24).** The design is recorded: sign-in in D-118 (a token link and form, or OIDC, with the trusted header dropped from D-117), workspaces and accounts in D-119, and supervision in D-120.
+
+**Goal.** The internal Dart broker behind Caddy (D-117). It signs a browser in, finds the workspaces in the mounted `clideprojects` folder, starts and supervises the hosts and Caddy, and bridges each session WebSocket to its workspace host''s socket byte for byte.
+
+**Scope:**
+- `bin/clide_broker.dart`, Flutter-free and compiled with `dart compile exe`, over `lib/src/broker/`.
+- It listens only on a unix socket in the state volume, mode 0600 (D-71). Caddy reaches it as `unix//…`.
+- Endpoints, all reached through Caddy:
+  - `GET /auth/verify`, the forward-auth check. A valid session whose user matches the path''s `/u/<N>/` gets a 200 and `X-Clide-User: <N>`. Otherwise a page navigation gets a redirect to sign-in, and anything else gets a 401.
+  - `GET /auth/login` serves the form, which the `#token=` link fills. `POST /auth/login` signs in by token.
+  - `GET /auth/oidc` starts the OIDC flow, and `GET /auth/callback` finishes it.
+  - `POST /auth/logout` ends the session.
+  - `GET /u/<N>/w/<slug>/session` upgrades to the session WebSocket. The broker checks the `Origin`, looks the workspace up, spawns or attaches, then pipes bytes both ways: binary frames in, the host socket''s bytes out, nothing parsed.
+- Sessions are stored hashed in the state volume, with a fixed lifetime. Rotating the token clears them.
+- `clide_broker token rotate` writes a new token hash and prints the sign-in link once.
+- The workspace registry follows D-119: a scan on demand, the name rule, symbolic links skipped, skipped names reported.
+- Host manager:
+  - The host command comes from configuration, because the real host is C4.
+  - Each host''s socket path comes from `workspaceSocketPath()` (D-70), under the state volume''s runtime directory.
+  - A host is spawned on first attach. The broker waits for its socket and restarts it with backoff. There is no idle reaping (D-120).
+- Supervision follows D-120: Caddy runs as a child and is restarted with backoff, and `SIGTERM` stops everything in order.
+- The Caddyfile adds `forward_auth` to the broker for everything outside `/auth/`, and reverse-proxies `/auth/*` and the session WebSocket to the broker''s socket. Static serving is unchanged.
+- The image builds the broker in the web stage, runs `tini` as PID 1 with the broker as its child, uses `/clide/state` as the state volume, and runs under any UID.
+- `package:crypto` becomes a direct, exact-pinned dependency with its `licenses.yaml` entry (D-118).
+
+**Out of scope:**
+- the real host (C4), and what travels over the pipe (C5, Q-52(c));
+- the browser''s WebSocket transport (C6);
+- the installer, and TLS for a real hostname (Epic G);
+- multi-user;
+- the provider''s own logout.
+
+**Tests:** `test/broker/`, under `dart test`, joins `make test-core`. It covers:
+- token sign-in and rotation;
+- session expiry, and sessions surviving a restart;
+- the forward-auth answers: no cookie, the wrong user in the path, a navigation compared with a fetch;
+- OIDC against a fake provider over TLS signed by a test CA. It must refuse a state mismatch, a nonce mismatch, the wrong `aud`, an expired token, a subject off the allowlist and an `http` issuer, and it must refuse to start without an allowlist;
+- the workspace name rule and symbolic links;
+- spawn-or-attach and restart against a stub host;
+- arbitrary bytes crossing the pipe both ways;
+- the `Origin` check.
+
+Every new test is mutation-checked. A container spec, `container-auth.spec.ts`, checks three things:
+- an unauthenticated workspace URL redirects to sign-in;
+- the token link signs in and the app loads;
+- a wrong token does not.
+
+**Done when:** the dev container signs in by token link and by OIDC against a real provider, finds workspaces in a mounted `clideprojects`, and bridges a WebSocket to a stub host, and the tests above pass in CI.', 'backlog', 'high', NULL, NULL, 'D-117', '2026-09-23 14:30:53.580', '2026-09-24 07:06:35.646', NULL, 'dfab9a2b56557531446f4bddf8b5f4eb', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXB9QHG1T1ZPC753RGDNRZM', 'story', '06GCXAZ8KHR81WFY1WN4QQWSRC', 'Broker: forward-auth, session registry, spawn-or-attach, opaque pass-through', 'The internal Dart broker (D-117): the forward-auth endpoint Caddy calls (a token exchanged for a cookie; trusted-header mode refuses while unset), a session registry, spawn-or-attach per workspace, an idle policy, the workspace registry (slug and collision rules; onboarding per D-95), and an opaque WebSocket-to-unix-socket pass-through. Tested against a stub host until C4 lands.
+
+**Refinement (2026-09-24).** The design is recorded: sign-in in D-118 (a token link and form, or OIDC, with the trusted header dropped from D-117), workspaces and accounts in D-119, and supervision in D-120.
+
+**Goal.** The internal Dart broker behind Caddy (D-117). It signs a browser in, finds the workspaces in the mounted `clideprojects` folder, starts and supervises the hosts and Caddy, and bridges each session WebSocket to its workspace host''s socket byte for byte.
+
+**Scope:**
+- `bin/clide_broker.dart`, Flutter-free and compiled with `dart compile exe`, over `lib/src/broker/`.
+- It listens only on a unix socket in the state volume, mode 0600 (D-71). Caddy reaches it as `unix//…`.
+- Endpoints, all reached through Caddy:
+  - `GET /auth/verify`, the forward-auth check. A valid session whose user matches the path''s `/u/<N>/` gets a 200 and `X-Clide-User: <N>`. Otherwise a page navigation gets a redirect to sign-in, and anything else gets a 401.
+  - `GET /auth/login` serves the form, which the `#token=` link fills. `POST /auth/login` signs in by token.
+  - `GET /auth/oidc` starts the OIDC flow, and `GET /auth/callback` finishes it.
+  - `POST /auth/logout` ends the session.
+  - `GET /u/<N>/w/<slug>/session` upgrades to the session WebSocket. The broker checks the `Origin`, looks the workspace up, spawns or attaches, then pipes bytes both ways: binary frames in, the host socket''s bytes out, nothing parsed.
+- Sessions are stored hashed in the state volume, with a fixed lifetime. Rotating the token clears them.
+- `clide_broker token rotate` writes a new token hash and prints the sign-in link once.
+- The workspace registry follows D-119: a scan on demand, the name rule, symbolic links skipped, skipped names reported.
+- Host manager:
+  - The host command comes from configuration, because the real host is C4.
+  - Each host''s socket path comes from `workspaceSocketPath()` (D-70), under the state volume''s runtime directory.
+  - A host is spawned on first attach. The broker waits for its socket and restarts it with backoff. There is no idle reaping (D-120).
+- Supervision follows D-120: Caddy runs as a child and is restarted with backoff, and `SIGTERM` stops everything in order.
+- The Caddyfile adds `forward_auth` to the broker for everything outside `/auth/`, and reverse-proxies `/auth/*` and the session WebSocket to the broker''s socket. Static serving is unchanged.
+- The image builds the broker in the web stage, runs `tini` as PID 1 with the broker as its child, uses `/clide/state` as the state volume, and runs under any UID.
+- `package:crypto` becomes a direct, exact-pinned dependency with its `licenses.yaml` entry (D-118).
+
+**Out of scope:**
+- the real host (C4), and what travels over the pipe (C5, Q-52(c));
+- the browser''s WebSocket transport (C6);
+- the installer, and TLS for a real hostname (Epic G);
+- multi-user;
+- the provider''s own logout.
+
+**Tests:** `test/broker/`, under `dart test`, joins `make test-core`. It covers:
+- token sign-in and rotation;
+- session expiry, and sessions surviving a restart;
+- the forward-auth answers: no cookie, the wrong user in the path, a navigation compared with a fetch;
+- OIDC against a fake provider over TLS signed by a test CA. It must refuse a state mismatch, a nonce mismatch, the wrong `aud`, an expired token, a subject off the allowlist and an `http` issuer, and it must refuse to start without an allowlist;
+- the workspace name rule and symbolic links;
+- spawn-or-attach and restart against a stub host;
+- arbitrary bytes crossing the pipe both ways;
+- the `Origin` check.
+
+Every new test is mutation-checked. A container spec, `container-auth.spec.ts`, checks three things:
+- an unauthenticated workspace URL redirects to sign-in;
+- the token link signs in and the app loads;
+- a wrong token does not.
+
+**Done when:** the dev container signs in by token link and by OIDC against a real provider, finds workspaces in a mounted `clideprojects`, and bridges a WebSocket to a stub host, and the tests above pass in CI.', 'in_progress', 'high', NULL, NULL, 'D-117', '2026-09-23 14:30:53.580', '2026-09-24 07:06:35.824', NULL, '90b0d408eb4cbc21daa0a18538912a54', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXAZDFPAXQ61ZHT04EKRA2R', 'epic', '06GCXAXZAFG2DTPKFBJARV8Y7R', 'Epic G: Installer for non-developers (Linux + Docker)', '## Epic G: Installer for non-developers (Linux + Docker)
+
+**Goal:** Someone who is not a developer can install, upgrade and remove clide web on a Linux machine with Docker.
+
+**Tasks:**
+- The install script: preflight checks, data and workspace volumes, the access token, the compose file, the pinned image, start, and print the URL.
+- Upgrade, uninstall, status and logs.
+- LAN TLS: Caddy''s internal CA with its root trusted, or ACME for a domain.
+- Claude Code provisioning and login inside the container.
+- A download that can be verified before it runs.
+
+Cross-linked with T-46.
+
+**Acceptance:** On a clean supported Linux host:
+- install, then open the URL, gives a working workspace;
+- re-running the installer is idempotent;
+- an upgrade keeps the data;
+- uninstall removes the service and, when asked, the data.
+
+D-118 and D-119 settle two of these tasks. The access token is a random 256-bit secret printed as a sign-in link, and only its hash is stored; OIDC with an allowlist is the alternative mode. The workspace volume is one Linux account''s `~/clideprojects`, mounted at `/clide/users/0/projects`, with the container running as that account. The installer asks which sign-in mode to use and which account to bind, and it refuses to finish without one of each.', 'backlog', 'high', NULL, NULL, 'Q-53', '2026-09-23 14:29:29.085', '2026-09-24 07:06:35.987', NULL, '48a8ac28d15892478626b22d09b0f7d6', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

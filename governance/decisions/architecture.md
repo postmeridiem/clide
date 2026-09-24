@@ -720,7 +720,7 @@ Core, rendering, IPC, kernel, panel manager.
   1. **Edge: Caddy**, built from source in the image build.
      - It terminates TLS.
      - It serves the static WebAssembly bundle itself, with the cross-origin-isolation headers, compression and caching.
-     - It authenticates every request: by forward-auth to the broker, or, behind an SSO proxy, by a configured trusted header. With neither configured, it refuses.
+     - It authenticates every request outside the sign-in pages by forward-auth to the broker, which signs browsers in by token or OIDC ([D-118](#d-118-web-sign-in--a-token-link-and-form-or-oidc)). With no sign-in mode configured, the broker refuses to start.
      - It proxies **only** the session WebSocket under `/u/<N>/w/<slug>/` inward.
   2. **Broker: internal Dart, on a unix socket.** It verifies sessions for the edge, maps `(user, workspace)` to that workspace's host, spawns or attaches, and passes the stream to the host's socket **without speaking clide's protocol**.
   3. **Hosts: internal Dart, one per workspace.**
@@ -731,7 +731,7 @@ Core, rendering, IPC, kernel, panel manager.
 
   The contract this fixes is what later work preserves:
   - the URL namespace;
-  - identity in: a token exchanged for a cookie now, a trusted header behind an SSO proxy;
+  - identity in: the broker's session cookie, reached by a token or by OIDC;
   - execution out: spawn or attach, per workspace;
   - an opaque pass-through.
 - **Rationale:**
@@ -745,9 +745,86 @@ Core, rendering, IPC, kernel, panel manager.
   - There are three processes to supervise instead of one.
   - `dart:io` cannot drop privileges for a child, so isolating several users will need a privileged helper or a Rust broker behind the same contract. That waits until multi-user is real.
 - **Cross-reference:** D-116, [R-13](../rejected/architecture.md#r-13-api-framework-wrapper-around-the-backend-fastapi-or-a-rust-api-kit), D-70, D-71, D-73, D-74, D-86, [D-115](#d-115-risk-tiers-for-clide-verbs-observedisplay-pre-approved-workspace-write-prompts-escalate-confirms-in-app), [Q-52](../questions/architecture.md#q-52-web-ui-host-architecture), [Q-53](../questions/tooling.md#q-53-web-ui-distribution), `docs/golden-dreams.md`.
+- **Amended (2026-09-24):** D-118 replaces the trusted header with OIDC sign-in in the broker; D-119 and D-120 fix the workspace layout and who supervises.
 - **Raised by:** 2026-09-23 — user:
   - no Dart HTTP server exposed to the internet: "a front door that sometimes proxies is a better pattern";
   - Caddy for the edge;
   - Dart rather than Rust for the internal pieces, for portability.
+
+---
+
+### D-118: Web sign-in — a token link and form, or OIDC
+- **Date:** 2026-09-24
+- **Decision:** The broker ([D-117](#d-117-web-front-door--caddy-at-the-edge-internal-dart-broker-and-hosts)) signs a browser in and issues the session that Caddy's forward-auth checks on every request outside `/auth/`. Exactly one sign-in mode is configured. With none, or with an incomplete one, the broker refuses to start.
+  1. **Token, the default: no identity provider needed.**
+     - The installer generates a random 256-bit access token and prints a sign-in link, `https://<host>/auth/login#token=<token>`.
+     - The token travels in the fragment, so it never reaches a server log or a `Referer`. The sign-in page moves it into its form and posts it. The same form takes a token pasted by hand, for a second device.
+     - The broker stores only a SHA-256 hash of the token and compares in constant time. Rotating the token ends every session.
+  2. **OIDC: any OpenID Connect provider.**
+     - The authorization code flow with PKCE (`S256`), `state` and `nonce`, against a provider found by discovery. The issuer must be `https`.
+     - The ID token comes straight from the token endpoint over a validated TLS connection. OpenID Connect Core §3.1.3.7 accepts that in place of checking its signature, so the broker needs no JWT or JWKS library. It still checks `iss`, `aud`, `azp`, `exp`, `iat` and `nonce`.
+     - Signing in at the provider is not enough. An allowlist names who may use this install, by subject, verified email or group, and OIDC mode refuses to start without one.
+     - The broker keeps no provider tokens. It needs the identity at sign-in and nothing after.
+
+  Both modes end in the same session: an opaque random id in a `__Host-` cookie (`Secure`, `HttpOnly`, `SameSite=Lax`), stored in the state volume only as a hash, with a fixed lifetime, so it survives a broker restart. The session WebSocket and every `POST` also require an `Origin` that matches the install's own.
+- **Rationale:**
+  - The release must work with nothing else installed, so its default is a secret the installer makes and prints. A link is how a non-developer gets it into a browser.
+  - An install behind an identity provider should sign in there. OIDC is the protocol every provider speaks, so one client covers them all, and the provider's own sign-in, MFA included, is what protects clide.
+  - The trusted header D-117 allowed is dropped. It is only as safe as the guarantee that nothing reaches the container except through the proxy, which a non-developer install cannot give, and OIDC serves the same deployments without it. It stays addable behind the same forward-auth check if a deployment needs it.
+  - Refusing to start is the only safe answer to missing configuration. A default that opens the door is how self-hosted tools end up exposed.
+  - Authentication is not authorization. With a public provider, anyone holding an account there would be in without the allowlist.
+- **Cost:**
+  - PKCE, the token hash and the session hashes need SHA-256, so `package:crypto` becomes a direct dependency, exact-pinned and listed ([D-31](tooling.md#d-31-prefer-zero-deps-exact-pin), [D-42](tooling.md#d-42-dependencies-documented-in-licensesyaml)). It already ships as a transitive one, and the Dart team maintains it ([D-61](tooling.md#d-61-dependency-vetting-checklist)).
+  - The broker carries an OIDC client: discovery, the code exchange and the claim checks.
+  - Skipping the signature check holds only for a token taken straight from the token endpoint. An ID token from anywhere else would need a JWS check, so the broker accepts none: no implicit or hybrid flow, no front-channel logout.
+  - A provider behind a private CA needs that CA configured. The broker never skips certificate checks.
+  - Signing out ends the clide session, not the provider's.
+- **Cross-reference:** amends D-117 (identity in); settles the access token of [Q-53](../questions/tooling.md#q-53-web-ui-distribution)(e); [D-116](#d-116-web-ui-mode--full-clide-in-the-browser-served-from-a-containerised-host); OpenID Connect Core 1.0 §3.1.3.7; RFC 7636.
+- **Raised by:** 2026-09-24 — user: sign-in "needs a form+link for the production release", must also honour an identity provider's login where one runs, and "I think i want oidc in from the start".
+
+---
+
+### D-119: Web workspaces — one Linux account per web user, its clideprojects folder mounted
+- **Date:** 2026-09-24
+- **Decision:**
+  - **An account per web user.** Each web user, `/u/<N>/`, is one Linux account on the host. An install has one user, `u/0`. A dedicated account is recommended; the installing user's own account is allowed.
+  - **One folder of workspaces.** That account's `~/clideprojects/` holds the workspaces, and every folder directly inside it is one. Its slug is the folder name, unchanged: `/u/0/w/<folder>/`.
+    - A name outside `[A-Za-z0-9._-]`, one starting with `.` or `-`, or one longer than 64 characters is skipped and reported, never renamed.
+    - Symbolic links are not followed.
+    - A folder added while clide runs is found on the next request for it.
+  - **Only that folder is mounted.** It appears in the container at `/clide/users/<N>/projects`, read-write. The container runs as that account's UID and GID, with no capabilities and `no-new-privileges`.
+  - **One state volume.** Everything clide keeps for itself lives at `/clide/state`: sessions, the token hash, the OIDC configuration, the host sockets ([D-70](#d-70-ipc-socket-path-is-per-workspace-deterministic)'s path, under a runtime directory there) and the `HOME` its tools see. Claude credentials are Q-53(b)'s to decide.
+  - **Validity stays [D-95](#d-95-workspace-validity-and-onboarding-flow)'s.** A folder that is not a git repo, or has no `.pql/`, is listed, and opening it offers onboarding.
+- **Rationale:**
+  - The mount is the boundary. Path checks in the broker and hosts would be a second and weaker fence. One bind-mounted folder, used under one ordinary account, is enforced by the kernel for every process in the container, Claude and its shell tools included.
+  - Running as the account keeps host ownership ordinary: no root-owned files in a user's repos, and the account's own permissions bound what the container can do.
+  - The filesystem already keeps folder names unique, so a slug that is the name needs no collision rule and no mapping. Skipping a name that doesn't fit keeps every URL predictable.
+  - `/u/<N>/` to `/clide/users/<N>/` keeps D-116's multi-user namespace without building it. A second user is a second account and a second mount, served by a broker that can drop privileges (D-117's Rust path).
+- **Cost:**
+  - An install serves one account's projects until multi-user exists.
+  - A folder with another name must be renamed before it appears.
+  - The image must run under an arbitrary UID: nothing in it may need a fixed owner, and the state volume must be writable by that UID.
+- **Cross-reference:** D-116, D-117, D-95, D-70, [D-71](#d-71-ipc-socket-access-gated-by-chmod-0600-on-socket--parent); settles the workspace volumes of Q-53(e).
+- **Raised by:** 2026-09-24 — user: "lock it to a clideprojects dir in the userspace and everything in there is repo folders", tied to a Linux user "for safety", its folders "mounted into the docker container".
+
+---
+
+### D-120: Web process supervision — the broker supervises Caddy and the hosts
+- **Date:** 2026-09-24
+- **Decision:**
+  - A minimal init, `tini`, is PID 1 in the container, and the broker is its only child. The init forwards signals and reaps orphans: processes started from terminals and by Claude are reparented to PID 1, and the Dart VM reaps only its own children.
+  - The broker starts Caddy and restarts it with backoff if it exits.
+  - The broker starts a workspace's host on the first attach to that workspace. When a host exits, the next attach starts it again, with backoff against a crash loop.
+  - The broker never stops a host for being idle. It does not speak the protocol, so it cannot tell a quiet workspace from one where Claude works with no tab open. A host may exit on its own when nothing runs in it.
+  - On `SIGTERM` the broker stops accepting connections, closes the open ones, sends `SIGTERM` to the hosts and Caddy, waits a bounded time, and exits.
+  - If the broker dies, the container exits and its restart policy brings it back.
+- **Rationale:**
+  - The broker already decides which hosts exist, so it owns their lifetimes. A separate supervisor would duplicate that knowledge and add a component.
+  - Sessions outlive a closed tab (D-116), so idleness is the host's call.
+  - One process owning the shutdown order gives Claude sessions and repos a clean stop on an image upgrade.
+  - Ending the container with the broker means Caddy never keeps serving with nothing behind it.
+- **Cost:** A supervision bug takes the edge down with it, so that code needs its own tests.
+- **Cross-reference:** D-116, D-117, D-119.
+- **Raised by:** 2026-09-24 — user chose "Broker supervises".
 
 ---

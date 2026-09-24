@@ -29,5 +29,6 @@ Build, packaging, distribution, supply chain.
   - (g) **The Caddy build:** from source in a build stage, pinned, with its module tree attributed in `licenses.yaml` ([D-42](../decisions/tooling.md#d-42-dependencies-documented-in-licensesyaml)).
 - **Context:** Distribution is greenfield: there is no image, registry or container tooling in the repo or its history. POLICY.md does not mention images yet, so this resolution also amends POLICY.md. The prior art is the release pipeline (`release.yml`, which publishes only from a tested commit) and the self-update's digest check.
 - **Source:** D-116 / 2026-09-23 user direction.
+- **Partly settled:** in (e), the access token by [D-118](../decisions/architecture.md#d-118-web-sign-in--a-token-link-and-form-or-oidc) and the workspace volumes by [D-119](../decisions/architecture.md#d-119-web-workspaces--one-linux-account-per-web-user-its-clideprojects-folder-mounted).
 
 ---
