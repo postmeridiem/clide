@@ -3216,3 +3216,197 @@ The Postgres adapter is T-697, which this ticket blocks.
 Tests: the store''s suite on SQLite (migrations, upserts, expiry sweeps, concurrent writes from a second process), settings precedence and secret masking, and the FFI binding''s error paths.
 
 **Correction to the store addition (D-121).** `CLIDE_BROKER_STORE` has no default. The image carries no store configuration: the variable, and for Postgres `CLIDE_BROKER_STORE_PASSWORD` or its `_FILE` form, are set where the container runs, and without the variable the broker refuses to start and names it. The Dockerfile sets none of them. `make ui-container` passes a `sqlite:` path in the state volume at `docker run`, as the installer''s compose file will. Tests: a missing variable, an unknown scheme and a Postgres URL carrying a password each stop the broker with a message that names the variable.', 'in_progress', 'high', NULL, NULL, 'D-117', '2026-09-23 14:30:53.580', '2026-09-24 07:34:24.756', NULL, '5a672c643448b5cc377dbeeba5e6e07b', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCQZ47MAN835B215GSSMRV8W', 'task', '06GCXAZ7713854V2WXTFREB68C', 'Wire the web-WASM Playwright e2e back into CI (make test-e2e / ui-smoke)', 'Follow-up from T-438 (the `dart:ffi` web fence, D-100): with `flutter build web --wasm` compiling again and a compile gate in CI, restore the *full* web-WASM Playwright e2e — the remaining slice of T-438''s acceptance.
+
+**What''s already done (T-438).** The web build compiles; `.github/workflows/test.yml` has a `web-wasm` job that runs `flutter build web --wasm` (the anti-rot compile gate); `make ui-dev` (build + serve) works.
+
+**What this ticket adds.** The actual browser e2e, which needs runner provisioning the compile gate doesn''t:
+- `make test-e2e` / `make ui-smoke` run green locally and in CI (build → serve `localhost:4280` → Playwright smoke → teardown).
+- A GitHub Actions job: `setup-node`, `npm install` + `npx playwright install --with-deps` in `tools/ui/`, then `make test-e2e`. Add it to `.github/workflows/test.yml` (replacing the compile-only `web-wasm` job, or as a second job that `needs` it).
+- Confirm the Playwright driver (D-26) still matches the current web entrypoint after the fence (degraded web build: no terminal/native-git/highlighting — the smoke should assert what *does* render, e.g. the shell boots and a pane mounts).
+
+**Acceptance.** `make test-e2e` and `make ui-smoke` pass locally; a CI job runs the Playwright smoke against the wasm build on every push/PR; D-26/D-32 reflect the restored e2e job.
+
+**Refs:** T-438 (compile fence + gate), D-100 / Q-50 (fence decision), D-26 (Playwright driver), D-32 (CI; the withheld e2e job).
+
+Re-parented 2026-09-23 under Epic B (T-650) of the web UI initiative (T-648, D-116). The boot-and-first-paint gate is the positive check D-100''s compile gate lacked (T-577).
+
+**Refinement (2026-09-23)**
+
+**Blocked by T-577.** A first-paint gate cannot pass until the paint fix lands, and a softened gate would repeat the compile-only mistake (D-108).
+
+**The assertion:**
+- the booted Welcome view, read through the semantics tree, as `tools/ui/tests/smoke.spec.ts` already does;
+- plus zero uncaught page errors (`page.on(''pageerror'')`). Nothing checks today for the exception T-577 found.
+
+**Build-info prerequisite:**
+- `test-e2e`, `ui-dev` and `ui-smoke` (`Makefile:195,216,225`) lack the `gen-build-info` prerequisite that `test-a11y`, `test-integration` and `smoke-bundle` have (`:187,191,210`).
+- `lib/clide.dart` exports the gitignored `build_info.g.dart`, so a clean checkout likely fails.
+- Add the prerequisite.
+
+**CI:**
+- A new `web-e2e` job with `needs: web-wasm`.
+- `actions/setup-node` with a pinned Node version.
+- `npm ci` and `npx playwright install --with-deps chromium` in `tools/ui/`.
+- The run itself goes through a `make` target (D-32).
+- Raise the Playwright test timeout: the driver can wait twice for 30 s, against Playwright''s 30 s default.
+
+**T-660''s network check:** it lands as `tools/ui/tests/network-boundary.spec.ts`, and `ci/test_e2e.sh` should run every spec rather than one named file.
+
+**Docs drift:** `docs/testing/README.md` and `tools/ui/README.md` still describe Gitea CI. T-692 covers them.
+
+**Stale reference:** T-438''s closing note names T-440 as this follow-up; it meant this ticket.
+
+**Findings from verifying T-577 (2026-09-23).** Each one changes what this gate has to do.
+
+1. **Headless Chromium draws nothing without explicit software WebGL.** Launch it with `--enable-unsafe-swiftshader --use-angle=swiftshader`, set in `playwright.config.ts` under `launchOptions.args`. Without those flags, a correct build still screenshots blank.
+2. **Semantics are not a paint proxy.** Ninety `flt-semantics` nodes, the status bar label among them, were present while the canvas was blank. The first-paint assertion has to look at pixels: a screenshot that isn''t uniform, or a non-empty canvas inside Flutter''s shadow root. Semantics labels alone will pass on a build that shows nothing.
+3. **`smoke.spec.ts` is stale.** The Welcome view says "Open folder…" and "New project…", not "Open project". On web the status bar reads "checking…", because no host sits behind it (Epic C), not "disconnected".
+4. **`driver.ts` is fixed.** It now dispatches the click on the semantics placeholder; Playwright refused the forced click because the placeholder sits outside the viewport.
+5. **Where it ran.** The pinned `mcr.microsoft.com/playwright:v1.50.0-noble` image ran the harness without node on the host, via `--network host` against a local server.
+
+**Correction to finding 1, from mutation checks.** The software-WebGL flags are not what makes the page paint. With the pinned Chromium and no flags, Chromium falls back to software WebGL by itself, with a deprecation warning, and the Welcome view paints. With WebGL disabled outright, Flutter logs "Falling back to CPU-only rendering" and still paints. The earlier blank screenshots came from runs that changed several things at once, and the flags got the credit. They stay, so that CI keeps rendering through WebGL as users do once Chromium drops its own fallback.
+
+**Finding 2 holds, on direct evidence.** With Flutter''s surface hidden (`flt-glass-pane { visibility: hidden }`), every semantics assertion passes and the pixel check fails at a single colour.
+
+**Mutation checks for the smoke.** Each one failed the smoke as it should, and each was restored:
+- surface hidden: the pixel check fails and the semantics checks pass;
+- an uncaught error injected after boot: the page-error check fails;
+- the relaunch guard from T-577 reverted in `lib/main.dart`, with the bundle rebuilt: the boot never builds its semantics, and the failure names `Unsupported operation: Platform._environment`.
+
+A Dart exception reaches `pageerror` as a bare "Exception", with no message. The Dart runtime prints the message to the console, so the driver keeps the console and puts its tail in both failure messages.
+
+**Not yet run end to end:** `make test-e2e` itself, which needs node and a Python static server on the host. The specs ran in the pinned Playwright image against a static server instead, the `container` project included. The CI `web-e2e` job is the first full run, and closing this ticket waits on it being green.
+
+**Closed.** `web-e2e` passed on its first CI run, at the push that ended at `54d16d89`. `make test-e2e` ran end to end on a clean runner: the wasm build, the Python static server, Node, Playwright''s Chromium and every spec in the `chromium` project. `make ui-smoke` is the same flow limited to the smoke spec and was not run separately.', 'in_progress', 'medium', NULL, NULL, 'D-26', '2026-06-15 15:53:05', '2026-09-24 07:35:26.191', NULL, '32cfe60a93702442ae5d31a90be288e4', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCQZ47MAN835B215GSSMRV8W', 'task', '06GCXAZ7713854V2WXTFREB68C', 'Wire the web-WASM Playwright e2e back into CI (make test-e2e / ui-smoke)', 'Follow-up from T-438 (the `dart:ffi` web fence, D-100): with `flutter build web --wasm` compiling again and a compile gate in CI, restore the *full* web-WASM Playwright e2e — the remaining slice of T-438''s acceptance.
+
+**What''s already done (T-438).** The web build compiles; `.github/workflows/test.yml` has a `web-wasm` job that runs `flutter build web --wasm` (the anti-rot compile gate); `make ui-dev` (build + serve) works.
+
+**What this ticket adds.** The actual browser e2e, which needs runner provisioning the compile gate doesn''t:
+- `make test-e2e` / `make ui-smoke` run green locally and in CI (build → serve `localhost:4280` → Playwright smoke → teardown).
+- A GitHub Actions job: `setup-node`, `npm install` + `npx playwright install --with-deps` in `tools/ui/`, then `make test-e2e`. Add it to `.github/workflows/test.yml` (replacing the compile-only `web-wasm` job, or as a second job that `needs` it).
+- Confirm the Playwright driver (D-26) still matches the current web entrypoint after the fence (degraded web build: no terminal/native-git/highlighting — the smoke should assert what *does* render, e.g. the shell boots and a pane mounts).
+
+**Acceptance.** `make test-e2e` and `make ui-smoke` pass locally; a CI job runs the Playwright smoke against the wasm build on every push/PR; D-26/D-32 reflect the restored e2e job.
+
+**Refs:** T-438 (compile fence + gate), D-100 / Q-50 (fence decision), D-26 (Playwright driver), D-32 (CI; the withheld e2e job).
+
+Re-parented 2026-09-23 under Epic B (T-650) of the web UI initiative (T-648, D-116). The boot-and-first-paint gate is the positive check D-100''s compile gate lacked (T-577).
+
+**Refinement (2026-09-23)**
+
+**Blocked by T-577.** A first-paint gate cannot pass until the paint fix lands, and a softened gate would repeat the compile-only mistake (D-108).
+
+**The assertion:**
+- the booted Welcome view, read through the semantics tree, as `tools/ui/tests/smoke.spec.ts` already does;
+- plus zero uncaught page errors (`page.on(''pageerror'')`). Nothing checks today for the exception T-577 found.
+
+**Build-info prerequisite:**
+- `test-e2e`, `ui-dev` and `ui-smoke` (`Makefile:195,216,225`) lack the `gen-build-info` prerequisite that `test-a11y`, `test-integration` and `smoke-bundle` have (`:187,191,210`).
+- `lib/clide.dart` exports the gitignored `build_info.g.dart`, so a clean checkout likely fails.
+- Add the prerequisite.
+
+**CI:**
+- A new `web-e2e` job with `needs: web-wasm`.
+- `actions/setup-node` with a pinned Node version.
+- `npm ci` and `npx playwright install --with-deps chromium` in `tools/ui/`.
+- The run itself goes through a `make` target (D-32).
+- Raise the Playwright test timeout: the driver can wait twice for 30 s, against Playwright''s 30 s default.
+
+**T-660''s network check:** it lands as `tools/ui/tests/network-boundary.spec.ts`, and `ci/test_e2e.sh` should run every spec rather than one named file.
+
+**Docs drift:** `docs/testing/README.md` and `tools/ui/README.md` still describe Gitea CI. T-692 covers them.
+
+**Stale reference:** T-438''s closing note names T-440 as this follow-up; it meant this ticket.
+
+**Findings from verifying T-577 (2026-09-23).** Each one changes what this gate has to do.
+
+1. **Headless Chromium draws nothing without explicit software WebGL.** Launch it with `--enable-unsafe-swiftshader --use-angle=swiftshader`, set in `playwright.config.ts` under `launchOptions.args`. Without those flags, a correct build still screenshots blank.
+2. **Semantics are not a paint proxy.** Ninety `flt-semantics` nodes, the status bar label among them, were present while the canvas was blank. The first-paint assertion has to look at pixels: a screenshot that isn''t uniform, or a non-empty canvas inside Flutter''s shadow root. Semantics labels alone will pass on a build that shows nothing.
+3. **`smoke.spec.ts` is stale.** The Welcome view says "Open folder…" and "New project…", not "Open project". On web the status bar reads "checking…", because no host sits behind it (Epic C), not "disconnected".
+4. **`driver.ts` is fixed.** It now dispatches the click on the semantics placeholder; Playwright refused the forced click because the placeholder sits outside the viewport.
+5. **Where it ran.** The pinned `mcr.microsoft.com/playwright:v1.50.0-noble` image ran the harness without node on the host, via `--network host` against a local server.
+
+**Correction to finding 1, from mutation checks.** The software-WebGL flags are not what makes the page paint. With the pinned Chromium and no flags, Chromium falls back to software WebGL by itself, with a deprecation warning, and the Welcome view paints. With WebGL disabled outright, Flutter logs "Falling back to CPU-only rendering" and still paints. The earlier blank screenshots came from runs that changed several things at once, and the flags got the credit. They stay, so that CI keeps rendering through WebGL as users do once Chromium drops its own fallback.
+
+**Finding 2 holds, on direct evidence.** With Flutter''s surface hidden (`flt-glass-pane { visibility: hidden }`), every semantics assertion passes and the pixel check fails at a single colour.
+
+**Mutation checks for the smoke.** Each one failed the smoke as it should, and each was restored:
+- surface hidden: the pixel check fails and the semantics checks pass;
+- an uncaught error injected after boot: the page-error check fails;
+- the relaunch guard from T-577 reverted in `lib/main.dart`, with the bundle rebuilt: the boot never builds its semantics, and the failure names `Unsupported operation: Platform._environment`.
+
+A Dart exception reaches `pageerror` as a bare "Exception", with no message. The Dart runtime prints the message to the console, so the driver keeps the console and puts its tail in both failure messages.
+
+**Not yet run end to end:** `make test-e2e` itself, which needs node and a Python static server on the host. The specs ran in the pinned Playwright image against a static server instead, the `container` project included. The CI `web-e2e` job is the first full run, and closing this ticket waits on it being green.
+
+**Closed.** `web-e2e` passed on its first CI run, at the push that ended at `54d16d89`. `make test-e2e` ran end to end on a clean runner: the wasm build, the Python static server, Node, Playwright''s Chromium and every spec in the `chromium` project. `make ui-smoke` is the same flow limited to the smoke spec and was not run separately.', 'done', 'medium', NULL, NULL, 'D-26', '2026-06-15 15:53:05', '2026-09-24 07:35:26.374', NULL, '95954599726571aefd421b62f095961d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXB9QHG1T1ZPC753RGDNRZM', 'story', '06GCXAZ8KHR81WFY1WN4QQWSRC', 'Broker: forward-auth, session registry, spawn-or-attach, opaque pass-through', 'The internal Dart broker (D-117): the forward-auth endpoint Caddy calls (a token exchanged for a cookie; trusted-header mode refuses while unset), a session registry, spawn-or-attach per workspace, an idle policy, the workspace registry (slug and collision rules; onboarding per D-95), and an opaque WebSocket-to-unix-socket pass-through. Tested against a stub host until C4 lands.
+
+**Refinement (2026-09-24).** The design is recorded: sign-in in D-118 (a token link and form, or OIDC, with the trusted header dropped from D-117), workspaces and accounts in D-119, and supervision in D-120.
+
+**Goal.** The internal Dart broker behind Caddy (D-117). It signs a browser in, finds the workspaces in the mounted `clideprojects` folder, starts and supervises the hosts and Caddy, and bridges each session WebSocket to its workspace host''s socket byte for byte.
+
+**Scope:**
+- `bin/clide_broker.dart`, Flutter-free and compiled with `dart compile exe`, over `lib/src/broker/`.
+- It listens only on a unix socket in the state volume, mode 0600 (D-71). Caddy reaches it as `unix//…`.
+- Endpoints, all reached through Caddy:
+  - `GET /auth/verify`, the forward-auth check. A valid session whose user matches the path''s `/u/<N>/` gets a 200 and `X-Clide-User: <N>`. Otherwise a page navigation gets a redirect to sign-in, and anything else gets a 401.
+  - `GET /auth/login` serves the form, which the `#token=` link fills. `POST /auth/login` signs in by token.
+  - `GET /auth/oidc` starts the OIDC flow, and `GET /auth/callback` finishes it.
+  - `POST /auth/logout` ends the session.
+  - `GET /u/<N>/w/<slug>/session` upgrades to the session WebSocket. The broker checks the `Origin`, looks the workspace up, spawns or attaches, then pipes bytes both ways: binary frames in, the host socket''s bytes out, nothing parsed.
+- Sessions are stored hashed in the state volume, with a fixed lifetime. Rotating the token clears them.
+- `clide_broker token rotate` writes a new token hash and prints the sign-in link once.
+- The workspace registry follows D-119: a scan on demand, the name rule, symbolic links skipped, skipped names reported.
+- Host manager:
+  - The host command comes from configuration, because the real host is C4.
+  - Each host''s socket path comes from `workspaceSocketPath()` (D-70), under the state volume''s runtime directory.
+  - A host is spawned on first attach. The broker waits for its socket and restarts it with backoff. There is no idle reaping (D-120).
+- Supervision follows D-120: Caddy runs as a child and is restarted with backoff, and `SIGTERM` stops everything in order.
+- The Caddyfile adds `forward_auth` to the broker for everything outside `/auth/`, and reverse-proxies `/auth/*` and the session WebSocket to the broker''s socket. Static serving is unchanged.
+- The image builds the broker in the web stage, runs `tini` as PID 1 with the broker as its child, uses `/clide/state` as the state volume, and runs under any UID.
+- `package:crypto` becomes a direct, exact-pinned dependency with its `licenses.yaml` entry (D-118).
+
+**Out of scope:**
+- the real host (C4), and what travels over the pipe (C5, Q-52(c));
+- the browser''s WebSocket transport (C6);
+- the installer, and TLS for a real hostname (Epic G);
+- multi-user;
+- the provider''s own logout.
+
+**Tests:** `test/broker/`, under `dart test`, joins `make test-core`. It covers:
+- token sign-in and rotation;
+- session expiry, and sessions surviving a restart;
+- the forward-auth answers: no cookie, the wrong user in the path, a navigation compared with a fetch;
+- OIDC against a fake provider over TLS signed by a test CA. It must refuse a state mismatch, a nonce mismatch, the wrong `aud`, an expired token, a subject off the allowlist and an `http` issuer, and it must refuse to start without an allowlist;
+- the workspace name rule and symbolic links;
+- spawn-or-attach and restart against a stub host;
+- arbitrary bytes crossing the pipe both ways;
+- the `Origin` check.
+
+Every new test is mutation-checked. A container spec, `container-auth.spec.ts`, checks three things:
+- an unauthenticated workspace URL redirects to sign-in;
+- the token link signs in and the app loads;
+- a wrong token does not.
+
+**Done when:** the dev container signs in by token link and by OIDC against a real provider, finds workspaces in a mounted `clideprojects`, and bridges a WebSocket to a stub host, and the tests above pass in CI.
+
+**Scope addition (D-118).** `clide_broker signin-link` is the break-glass for OIDC mode. Run inside the container, it prints a single-use sign-in link that expires in ten minutes; the broker stores only its hash. Tests: the link works once, not after expiry, and not in token mode, where the standing token already serves.
+
+**Scope addition (D-121): the broker''s store.**
+- A store interface over the settings, the token hash, sessions, single-use sign-in links and OIDC sign-ins in progress, with `broker_`-prefixed tables and numbered migrations.
+- The SQLite store, the default. It is a clide-owned `dart:ffi` binding to the system `libsqlite3`, in WAL mode with a busy timeout, stored as one file in the state volume.
+- Settings in the store, overridden by an environment variable named for each setting. `clide_broker settings list|get|set|unset` prints each value with its source, never prints a secret, and reads a secret to set from standard input.
+- The store is chosen by `CLIDE_BROKER_STORE`, which defaults to the SQLite file.
+
+The Postgres adapter is T-697, which this ticket blocks.
+
+Tests: the store''s suite on SQLite (migrations, upserts, expiry sweeps, concurrent writes from a second process), settings precedence and secret masking, and the FFI binding''s error paths.
+
+**Correction to the store addition (D-121).** `CLIDE_BROKER_STORE` has no default. The image carries no store configuration: the variable, and for Postgres `CLIDE_BROKER_STORE_PASSWORD` or its `_FILE` form, are set where the container runs, and without the variable the broker refuses to start and names it. The Dockerfile sets none of them. `make ui-container` passes a `sqlite:` path in the state volume at `docker run`, as the installer''s compose file will. Tests: a missing variable, an unknown scheme and a Postgres URL carrying a password each stop the broker with a message that names the variable.
+
+**Secrets stay in their own variables (D-121).** The OIDC client secret is read only from `CLIDE_BROKER_OIDC_CLIENT_SECRET`, or the file `CLIDE_BROKER_OIDC_CLIENT_SECRET_FILE` names. The Postgres password is read only from `CLIDE_BROKER_STORE_PASSWORD` or its `_FILE` form. `clide_broker settings set` and `unset` refuse a secret and name its variable, and `settings list` shows only whether one is set. The store holds no secrets, only hashes.
+
+**Progress.** The store and its settings are built: the SQLite binding, migrations, the store contract, settings resolution and `clide_broker settings`. Next: token sign-in, sessions and forward-auth.', 'in_progress', 'high', NULL, NULL, 'D-117', '2026-09-23 14:30:53.580', '2026-09-24 07:51:03.118', NULL, 'a69272d7e599b2134cb822a7b56fe406', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
