@@ -8,7 +8,6 @@ import 'environment.dart';
 import 'settings.dart';
 import 'store/broker_store.dart';
 import 'store/location.dart';
-import 'store/sqlite3.dart';
 
 const _usage = '''
 Usage: clide_broker <command>
@@ -24,6 +23,7 @@ The store comes from CLIDE_BROKER_STORE, which the environment must set.''';
 /// Exit codes, from sysexits.
 const exitUsage = 64;
 const exitData = 65;
+const exitUnavailable = 69;
 const exitConfig = 78;
 
 /// Runs one command and answers its exit code. [environment] stands in for
@@ -68,16 +68,16 @@ Future<int> _settings(List<String> args, Map<String, String> environment, String
 
   final BrokerStore store;
   try {
-    store = await BrokerStore.open(StoreLocation.fromEnvironment(environment));
+    store = await BrokerStore.open(StoreLocation.fromEnvironment(environment), environment: environment);
   } on BrokerConfigException catch (e) {
     err.writeln(e.message);
     return exitConfig;
   } on StoreSchemaException catch (e) {
     err.writeln(e.message);
     return exitConfig;
-  } on SqliteException catch (e) {
-    err.writeln('The store cannot be opened: ${e.message}');
-    return exitConfig;
+  } on StoreUnavailableException catch (e) {
+    err.writeln(e.message);
+    return exitUnavailable;
   }
 
   try {

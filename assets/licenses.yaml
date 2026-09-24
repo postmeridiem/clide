@@ -147,6 +147,17 @@ dependencies:
       the core PTY wrapper for libc bindings (socketpair, recvmsg with
       SCM_RIGHTS, ioctl). Dart-team maintained; zero transitive deps.
 
+  - name: crypto
+    kind: dart-package
+    version: "3.0.7"
+    homepage: https://pub.dev/packages/crypto
+    license: BSD-3-Clause
+    purpose: >-
+      SHA-256 and HMAC for the web broker: SCRAM-SHA-256 sign-in to a
+      Postgres store, PKCE, and the hashes the broker keeps instead of
+      tokens and session ids (D-118, D-121). Dart-team maintained; its
+      only dependency is typed_data.
+
   - name: dugite-native (Git)
     kind: native-binary
     version: "2.53.0"

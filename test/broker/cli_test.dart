@@ -112,7 +112,7 @@ void main() {
   test('a store that cannot be opened is reported, not thrown', () async {
     environment['CLIDE_BROKER_STORE'] = 'sqlite:${dir.path}/no/such/dir/broker.db';
     final (code, _, err) = await run(['settings', 'list']);
-    expect(code, exitConfig);
+    expect(code, exitUnavailable);
     expect(err, contains('cannot be opened'));
   });
 }

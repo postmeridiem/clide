@@ -171,6 +171,22 @@ jobs:
         uses: actions/upload-artifact@v4
         with: { name: web-e2e-traces, path: tools/ui/out, retention-days: 7 }
 
+  broker-postgres:
+    name: broker store on Postgres
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: fvm   # the Flutter pin lives in .fvmrc — never float on `stable`
+        shell: bash
+        run: echo "flutter=$(jq -r .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: '${{ steps.fvm.outputs.flutter }}', channel: stable, cache: true }
+      - run: flutter pub get
+      # A throwaway Postgres with TLS from a test CA, pinned by digest; the
+      # store contract, the TLS modes, sign-in and the races between two
+      # brokers run against it (T-697, D-121).
+      - run: make test-broker-postgres
+
   docs:
     name: dart doc (lib API)
     runs-on: ubuntu-latest

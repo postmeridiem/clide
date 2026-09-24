@@ -59,6 +59,9 @@ on every pull request (D-32). Its jobs:
 - `web-wasm`: the wasm compile gate;
 - `web-e2e`: the wasm bundle boots, paints and shows the Welcome view in
   Chromium, with no uncaught errors (`make test-e2e`, T-443);
+- `broker-postgres`: the web broker's store against a throwaway Postgres with
+  TLS from a test CA (`make test-broker-postgres`, T-697). Without that
+  server, the Postgres tests skip in every other run;
 - `docs`.
 
 Semantics drive the harness, but they don't prove rendering: the tree fills in

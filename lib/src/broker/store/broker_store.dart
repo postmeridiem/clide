@@ -7,13 +7,26 @@
 /// shared database can hold them.
 library;
 
-import '../environment.dart';
 import 'location.dart';
+import 'postgres/connection.dart';
+import 'postgres/wire.dart';
 import 'sql.dart';
+import 'sqlite3.dart';
 
 /// The store holds a schema this broker does not know how to use.
 class StoreSchemaException implements Exception {
   StoreSchemaException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+/// The store could not be opened or reached. The message says why, and
+/// never carries a secret.
+class StoreUnavailableException implements Exception {
+  StoreUnavailableException(this.message);
 
   final String message;
 
@@ -62,18 +75,38 @@ final class OidcPending {
 final class BrokerStore {
   BrokerStore(this._sql, {DateTime Function()? clock}) : _now = clock ?? DateTime.now;
 
-  /// Opens the store at [location] and brings its schema up to date.
-  static Future<BrokerStore> open(StoreLocation location, {DateTime Function()? clock}) async {
-    final sql = switch (location) {
-      SqliteLocation(:final path) => await SqliteConnection.open(path),
-      PostgresLocation() => throw BrokerConfigException('This broker cannot use a Postgres store yet. Use a sqlite: path in ${StoreLocation.variable}.'),
-    };
+  /// Opens the store at [location] and brings its schema up to date. A
+  /// Postgres password comes from [environment] (D-121).
+  ///
+  /// Throws a `BrokerConfigException` for configuration the operator has to
+  /// change, a [StoreSchemaException] for a store newer than this broker,
+  /// and a [StoreUnavailableException] for anything else that stops the
+  /// store opening.
+  static Future<BrokerStore> open(StoreLocation location, {Map<String, String> environment = const {}, DateTime Function()? clock}) async {
+    final SqlConnection sql;
+    try {
+      sql = switch (location) {
+        SqliteLocation(:final path) => await SqliteConnection.open(path),
+        final PostgresLocation postgres => await PostgresConnection.open(postgres, password: postgres.password(environment)),
+      };
+    } on SqliteException catch (e) {
+      throw StoreUnavailableException('The store cannot be opened: ${e.message}');
+    } on PostgresConnectionException catch (e) {
+      throw StoreUnavailableException("The store's Postgres server cannot be used: ${e.message}");
+    } on PostgresProtocolException catch (e) {
+      throw StoreUnavailableException("The store's Postgres server broke the protocol: ${e.message}");
+    } on PostgresException catch (e) {
+      throw StoreUnavailableException("The store's Postgres server refused the connection: $e");
+    }
     final store = BrokerStore(sql, clock: clock);
     try {
       await store.migrate();
-    } catch (_) {
+    } on StoreSchemaException {
       await sql.close();
       rethrow;
+    } on Exception catch (e) {
+      await sql.close();
+      throw StoreUnavailableException("The store's schema cannot be brought up to date: $e");
     }
     return store;
   }

@@ -59,7 +59,7 @@ final class SqliteConnection implements SqlConnection {
   }
 
   final SqliteDatabase _db;
-  final _Serial _serial = _Serial();
+  final CallQueue _serial = CallQueue();
 
   @override
   Future<int> execute(String sql, [List<Object?> params = const []]) => _serial.run(() => _db.execute(_numbered(sql), params));
@@ -90,13 +90,14 @@ final class SqliteConnection implements SqlConnection {
   static final _dollar = RegExp(r'\$(\d+)');
 }
 
-/// Runs calls one at a time. A call made from inside [hold]'s body runs
-/// straight away, inside it, rather than queueing behind it.
-final class _Serial {
+/// Runs a connection's calls one at a time, in the order they were made. A
+/// call made from inside [hold]'s body runs straight away, inside it,
+/// rather than queueing behind it.
+final class CallQueue {
   Future<void> _tail = Future.value();
   final Object _inside = Object();
 
-  Future<T> run<T>(T Function() op) {
+  Future<T> run<T>(FutureOr<T> Function() op) {
     if (Zone.current[_inside] == true) return Future.sync(op);
     return _enqueue(() => Future.sync(op));
   }

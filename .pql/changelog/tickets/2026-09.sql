@@ -3468,3 +3468,52 @@ TLS defaults to `sslmode=verify-full`. `require` and `disable` must be written i
 - The store contract against a real Postgres whenever a test server is configured, plus Postgres-only checks: two connections racing for one link, two brokers migrating at once, and TLS verification.
 
 The store interface this waited on is now in place (T-664), so the block is lifted.', 'in_progress', 'medium', NULL, NULL, 'D-121', '2026-09-24 07:32:50.355', '2026-09-24 08:43:56.416', NULL, '1e92facc934b7b00bd7353abe262a65a', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GD4N6P6EZ9FFV5K2GRZMEM7C', 'story', '06GCXAZ8KHR81WFY1WN4QQWSRC', 'Broker store on Postgres', 'The broker''s store (D-121) on Postgres, beside the SQLite default: the client, the adapter, and the store''s test suite run against Postgres in CI.
+
+**Goal.** The broker''s store runs on Postgres as well as on its SQLite default, with the same schema and statements (D-121).
+
+**Scope:**
+- **The client, decided first under D-31 and D-61.** Either clide owns the protocol subset the store needs, or it takes `package:postgres`. Owning it means: startup, SCRAM-SHA-256 authentication, the extended query protocol with text-format parameters and results, errors, and TLS when the URL asks for it. Taking the package means its maintainership and its transitive dependencies get the D-61 checklist.
+- **The adapter** behind the store interface T-664 defines. It is chosen by a `postgres://` store URL, with the password taken from `CLIDE_BROKER_STORE_PASSWORD` or its `_FILE` variant and refused in the URL.
+- **Migrations** take an advisory lock, so two brokers starting together apply them once.
+- **Tests.** The store''s suite runs against Postgres whenever a test server is configured. A CI job runs it against a Postgres service container. Without a server the Postgres cases skip, and the adapter stays thin enough that the coverage gate does not depend on them.
+- **Docs:** the store URL and the password variables in the broker''s configuration reference.
+
+**Done when:** the full store suite passes against Postgres in CI, and a broker pointed at Postgres signs in, keeps its sessions across a restart, and shows its settings with `clide_broker settings list`.
+
+**Decided: clide owns the client (D-121).** It covers only the subset the store uses:
+- the startup message, and an optional TLS upgrade;
+- SCRAM-SHA-256 authentication. A clear-text password over a connection without TLS is refused, and so is MD5;
+- the extended query protocol, with an unnamed statement and portal and text-format parameters and results;
+- error recovery through Sync, and reconnecting between calls;
+- an advisory lock for migrations.
+
+TLS defaults to `sslmode=verify-full`. `require` and `disable` must be written into the URL, and `sslrootcert` names a private CA. Any other URL option is refused.
+
+**Tests:**
+- SCRAM against RFC 7677''s test vectors.
+- The message codec against hand-built bytes.
+- The connection''s state machine against a scripted server, which covers its error paths in the normal suite.
+- The store contract against a real Postgres whenever a test server is configured, plus Postgres-only checks: two connections racing for one link, two brokers migrating at once, and TLS verification.
+
+The store interface this waited on is now in place (T-664), so the block is lifted.
+
+**Built.** `lib/src/broker/store/postgres/` holds the SCRAM client, the wire codec and the connection. `BrokerStore.open` takes a `postgres://` location, with its password from the environment.
+
+**Tests.**
+- The SCRAM client reproduces RFC 7677''s exchange.
+- The codec is checked against hand-built bytes.
+- A scripted server covers every refusal in the normal suite:
+  - a skipped authentication while a password is set;
+  - a clear-text password request without verified TLS;
+  - MD5, and unknown methods;
+  - a forged SCRAM signature, and a SCRAM exchange ended early;
+  - bytes after the TLS answer;
+  - an oversized message, an unexpected message, and a timeout;
+  - a COMMIT answered with ROLLBACK;
+  - a connection lost inside a transaction.
+- `make test-broker-postgres` runs the store contract against PostgreSQL 16 with TLS from a test CA. It adds two brokers racing for one link, two brokers migrating at once, each TLS mode, a wrong password, and reconnection. It runs in CI as the `broker-postgres` job.
+
+Ten mutations of the client''s guards each failed the test written for them, and all ten were restored.
+
+**Left for this ticket''s acceptance:** "signs in and keeps its sessions across a restart" needs the broker''s sign-in, which is T-664''s to build on both stores. That check moves there, and this ticket closes once `broker-postgres` is green in CI.', 'in_progress', 'medium', NULL, NULL, 'D-121', '2026-09-24 07:32:50.355', '2026-09-24 09:01:11.754', NULL, '77b3c891640803ace0cb0d316ec477c3', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

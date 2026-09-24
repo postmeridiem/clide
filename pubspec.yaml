@@ -52,6 +52,8 @@ dependencies:
 
   ffi: 2.2.0
 
+  crypto: 3.0.7
+
   jovial_svg: 1.1.30
 
   markdown: 7.3.1

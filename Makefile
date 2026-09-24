@@ -232,6 +232,10 @@ broker: ## Compile the web broker, a Flutter-free executable, to build/broker/cl
 	@mkdir -p build/broker
 	dart compile exe bin/clide_broker.dart -o build/broker/clide_broker
 
+.PHONY: test-broker-postgres
+test-broker-postgres: ## The broker's store against a throwaway Postgres with TLS (T-697). Needs docker and openssl.
+	ci/test_broker_postgres.sh
+
 .PHONY: ui-container
 ui-container: ## Build and run the web UI's walking-skeleton container (Caddy + wasm bundle) on https://localhost:8443 (T-663).
 	docker build -f docker/web/Dockerfile -t clide-web:dev --build-arg COMMIT=$(COMMIT) --build-arg DATE=$(DATE) .

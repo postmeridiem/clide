@@ -26,17 +26,24 @@ void main() {
 
   test('reads a postgres URL', () {
     final p = parse('postgres://clide_user@db.internal:6543/clide?sslmode=require') as PostgresLocation;
-    expect(
-      [p.user, p.host, p.port, p.database, p.options],
-      [
-        'clide_user',
-        'db.internal',
-        6543,
-        'clide',
-        {'sslmode': 'require'},
-      ],
-    );
+    expect([p.user, p.host, p.port, p.database, p.sslMode, p.sslRootCert], ['clide_user', 'db.internal', 6543, 'clide', SslMode.require, null]);
     expect((parse('postgresql://clide_user@db/clide') as PostgresLocation).port, 5432);
+  });
+
+  test('verifies TLS unless the URL says otherwise', () {
+    PostgresLocation at(String query) => parse('postgres://clide_user@db/clide$query') as PostgresLocation;
+    expect(at('').sslMode, SslMode.verifyFull);
+    expect(at('?sslmode=verify-full').sslMode, SslMode.verifyFull);
+    expect(at('?sslmode=disable').sslMode, SslMode.disable);
+    final pinned = at('?sslrootcert=/clide/state/ca.pem');
+    expect([pinned.sslMode, pinned.sslRootCert], [SslMode.verifyFull, '/clide/state/ca.pem']);
+  });
+
+  test('refuses an sslmode it does not use, a misplaced or relative sslrootcert, and unknown options', () {
+    expect(() => parse('postgres://u@db/clide?sslmode=prefer'), refusedWith('verify-full, require or disable'));
+    expect(() => parse('postgres://u@db/clide?sslmode=require&sslrootcert=/ca.pem'), refusedWith('only sslmode=verify-full'));
+    expect(() => parse('postgres://u@db/clide?sslrootcert=ca.pem'), refusedWith('absolute path'));
+    expect(() => parse('postgres://u@db/clide?application_name=x'), refusedWith('does not know: application_name'));
   });
 
   test('refuses a URL that carries a password, without repeating it', () {

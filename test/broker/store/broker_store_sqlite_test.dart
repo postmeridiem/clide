@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:clide/src/broker/environment.dart';
 import 'package:clide/src/broker/store/broker_store.dart';
 import 'package:clide/src/broker/store/location.dart';
 import 'package:clide/src/broker/store/sql.dart';
@@ -83,10 +82,13 @@ void main() {
     });
   });
 
-  test('opening refuses a Postgres location, which this broker cannot use yet', () async {
+  test('opening a Postgres store that cannot be reached reports it as unavailable', () async {
+    final unused = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+    final port = unused.port;
+    await unused.close();
     await expectLater(
-      BrokerStore.open(const PostgresLocation(user: 'u', host: 'h', port: 5432, database: 'd')),
-      throwsA(isA<BrokerConfigException>().having((e) => e.message, 'message', contains('sqlite:'))),
+      BrokerStore.open(PostgresLocation(user: 'u', host: '127.0.0.1', port: port, database: 'd', sslMode: SslMode.disable)),
+      throwsA(isA<StoreUnavailableException>().having((e) => e.message, 'message', contains('cannot be reached'))),
     );
   });
 

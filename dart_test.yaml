@@ -17,3 +17,7 @@ tags:
   # deterministic await first — only tag `serial` when isolation is the real
   # fix. (T-193)
   serial:
+  # The broker's store against a real Postgres server (T-697). They skip
+  # without one; `make test-broker-postgres` starts a throwaway server with
+  # TLS and runs them.
+  postgres:
