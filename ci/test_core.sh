@@ -33,7 +33,7 @@ TEST_TIMEOUT="${TEST_TIMEOUT:-60s}"
 # Override with TEST_REPORTER=expanded when debugging. (T-242)
 REPORTER="${TEST_REPORTER:-failures-only}"
 
-CORE_DIRS="test/ipc test/pty test/daemon test/git test/panes test/files test/editor test/pql"
+CORE_DIRS="test/ipc test/pty test/daemon test/git test/panes test/files test/editor test/pql test/broker"
 
 # Run a `dart test` pass under the per-test timeout. set -e propagates a
 # failing pass (including a --timeout-induced failure) with dart's exit code.

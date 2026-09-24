@@ -227,6 +227,11 @@ ui-smoke: gen-build-info ## Build + serve + run Playwright smoke + stop.
 	tools/ui/serve.sh
 	@sh -c 'trap "tools/ui/stop.sh >/dev/null 2>&1" EXIT; cd tools/ui && npx playwright test --project=chromium smoke.spec.ts'
 
+.PHONY: broker
+broker: ## Compile the web broker, a Flutter-free executable, to build/broker/clide_broker (D-117).
+	@mkdir -p build/broker
+	dart compile exe bin/clide_broker.dart -o build/broker/clide_broker
+
 .PHONY: ui-container
 ui-container: ## Build and run the web UI's walking-skeleton container (Caddy + wasm bundle) on https://localhost:8443 (T-663).
 	docker build -f docker/web/Dockerfile -t clide-web:dev --build-arg COMMIT=$(COMMIT) --build-arg DATE=$(DATE) .
