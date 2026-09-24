@@ -767,7 +767,7 @@ Core, rendering, IPC, kernel, panel manager.
      - The broker keeps no provider tokens. It needs the identity at sign-in and nothing after.
      - A provider outage must not lock the owner out. Run inside the container, `clide_broker signin-link` prints a single-use sign-in link that expires in ten minutes.
 
-  Both modes end in the same session: an opaque random id in a `__Host-` cookie (`Secure`, `HttpOnly`, `SameSite=Lax`), stored in the state volume only as a hash, with a fixed lifetime, so it survives a broker restart. The session WebSocket and every `POST` also require an `Origin` that matches the install's own.
+  Both modes end in the same session: an opaque random id in a `__Host-` cookie (`Secure`, `HttpOnly`, `SameSite=Lax`), kept in the broker's store only as a hash, with a fixed lifetime, so it survives a broker restart. The session WebSocket and every `POST` also require an `Origin` that matches the install's own.
 - **Rationale:**
   - The release must work with nothing else installed, so its default is a secret the installer makes and prints. A link is how a non-developer gets it into a browser.
   - An install behind an identity provider should sign in there. OIDC is the protocol every provider speaks, so one client covers them all, and the provider's own sign-in, MFA included, is what protects clide.
@@ -782,6 +782,7 @@ Core, rendering, IPC, kernel, panel manager.
   - A provider behind a private CA needs that CA configured. The broker never skips certificate checks.
   - Signing out ends the clide session, not the provider's.
 - **Cross-reference:** amends D-117 (identity in); settles the access token of [Q-53](../questions/tooling.md#q-53-web-ui-distribution)(e); [D-116](#d-116-web-ui-mode--full-clide-in-the-browser-served-from-a-containerised-host); OpenID Connect Core 1.0 §3.1.3.7; RFC 7636.
+- **Amended (2026-09-24):** sessions, the token hash and the sign-in settings live in the broker's store ([D-121](#d-121-broker-store--sqlite-in-the-state-volume-or-postgres)).
 - **Raised by:** 2026-09-24 — user: sign-in "needs a form+link for the production release", must also honour an identity provider's login where one runs, and "I think i want oidc in from the start".
 
 ---
@@ -795,7 +796,7 @@ Core, rendering, IPC, kernel, panel manager.
     - Symbolic links are not followed.
     - A folder added while clide runs is found on the next request for it.
   - **Only that folder is mounted.** It appears in the container at `/clide/users/<N>/projects`, read-write. The container runs as that account's UID and GID, with no capabilities and `no-new-privileges`.
-  - **One state volume.** Everything clide keeps for itself lives at `/clide/state`: sessions, the token hash, the OIDC configuration, the host sockets ([D-70](#d-70-ipc-socket-path-is-per-workspace-deterministic)'s path, under a runtime directory there) and the `HOME` its tools see. Claude credentials are Q-53(b)'s to decide.
+  - **One state volume.** What clide keeps for itself lives at `/clide/state`: the host sockets ([D-70](#d-70-ipc-socket-path-is-per-workspace-deterministic)'s path, under a runtime directory there), the `HOME` its tools see, and the broker's store when that store is SQLite (D-121). Claude credentials are Q-53(b)'s to decide.
   - **Validity stays [D-95](#d-95-workspace-validity-and-onboarding-flow)'s.** A folder that is not a git repo, or has no `.pql/`, is listed, and opening it offers onboarding.
 - **Rationale:**
   - The mount is the boundary. Path checks in the broker and hosts would be a second and weaker fence. One bind-mounted folder, used under one ordinary account, is enforced by the kernel for every process in the container, Claude and its shell tools included.
@@ -807,6 +808,7 @@ Core, rendering, IPC, kernel, panel manager.
   - A folder with another name must be renamed before it appears.
   - The image must run under an arbitrary UID: nothing in it may need a fixed owner, and the state volume must be writable by that UID.
 - **Cross-reference:** D-116, D-117, D-95, D-70, [D-71](#d-71-ipc-socket-access-gated-by-chmod-0600-on-socket--parent); settles the workspace volumes of Q-53(e).
+- **Amended (2026-09-24):** the state volume holds the broker's store only when it is SQLite (D-121).
 - **Raised by:** 2026-09-24 — user: "lock it to a clideprojects dir in the userspace and everything in there is repo folders", tied to a Linux user "for safety", its folders "mounted into the docker container".
 
 ---
@@ -828,5 +830,27 @@ Core, rendering, IPC, kernel, panel manager.
 - **Cost:** A supervision bug takes the edge down with it, so that code needs its own tests.
 - **Cross-reference:** D-116, D-117, D-119.
 - **Raised by:** 2026-09-24 — user chose "Broker supervises".
+
+---
+
+### D-121: Broker store — SQLite in the state volume, or Postgres
+- **Date:** 2026-09-24
+- **Decision:** The broker keeps its settings and its sign-in state in one store: the settings, the access-token hash, sessions, single-use sign-in links and OIDC sign-ins in progress. One environment variable chooses the store.
+  - **SQLite by default:** one file in the state volume ([D-119](#d-119-web-workspaces--one-linux-account-per-web-user-its-clideprojects-folder-mounted)). clide binds the system `libsqlite3` through `dart:ffi` itself, as it binds libc for the PTY, so no package is added. WAL mode and a busy timeout let the CLI change a setting while the broker runs.
+  - **Postgres, optionally:** a connection URL, with the password taken from a variable or a file, never from the URL. It suits an install that already runs Postgres, and several brokers can share one store.
+  - **One schema and one set of statements** for both engines, written to what both accept: upserts by `ON CONFLICT`, times as integer milliseconds, no `RETURNING`. Every table is prefixed `broker_`, so a shared database can hold them. Numbered migrations run under a lock when the broker starts.
+  - **Settings live in the store** and are changed with `clide_broker settings`. An environment variable named for a setting overrides it without writing it, for stacks kept as code. Secrets are write-only: they can be set, but never printed, and `settings set` reads a secret from standard input so it stays out of shell history.
+- **Rationale:**
+  - A file-backed default keeps an install self-contained, with nothing to run beside the container.
+  - Postgres serves installs that already have one: the store is backed up with everything else there, and brokers can share it.
+  - One schema for both engines stops the second backend from drifting into a second product.
+  - Settings in the store give the installer and a later settings page one place to change them, while environment overrides keep stack files authoritative where they are used.
+- **Cost:**
+  - `libsqlite3` must be present where the broker runs. It is an OS package in the image, attributed with the image's contents (Q-53), and Linux and macOS ship it.
+  - The Postgres client is its own piece of work. Whether clide owns the protocol subset it needs or takes `package:postgres` is decided in that story, under [D-31](tooling.md#d-31-prefer-zero-deps-exact-pin) and [D-61](tooling.md#d-61-dependency-vetting-checklist).
+  - Every statement has to run on both engines, so the store's tests run against both.
+  - A setting kept in a database is invisible to a grep of the stack files. `clide_broker settings list` shows each value and where it came from.
+- **Cross-reference:** amends [D-118](#d-118-web-sign-in--a-token-link-and-form-or-oidc) (where sessions and the token hash live) and D-119 (the state volume holds the store only when it is SQLite); D-117; D-120; [Q-53](../questions/tooling.md#q-53-web-ui-distribution)(e).
+- **Raised by:** 2026-09-24 — user: "optionally connect to a postgress database … or run off a local sqlite database (in a docker mount) for broker coordination storage and settings".
 
 ---
