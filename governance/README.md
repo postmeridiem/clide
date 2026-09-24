@@ -159,6 +159,9 @@ You might also want, project-permitting:
 - [D-115: Risk tiers for clide verbs: observe/display pre-approved, workspace-write prompts, escalate confirms in-app](decisions/architecture.md#d-115-risk-tiers-for-clide-verbs-observedisplay-pre-approved-workspace-write-prompts-escalate-confirms-in-app) — _architecture_
 - [D-116: Web UI mode — full clide in the browser, served from a containerised host](decisions/architecture.md#d-116-web-ui-mode--full-clide-in-the-browser-served-from-a-containerised-host) — _architecture_
 - [D-117: Web front door — Caddy at the edge, internal Dart broker and hosts](decisions/architecture.md#d-117-web-front-door--caddy-at-the-edge-internal-dart-broker-and-hosts) — _architecture_
+- [D-118: Web sign-in — a token link and form, or OIDC](decisions/architecture.md#d-118-web-sign-in--a-token-link-and-form-or-oidc) — _architecture_
+- [D-119: Web workspaces — one Linux account per web user, its clideprojects folder mounted](decisions/architecture.md#d-119-web-workspaces--one-linux-account-per-web-user-its-clideprojects-folder-mounted) — _architecture_
+- [D-120: Web process supervision — the broker supervises Caddy and the hosts](decisions/architecture.md#d-120-web-process-supervision--the-broker-supervises-caddy-and-the-hosts) — _architecture_
 
 ## Open questions
 
