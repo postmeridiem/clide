@@ -1,12 +1,16 @@
 # syntax=docker/dockerfile:1
 #
-# The web UI's walking skeleton (T-663, D-117): Caddy serving clide's
-# WebAssembly build over TLS, with the cross-origin-isolation headers Skwasm
-# needs. This is a dev container. The release image, its signing and its
-# scans are Epic F.
+# The web UI's container (D-117). Caddy serves clide's WebAssembly build over
+# TLS, with the cross-origin-isolation headers Skwasm needs. The broker signs
+# browsers in and answers Caddy's check on every other request (D-118, T-664);
+# it runs under tini and supervises Caddy (D-120). This is a dev container.
+# The release image, its signing and its scans are Epic F.
 #
-#   make ui-container          # build, then serve https://localhost:8443/u/0/w/<slug>/
+#   make ui-container          # build, issue a token, serve https://localhost:8443/
 #   make ui-container-stop
+#
+# The store and the sign-in settings come from the environment the container
+# runs with, never from the image (D-121).
 #
 # Every download is pinned: the base image by digest; the Flutter SDK (the
 # version .fvmrc names) and Go by SHA-256; Caddy by commit (D-61).
@@ -42,6 +46,8 @@ RUN flutter pub get \
 RUN find build/web -type f \( -name '*.wasm' -o -name '*.mjs' -o -name '*.js' -o -name '*.json' \
       -o -name '*.html' -o -name '*.css' -o -name '*.svg' -o -name '*.ttf' -o -name '*.otf' \) \
       -exec gzip -9 -k {} \; -exec brotli -q 11 -k {} \;
+# The broker: Flutter-free, compiled to one native executable (D-117).
+RUN mkdir -p /out && dart compile exe bin/clide_broker.dart -o /out/clide_broker
 
 # ---- Caddy, built from a pinned commit ---------------------------------------
 FROM ${BASE} AS caddy
@@ -62,14 +68,27 @@ RUN git clone --quiet --depth 1 --branch "${CADDY_TAG}" https://github.com/caddy
 # go.sum pins every module, and -mod=readonly refuses to change it.
 RUN cd /src/caddy/cmd/caddy && go build -trimpath -mod=readonly -ldflags '-s -w' -o /out/caddy .
 
-# ---- the edge ----------------------------------------------------------------
+# ---- the edge and the broker --------------------------------------------------
 FROM ${BASE}
-RUN useradd --system --uid 10001 --create-home --home-dir /var/lib/caddy caddy
+# tini is PID 1: it forwards signals to the broker and reaps the processes its
+# children leave behind (D-120). The broker binds the system SQLite (D-121),
+# and checks the TLS of a Postgres store or an identity provider against the
+# CA certificates.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends tini libsqlite3-0 ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 COPY --from=caddy /out/caddy /usr/local/bin/caddy
+COPY --from=web /out/clide_broker /usr/local/bin/clide_broker
 COPY --from=web /src/build/web /srv/web
 COPY docker/web/Caddyfile /etc/caddy/Caddyfile
-USER caddy
-# Caddy keeps its internal CA and its certificates here.
-ENV XDG_DATA_HOME=/var/lib/caddy/data XDG_CONFIG_HOME=/var/lib/caddy/config
+# Everything the container writes goes to the state volume, which any UID
+# can write: an install runs the container as its own Linux account (D-119).
+RUN mkdir -p /clide/state && chmod 1777 /clide/state
+VOLUME /clide/state
+# Caddy keeps its internal CA and its certificates in the state volume, so a
+# browser that trusts the CA keeps trusting it across upgrades.
+ENV XDG_DATA_HOME=/clide/state/caddy/data XDG_CONFIG_HOME=/clide/state/caddy/config
+USER 10001
 EXPOSE 8443
-CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/clide_broker"]
+CMD ["serve", "--socket", "/clide/state/run/broker.sock", "--caddy", "/usr/local/bin/caddy", "--caddy-config", "/etc/caddy/Caddyfile"]

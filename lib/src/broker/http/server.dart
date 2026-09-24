@@ -94,10 +94,13 @@ final class BrokerServer {
 
   Future<void> _handle(HttpRequest request) async {
     final response = request.response;
+    // Not `no-referrer`: under it a browser sends `Origin: null` with the
+    // sign-in form's POST, which the origin check must refuse. A token or
+    // link travels in the URL's fragment, which no Referer ever carries.
     response.headers
       ..set(HttpHeaders.cacheControlHeader, 'no-store')
       ..set('x-content-type-options', 'nosniff')
-      ..set('referrer-policy', 'no-referrer');
+      ..set('referrer-policy', 'same-origin');
     try {
       switch ((request.method, request.uri.path)) {
         case ('GET', '/auth/verify'):

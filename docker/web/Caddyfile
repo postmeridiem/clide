@@ -1,5 +1,7 @@
-# Caddy for the web UI's walking skeleton (T-663, D-117): the edge serves the
-# WebAssembly bundle itself. The broker and hosts come later (C2 onwards).
+# Caddy for the web UI (D-117). The edge serves the WebAssembly bundle
+# itself, asks the broker about every request outside /auth/, and passes
+# /auth/ to the broker, which signs browsers in (D-118). The broker starts
+# Caddy and supervises it (D-120), and listens on the unix socket below.
 {
 	# The container runs unprivileged, so no port below 1024.
 	http_port 8080
@@ -26,14 +28,37 @@ localhost:8443 {
 		Cache-Control no-cache
 	}
 
-	root * /srv/web
+	# The broker's answer to "may this request pass?" is for Caddy alone.
+	handle /auth/verify {
+		respond 404
+	}
 
-	# Workspace URLs (D-116) all load the app. Any other missing path stays a
-	# 404, so a lost asset fails loudly instead of returning index.html.
-	@workspace path /u/*
-	rewrite @workspace /index.html
+	# Signing in and out are the broker's own pages.
+	handle /auth/* {
+		reverse_proxy unix//clide/state/run/broker.sock
+	}
 
-	file_server {
-		precompressed br gzip
+	# `route` keeps the order written here. Caddy's default order would rewrite
+	# a workspace URL to /index.html before the broker saw it, hiding whose
+	# /u/<N>/ path it was and where to return after signing in.
+	handle {
+		route {
+			# Every other request needs a session the broker accepts. Without
+			# one, a page is sent to sign in and anything else gets a 401.
+			forward_auth unix//clide/state/run/broker.sock {
+				uri /auth/verify
+			}
+
+			# Workspace URLs (D-116) all load the app. Any other missing path
+			# stays a 404, so a lost asset fails loudly instead of returning
+			# index.html.
+			@workspace path /u/*
+			rewrite @workspace /index.html
+
+			root * /srv/web
+			file_server {
+				precompressed br gzip
+			}
+		}
 	}
 }

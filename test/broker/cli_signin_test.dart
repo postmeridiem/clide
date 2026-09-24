@@ -22,7 +22,15 @@ void main() {
   Future<(int, String, String)> run(List<String> args, {Future<void>? stop}) async {
     final out = StringBuffer();
     final err = StringBuffer();
-    final code = await runBrokerCli(args, environment: environment, out: out, err: err, stop: stop, clock: () => now);
+    final code = await runBrokerCli(
+      args,
+      environment: environment,
+      out: out,
+      err: err,
+      stop: stop,
+      clock: () => now,
+      caddyStartupGrace: const Duration(milliseconds: 200),
+    );
     return (code, out.toString(), err.toString());
   }
 
@@ -129,10 +137,49 @@ void main() {
         ['serve'],
         ['serve', '--socket'],
         ['serve', '--socket', 'relative.sock'],
+        ['serve', '--socket', '/x.sock', '--caddy', '/caddy'],
       ]) {
         expect((await run(args)).$1, exitUsage, reason: args.join(' '));
       }
     });
+
+    String standIn(String body) {
+      final file = File('${dir.path}/caddy')..writeAsStringSync('#!/bin/sh\n$body\n');
+      Process.runSync('chmod', ['755', file.path]);
+      return file.path;
+    }
+
+    test('with --caddy, runs Caddy once its socket is up, and stops Caddy first', () async {
+      environment['CLIDE_BROKER_SIGNIN_MODE'] = 'token';
+      await run(['token', 'rotate']);
+      final pidFile = '${dir.path}/caddy.pid';
+      final caddy = standIn('echo \$\$ > $pidFile; echo "running \$*"; exec sleep 30');
+      final stop = Completer<void>();
+      final served = run(['serve', '--socket', '${dir.path}/run/broker.sock', '--caddy', caddy, '--caddy-config', '/etc/caddy/Caddyfile'], stop: stop.future);
+      while (!File(pidFile).existsSync()) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      stop.complete();
+      final (code, _, err) = await served;
+      expect(code, 0);
+      expect(err, allOf(contains('caddy: running run --config /etc/caddy/Caddyfile --adapter caddyfile'), contains('behind Caddy')));
+      final pid = File(pidFile).readAsStringSync().trim();
+      expect(Process.runSync('kill', ['-0', pid]).exitCode, isNot(0), reason: 'Caddy is still running');
+    }, testOn: '!windows');
+
+    test('a Caddy that cannot start stops the broker, which says why', () async {
+      environment['CLIDE_BROKER_SIGNIN_MODE'] = 'token';
+      await run(['token', 'rotate']);
+      final socket = '${dir.path}/run/broker.sock';
+      final (code, _, err) = await run(['serve', '--socket', socket, '--caddy', standIn('echo "port 8443 in use" >&2; exit 1'), '--caddy-config', '/x']);
+      expect(code, exitConfig);
+      expect(err, allOf(contains('caddy: port 8443 in use'), contains('Caddy exited while starting, with code 1')));
+      expect(FileSystemEntity.typeSync(socket), FileSystemEntityType.notFound);
+      final (missing, _, missingErr) = await run(['serve', '--socket', socket, '--caddy', '${dir.path}/no-caddy', '--caddy-config', '/x']);
+      expect(missing, exitConfig);
+      expect(missingErr, contains('Caddy could not be started'));
+    }, testOn: '!windows');
 
     test('stops on the first signal of any kind, then stops listening to all of them', () async {
       final term = StreamController<Object?>();

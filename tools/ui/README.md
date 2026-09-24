@@ -74,6 +74,8 @@ What the harness relies on:
   goes to the console. Failures print the recent console lines
   (`consoleTail()`).
 
-Specs named `container-*.spec.ts` run against the edge container instead:
-start it with `make ui-container`, then run the `container` project with
-`CLIDE_UI_URL=https://localhost:8443`.
+Specs named `container-*.spec.ts` run against the edge container instead.
+Start it with `make ui-container`, which prints a sign-in link. Then run the
+`container` project with `CLIDE_UI_URL=https://localhost:8443` and that link
+in `CLIDE_UI_SIGNIN`. Every request to the container needs a session, so each
+spec signs in first (`container.ts`).

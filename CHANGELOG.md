@@ -18,7 +18,7 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
-- A development container serves the web build over TLS with cross-origin isolation: run `make ui-container`, then open `https://localhost:8443/u/0/w/<repo>/` (T-663).
+- A development container serves the web build over TLS with cross-origin isolation, behind a sign-in: run `make ui-container` and open the sign-in link it prints (T-663, T-664).
 - CI boots the web build in Chromium on every push and pull request, and fails unless it paints the Welcome view with no uncaught errors (T-443).
 
 ### Changed

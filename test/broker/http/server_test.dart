@@ -116,6 +116,9 @@ void main() {
       expect(csp, allOf(contains("default-src 'none'"), contains('script-src ${hashOf(loginScript)}'), contains('style-src ${hashOf(loginStyle)}')));
       expect(html, allOf(contains('<script>$loginScript</script>'), contains('<style>$loginStyle</style>'), contains('value="/u/0/w/clide/"')));
       expect(response.headers.value('cache-control'), 'no-store');
+      // Under `no-referrer` a browser posts the form with `Origin: null`,
+      // which the origin check refuses, and nobody can sign in.
+      expect(response.headers.value('referrer-policy'), 'same-origin');
     });
 
     test('escapes where the page sends the browser next', () async {

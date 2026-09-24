@@ -13,11 +13,15 @@ import 'serve_config.dart';
 import 'settings.dart';
 import 'store/broker_store.dart';
 import 'store/location.dart';
+import 'supervise/caddy.dart';
 
 const _usage = '''
 Usage: clide_broker <command>
 
-  serve --socket <path>      Answer Caddy on a unix socket until stopped.
+  serve --socket <path> [--caddy <caddy> --caddy-config <Caddyfile>]
+                             Answer Caddy on a unix socket until stopped.
+                             With --caddy, also run Caddy, and start it again
+                             whenever it exits.
   token rotate               Issue a new access token, end every session it
                              had, and print the sign-in link.
   signin-link                Print a sign-in link that works once, for ten
@@ -43,7 +47,7 @@ const signinLinkLifetime = Duration(minutes: 10);
 /// Runs one command and answers its exit code. [environment] stands in for
 /// the process environment, and [out] and [err] for its output streams.
 /// `serve` runs until [stop] completes, or until SIGTERM or SIGINT when it
-/// is null.
+/// is null. [caddyStartupGrace] is how long Caddy must stay up at first.
 Future<int> runBrokerCli(
   List<String> args, {
   required Map<String, String> environment,
@@ -51,6 +55,7 @@ Future<int> runBrokerCli(
   required StringSink err,
   Future<void>? stop,
   DateTime Function()? clock,
+  Duration caddyStartupGrace = const Duration(seconds: 5),
 }) async {
   if (args.isEmpty) {
     err.writeln(_usage);
@@ -64,7 +69,10 @@ Future<int> runBrokerCli(
     case ['settings', ...final rest]:
       return _settings(rest, environment, out, err);
     case ['serve', '--socket', final path] when path.startsWith('/'):
-      return _withStore(environment, err, (store) => _serve(path, store, environment, err, stop, now));
+      return _withStore(environment, err, (store) => _serve(path, null, store, environment, err, stop, now));
+    case ['serve', '--socket', final path, '--caddy', final caddy, '--caddy-config', final caddyfile] when path.startsWith('/'):
+      final supervisor = CaddySupervisor(executable: caddy, config: caddyfile, log: err.writeln, startupGrace: caddyStartupGrace);
+      return _withStore(environment, err, (store) => _serve(path, supervisor, store, environment, err, stop, now));
     case ['token', 'rotate']:
       return _withStore(environment, err, (store) => _rotateToken(store, environment, out, err));
     case ['signin-link']:
@@ -100,11 +108,32 @@ Future<int> _withStore(Map<String, String> environment, StringSink err, Future<i
   }
 }
 
-Future<int> _serve(String path, BrokerStore store, Map<String, String> environment, StringSink err, Future<void>? stop, DateTime Function() now) async {
+/// Serves on [path] and, given [caddy], runs Caddy once the socket is up
+/// (D-120). Caddy stops first, so nothing new arrives while the broker
+/// closes.
+Future<int> _serve(
+  String path,
+  CaddySupervisor? caddy,
+  BrokerStore store,
+  Map<String, String> environment,
+  StringSink err,
+  Future<void>? stop,
+  DateTime Function() now,
+) async {
   final config = await ServeConfig.resolve(BrokerSettings(store, environment), store);
   final server = await BrokerServer.bind(path, store: store, config: config, clock: now, log: (line) => err.writeln('clide_broker: $line'));
-  err.writeln('clide_broker: serving ${config.publicOrigin} on $path');
+  if (caddy != null) {
+    try {
+      await caddy.start();
+    } on Exception catch (e) {
+      await server.close();
+      err.writeln('clide_broker: ${e is ProcessException ? 'Caddy could not be started: ${e.message}' : e}');
+      return exitConfig;
+    }
+  }
+  err.writeln('clide_broker: serving ${config.publicOrigin} on $path${caddy == null ? '' : ', behind Caddy'}');
   await (stop ?? _terminated());
+  await caddy?.stop();
   await server.close();
   err.writeln('clide_broker: stopped');
   return 0;

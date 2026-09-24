@@ -236,14 +236,24 @@ broker: ## Compile the web broker, a Flutter-free executable, to build/broker/cl
 test-broker-postgres: ## The broker's store against a throwaway Postgres with TLS (T-697). Needs docker and openssl.
 	ci/test_broker_postgres.sh
 
+# The dev container's deployment settings, which the environment gives it and
+# the image never holds (D-121): its store in the state volume, the origin
+# browsers use, and token sign-in (D-118).
+UI_CONTAINER_ENV = -v clide-web-state:/clide/state \
+	-e CLIDE_BROKER_STORE=sqlite:/clide/state/broker.db \
+	-e CLIDE_BROKER_PUBLIC_ORIGIN=https://localhost:8443 \
+	-e CLIDE_BROKER_SIGNIN_MODE=token
+
 .PHONY: ui-container
-ui-container: ## Build and run the web UI's walking-skeleton container (Caddy + wasm bundle) on https://localhost:8443 (T-663).
+ui-container: ## Build and run the web UI's container on https://localhost:8443, and print a sign-in link (T-663, T-664).
 	docker build -f docker/web/Dockerfile -t clide-web:dev --build-arg COMMIT=$(COMMIT) --build-arg DATE=$(DATE) .
-	docker run -d --rm --name clide-web -p 127.0.0.1:8443:8443 clide-web:dev
+	@echo "==> a new access token, which ends earlier sessions. Open this link to sign in:"
+	@docker run --rm $(UI_CONTAINER_ENV) clide-web:dev token rotate
+	docker run -d --rm --name clide-web -p 127.0.0.1:8443:8443 $(UI_CONTAINER_ENV) clide-web:dev
 	@echo "clide web: https://localhost:8443/u/0/w/clide/ (Caddy's internal CA: the browser warns until you trust its root)"
 
 .PHONY: ui-container-stop
-ui-container-stop: ## Stop the web UI's walking-skeleton container.
+ui-container-stop: ## Stop the web UI's container. Its state volume, and so its sessions, stay.
 	docker stop clide-web
 
 .PHONY: build
