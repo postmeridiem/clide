@@ -765,6 +765,7 @@ Core, rendering, IPC, kernel, panel manager.
      - The ID token comes straight from the token endpoint over a validated TLS connection. OpenID Connect Core §3.1.3.7 accepts that in place of checking its signature, so the broker needs no JWT or JWKS library. It still checks `iss`, `aud`, `azp`, `exp`, `iat` and `nonce`.
      - Signing in at the provider is not enough. An allowlist names who may use this install, by subject, verified email or group, and OIDC mode refuses to start without one.
      - The broker keeps no provider tokens. It needs the identity at sign-in and nothing after.
+     - A provider outage must not lock the owner out. Run inside the container, `clide_broker signin-link` prints a single-use sign-in link that expires in ten minutes.
 
   Both modes end in the same session: an opaque random id in a `__Host-` cookie (`Secure`, `HttpOnly`, `SameSite=Lax`), stored in the state volume only as a hash, with a fixed lifetime, so it survives a broker restart. The session WebSocket and every `POST` also require an `Origin` that matches the install's own.
 - **Rationale:**
@@ -773,6 +774,7 @@ Core, rendering, IPC, kernel, panel manager.
   - The trusted header D-117 allowed is dropped. It is only as safe as the guarantee that nothing reaches the container except through the proxy, which a non-developer install cannot give, and OIDC serves the same deployments without it. It stays addable behind the same forward-auth check if a deployment needs it.
   - Refusing to start is the only safe answer to missing configuration. A default that opens the door is how self-hosted tools end up exposed.
   - Authentication is not authorization. With a public provider, anyone holding an account there would be in without the allowlist.
+  - A standing token next to OIDC would be a second door that skips the provider's MFA. The break-glass link needs host access instead, which already controls the install, and it works once.
 - **Cost:**
   - PKCE, the token hash and the session hashes need SHA-256, so `package:crypto` becomes a direct dependency, exact-pinned and listed ([D-31](tooling.md#d-31-prefer-zero-deps-exact-pin), [D-42](tooling.md#d-42-dependencies-documented-in-licensesyaml)). It already ships as a transitive one, and the Dart team maintains it ([D-61](tooling.md#d-61-dependency-vetting-checklist)).
   - The broker carries an OIDC client: discovery, the code exchange and the claim checks.
