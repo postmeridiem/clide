@@ -45,7 +45,13 @@ jobs:
       # a11y suite — see the push-check note in the Makefile), which is what
       # coverage-gate consumes.
       - run: make test-coverage
+        env:
+          TEST_REPORT_DIR: ${{ runner.temp }}/test-reports
       - run: make coverage-gate
+      # Reading a run's log takes a GitHub sign-in; its annotations do not.
+      - name: name the failed tests on the run page
+        if: failure()
+        run: ci/annotate_test_failures.sh "$RUNNER_TEMP"/test-reports/*.json
 
   integration:
     name: integration_test (xvfb)

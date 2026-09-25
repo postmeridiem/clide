@@ -22,6 +22,15 @@ cd "$(dirname "$0")/.."
 # debugging a specific run. (T-242)
 REPORTER="${TEST_REPORTER:-failures-only}"
 
+# With TEST_REPORT_DIR set, each pass also writes a JSON report there, and
+# ci/annotate_test_failures.sh turns its failed tests into annotations. CI sets
+# it: reading a run's log takes a GitHub sign-in, reading its annotations does
+# not.
+if [[ -n "${TEST_REPORT_DIR:-}" ]]; then
+  mkdir -p "$TEST_REPORT_DIR"
+fi
+report() { [[ -z "${TEST_REPORT_DIR:-}" ]] || echo "--file-reporter=json:$TEST_REPORT_DIR/$1.json"; }
+
 coverage=0
 [[ "${1:-}" == "--coverage" ]] && coverage=1
 
@@ -56,7 +65,7 @@ echo "==> dart test (pty — unreliable under the flutter test runner; serial)"
 # --timeout 60s matches the flutter lines below: a wedged PTY test (e.g. a
 # ConPTY reader blocked forever in ReadFile) fails fast instead of hanging the
 # whole serial run.
-dart test -r "$REPORTER" --concurrency=1 --timeout 60s --tags pty test/pty/session_test.dart test/panes/registry_test.dart test/pty/windows_pty_test.dart
+dart test -r "$REPORTER" $(report pty) --concurrency=1 --timeout 60s --tags pty test/pty/session_test.dart test/panes/registry_test.dart test/pty/windows_pty_test.dart
 
 # The parallel pool excludes both pty (runs under dart test, above) and
 # serial-tagged tests (concurrency-vulnerable — run in their own --concurrency=1
@@ -72,16 +81,16 @@ if [[ "$coverage" == 1 ]]; then
   COV_TMP="$(mktemp -d "${TMPDIR:-/tmp}/clide-cov.XXXXXX")"
   trap 'rm -rf "$COV_TMP" "coverage/.lcov.$$.info"' EXIT
   echo "==> flutter test --coverage (parallel pool; excludes pty + serial)"
-  flutter test -r "$REPORTER" --coverage --coverage-path "$COV_TMP/parallel.info" --exclude-tags "pty || serial" --timeout 60s
+  flutter test -r "$REPORTER" $(report parallel) --coverage --coverage-path "$COV_TMP/parallel.info" --exclude-tags "pty || serial" --timeout 60s
   echo "==> flutter test --coverage (serial-tagged; --concurrency=1)"
-  flutter test -r "$REPORTER" --coverage --coverage-path "$COV_TMP/serial.info" --tags serial --concurrency=1 --timeout 60s "${SERIAL_TESTS[@]}"
+  flutter test -r "$REPORTER" $(report serial) --coverage --coverage-path "$COV_TMP/serial.info" --tags serial --concurrency=1 --timeout 60s "${SERIAL_TESTS[@]}"
   echo "==> merge coverage (parallel + serial passes → coverage/lcov.info)"
   mkdir -p coverage
   python3 ci/merge_lcov.py "$COV_TMP/parallel.info" "$COV_TMP/serial.info" > "coverage/.lcov.$$.info"
   mv -f "coverage/.lcov.$$.info" coverage/lcov.info
 else
   echo "==> flutter test (dev; parallel pool, excludes pty + serial)"
-  flutter test -r "$REPORTER" --exclude-tags "pty || serial" --concurrency=12 --timeout 60s
+  flutter test -r "$REPORTER" $(report parallel) --exclude-tags "pty || serial" --concurrency=12 --timeout 60s
   echo "==> flutter test (dev; serial-tagged, --concurrency=1)"
-  flutter test -r "$REPORTER" --tags serial --concurrency=1 --timeout 60s "${SERIAL_TESTS[@]}"
+  flutter test -r "$REPORTER" $(report serial) --tags serial --concurrency=1 --timeout 60s "${SERIAL_TESTS[@]}"
 fi
