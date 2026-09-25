@@ -61,6 +61,17 @@ final class FakeClient {
         _wake();
       },
     );
+    // A write after the client dropped the connection fails, and dart:io
+    // reports that through `done`. It is the client leaving, as above.
+    unawaited(
+      _socket.done.then<void>(
+        (_) {},
+        onError: (Object _) {
+          _closed = true;
+          _wake();
+        },
+      ),
+    );
   }
 
   final Socket _socket;
