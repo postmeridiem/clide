@@ -65,9 +65,11 @@ void main() {
     final count = '${dir.path}/starts';
     final caddy = supervise(standIn('caddy', 'echo run >> $count; sleep 0.3; exit 2'), grace: const Duration(milliseconds: 100));
     await caddy.start();
-    await until(() => caddy.restarts >= 2);
+    // A run has started once it has written its line. Stopping as soon as the
+    // supervisor counts the restart can kill the third run before it does.
+    await until(() => File(count).existsSync() && File(count).readAsLinesSync().length >= 3);
     await caddy.stop();
-    expect(File(count).readAsLinesSync().length, greaterThanOrEqualTo(3));
+    expect(caddy.restarts, greaterThanOrEqualTo(2));
     expect(lines, contains(startsWith('clide_broker: Caddy exited with code 2; starting it again in 20 ms')));
   });
 
