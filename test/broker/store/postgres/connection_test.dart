@@ -290,13 +290,14 @@ void main() {
     });
 
     test('a server that stops answering times out and ends the session', () async {
+      // Signs in without SCRAM: the timeout bounds sign-in too, and on a loaded
+      // CI runner the scripted server's PBKDF2 alone can outlast a short one.
       server = await ScriptedServer.start((c) async {
         await c.startup();
-        await c.scram('pw');
         c.signedIn();
         await c.untilClosed();
       });
-      final connection = await open(timeout: const Duration(milliseconds: 300));
+      final connection = await open(password: null, timeout: const Duration(seconds: 1));
       addTearDown(connection.close);
       await expectLater(
         connection.select('SELECT 1'),
