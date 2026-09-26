@@ -173,11 +173,12 @@ void main() {
     test('ends with 1011 when the host connection breaks', () async {
       hosts.hold = true;
       final browser = await open(await signIn());
-      await _until(() => hosts.connections.isNotEmpty);
+      await _until(() => hosts.held.isNotEmpty);
+      final host = hosts.held.single;
       browser.socket.add(List.filled(1024, 7));
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await _until(() => host.available() > 0);
       // Closing with those bytes unread resets the connection (ECONNRESET).
-      hosts.connections.single.socket.destroy();
+      await host.close();
       await browser.closed;
       expect([browser.socket.closeCode, browser.socket.closeReason], [WebSocketStatus.internalServerError, 'The connection to the workspace host failed.']);
       expect(await handshake('/u/0/w/demo/session', cookie: await signIn()), 101, reason: 'the broker is still serving');
@@ -298,8 +299,14 @@ final class _TestHosts implements WorkspaceHosts {
   /// Answer with a socket nothing listens on.
   bool silent = false;
 
-  /// Leave what a connection receives unread.
+  /// Answer with a socket whose connections never read, so what arrives
+  /// stays in the kernel's buffer, and [held] shows how much waits.
   bool hold = false;
+
+  /// The connections of the holding socket.
+  final held = <RawSocket>[];
+
+  RawServerSocket? _holding;
 
   final _servers = <String, ServerSocket>{};
 
@@ -309,6 +316,22 @@ final class _TestHosts implements WorkspaceHosts {
     if (failure != null) throw failure;
     if (silent) return '$directory/nothing.sock';
     attached.add(workspace);
+    if (hold) {
+      if (_holding == null) {
+        final holding = _holding = await RawServerSocket.bind(InternetAddress('$directory/held.sock', type: InternetAddressType.unix), 0);
+        holding.listen((socket) {
+          held.add(socket);
+          // A raw socket reads only when asked, so what arrives stays unread.
+          // available() reports the count taken at the last read event; after
+          // the first, events stop, since they would repeat for as long as the
+          // bytes wait.
+          socket.listen((event) {
+            if (event == RawSocketEvent.read) socket.readEventsEnabled = false;
+          });
+        });
+      }
+      return '$directory/held.sock';
+    }
     var server = _servers[workspace];
     if (server == null) {
       server = _servers[workspace] = await ServerSocket.bind(InternetAddress('$directory/host-${_servers.length}.sock', type: InternetAddressType.unix), 0);
@@ -316,7 +339,7 @@ final class _TestHosts implements WorkspaceHosts {
         final closed = Completer<void>();
         final received = <int>[];
         unawaited(socket.done.then<void>((_) {}, onError: (Object _) {}));
-        final reading = socket.listen(
+        socket.listen(
           (bytes) {
             received.addAll(bytes);
             socket.add(bytes);
@@ -328,7 +351,6 @@ final class _TestHosts implements WorkspaceHosts {
             if (!closed.isCompleted) closed.complete();
           },
         );
-        if (hold) reading.pause();
         connections.add((socket: socket, received: received, closed: closed.future.timeout(const Duration(seconds: 5))));
       });
     }
@@ -339,5 +361,6 @@ final class _TestHosts implements WorkspaceHosts {
     for (final server in _servers.values) {
       await server.close();
     }
+    await _holding?.close();
   }
 }
