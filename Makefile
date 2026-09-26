@@ -244,13 +244,18 @@ UI_CONTAINER_ENV = -v clide-web-state:/clide/state \
 	-e CLIDE_BROKER_PUBLIC_ORIGIN=https://localhost:8443 \
 	-e CLIDE_BROKER_SIGNIN_MODE=token
 
+# The dev container's workspaces: a projects folder mounted where D-119 puts
+# user 0's. The default lives in the gitignored tmp/, with one workspace, demo.
+UI_PROJECTS ?= $(CURDIR)/tmp/clideprojects
+
 .PHONY: ui-container
 ui-container: ## Build and run the web UI's container on https://localhost:8443, and print a sign-in link (T-663, T-664).
 	docker build -f docker/web/Dockerfile -t clide-web:dev --build-arg COMMIT=$(COMMIT) --build-arg DATE=$(DATE) .
+	@mkdir -p $(UI_PROJECTS)/demo
 	@echo "==> a new access token, which ends earlier sessions. Open this link to sign in:"
 	@docker run --rm $(UI_CONTAINER_ENV) clide-web:dev token rotate
-	docker run -d --rm --name clide-web -p 127.0.0.1:8443:8443 $(UI_CONTAINER_ENV) clide-web:dev
-	@echo "clide web: https://localhost:8443/u/0/w/clide/ (Caddy's internal CA: the browser warns until you trust its root)"
+	docker run -d --rm --name clide-web -p 127.0.0.1:8443:8443 $(UI_CONTAINER_ENV) -v $(UI_PROJECTS):/clide/users/0/projects clide-web:dev
+	@echo "clide web: https://localhost:8443/u/0/w/demo/ (Caddy's internal CA: the browser warns until you trust its root)"
 
 .PHONY: ui-container-stop
 ui-container-stop: ## Stop the web UI's container. Its state volume, and so its sessions, stay.

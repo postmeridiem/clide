@@ -49,6 +49,11 @@ localhost:8443 {
 				uri /auth/verify
 			}
 
+			# A workspace's session WebSocket goes to the broker, which checks it
+			# again and bridges it to that workspace's host (D-117).
+			@session path_regexp ^/u/[0-9]+/w/[^/]+/session$
+			reverse_proxy @session unix//clide/state/run/broker.sock
+
 			# Workspace URLs (D-116) all load the app. Any other missing path
 			# stays a 404, so a lost asset fails loudly instead of returning
 			# index.html.

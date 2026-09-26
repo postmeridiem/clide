@@ -79,3 +79,10 @@ Start it with `make ui-container`, which prints a sign-in link. Then run the
 `container` project with `CLIDE_UI_URL=https://localhost:8443` and that link
 in `CLIDE_UI_SIGNIN`. Every request to the container needs a session, so each
 spec signs in first (`container.ts`).
+
+`make ui-container` also mounts a projects folder, `tmp/clideprojects` or
+`UI_PROJECTS`, holding one workspace, `demo`. Until the real host exists, a
+stub host answers each session: it greets it with the workspace's name, then
+echoes what it receives. `container-session.spec.ts` opens one from a
+signed-in page and checks that the bytes come back through Caddy and the
+broker.

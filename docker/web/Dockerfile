@@ -46,8 +46,11 @@ RUN flutter pub get \
 RUN find build/web -type f \( -name '*.wasm' -o -name '*.mjs' -o -name '*.js' -o -name '*.json' \
       -o -name '*.html' -o -name '*.css' -o -name '*.svg' -o -name '*.ttf' -o -name '*.otf' \) \
       -exec gzip -9 -k {} \; -exec brotli -q 11 -k {} \;
-# The broker: Flutter-free, compiled to one native executable (D-117).
-RUN mkdir -p /out && dart compile exe bin/clide_broker.dart -o /out/clide_broker
+# The broker (D-117), and the stub that stands in for the workspace host until
+# the real one exists (C4): Flutter-free, each one native executable.
+RUN mkdir -p /out \
+ && dart compile exe bin/clide_broker.dart -o /out/clide_broker \
+ && dart compile exe bin/clide_stub_host.dart -o /out/clide_stub_host
 
 # ---- Caddy, built from a pinned commit ---------------------------------------
 FROM ${BASE} AS caddy
@@ -79,6 +82,7 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 COPY --from=caddy /out/caddy /usr/local/bin/caddy
 COPY --from=web /out/clide_broker /usr/local/bin/clide_broker
+COPY --from=web /out/clide_stub_host /usr/local/bin/clide_stub_host
 COPY --from=web /src/build/web /srv/web
 COPY docker/web/Caddyfile /etc/caddy/Caddyfile
 # Everything the container writes goes to the state volume, which any UID
@@ -91,4 +95,7 @@ ENV XDG_DATA_HOME=/clide/state/caddy/data XDG_CONFIG_HOME=/clide/state/caddy/con
 USER 10001
 EXPOSE 8443
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/clide_broker"]
-CMD ["serve", "--socket", "/clide/state/run/broker.sock", "--caddy", "/usr/local/bin/caddy", "--caddy-config", "/etc/caddy/Caddyfile"]
+# Each user's workspaces are the folders mounted at /clide/users/<N>/projects
+# (D-119). A session starts that workspace's host.
+CMD ["serve", "--socket", "/clide/state/run/broker.sock", "--caddy", "/usr/local/bin/caddy", "--caddy-config", "/etc/caddy/Caddyfile", \
+     "--users", "/clide/users", "--host", "/usr/local/bin/clide_stub_host"]
