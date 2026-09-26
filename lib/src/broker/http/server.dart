@@ -1,6 +1,7 @@
 /// The broker's HTTP side (D-117, D-118): a server on a unix socket that only
 /// Caddy reaches. It answers Caddy's forward-auth check for every request
-/// outside `/auth/`, and serves the sign-in and sign-out pages.
+/// outside `/auth/`, serves the sign-in and sign-out pages, and bridges each
+/// session WebSocket to its workspace's host.
 library;
 
 import 'dart:async';
@@ -13,9 +14,12 @@ import '../auth/sessions.dart';
 import '../environment.dart';
 import '../serve_config.dart';
 import '../store/broker_store.dart';
+import '../supervise/hosts.dart';
+import '../workspaces.dart';
+import 'session_pipe.dart';
 
 final class BrokerServer {
-  BrokerServer._(this._server, this.path, this._store, this._config, this._sessions, this._failureDelay, this._log) {
+  BrokerServer._(this._server, this.path, this._store, this._config, this._sessions, this._workspaces, this._hosts, this._failureDelay, this._log) {
     _server.listen(_handle);
     _sweeper = Timer.periodic(const Duration(hours: 1), (_) => unawaited(_sweep()));
     unawaited(_sweep());
@@ -26,12 +30,16 @@ final class BrokerServer {
   /// left behind by a broker that is gone is replaced; one a running broker
   /// still answers on is not.
   ///
-  /// [failureDelay] slows every refused sign-in down. [log] receives a line
-  /// per sign-in, sign-out and failure; it never receives a secret.
+  /// Sessions open on [workspaces], bridged to [hosts]; without them every
+  /// session is refused. [failureDelay] slows every refused sign-in down.
+  /// [log] receives a line per sign-in, sign-out, session and failure; it
+  /// never receives a secret.
   static Future<BrokerServer> bind(
     String path, {
     required BrokerStore store,
     required ServeConfig config,
+    WorkspaceRegistry? workspaces,
+    WorkspaceHosts? hosts,
     Duration failureDelay = const Duration(seconds: 1),
     DateTime Function()? clock,
     void Function(String line)? log,
@@ -65,7 +73,7 @@ final class BrokerServer {
       ..serverHeader = null
       ..defaultResponseHeaders.clear();
     final sessions = Sessions(store, lifetime: config.sessionLifetime, clock: clock);
-    return BrokerServer._(server, path, store, config, sessions, failureDelay, log ?? (_) {});
+    return BrokerServer._(server, path, store, config, sessions, workspaces, hosts, failureDelay, log ?? (_) {});
   }
 
   final HttpServer _server;
@@ -73,13 +81,23 @@ final class BrokerServer {
   final BrokerStore _store;
   final ServeConfig _config;
   final Sessions _sessions;
+  final WorkspaceRegistry? _workspaces;
+  final WorkspaceHosts? _hosts;
   final Duration _failureDelay;
   final void Function(String line) _log;
+  final _pipes = <SessionPipe>{};
   late final Timer _sweeper;
 
+  /// Stops accepting requests and ends every open session. An upgraded
+  /// session no longer belongs to the HTTP server, so it is ended here.
   Future<void> close() async {
     _sweeper.cancel();
     await _server.close(force: true);
+    final open = [..._pipes];
+    for (final pipe in open) {
+      pipe.end(WebSocketStatus.goingAway, 'The broker is stopping.');
+    }
+    await Future.wait([for (final pipe in open) pipe.done]).timeout(const Duration(seconds: 5), onTimeout: () => []);
     if (FileSystemEntity.typeSync(path, followLinks: false) != FileSystemEntityType.notFound) File(path).deleteSync();
   }
 
@@ -102,19 +120,12 @@ final class BrokerServer {
       ..set('x-content-type-options', 'nosniff')
       ..set('referrer-policy', 'same-origin');
     try {
-      switch ((request.method, request.uri.path)) {
-        case ('GET', '/auth/verify'):
-          await _verify(request);
-        case ('GET', '/auth/login'):
-          _signInPage(request);
-        case ('POST', '/auth/login'):
-          await _signIn(request);
-        case ('POST', '/auth/logout'):
-          await _signOut(request);
-        case (_, '/auth/verify' || '/auth/login' || '/auth/logout'):
-          _answer(response, 405, 'That method is not allowed here.');
-        default:
-          _answer(response, 404, 'Not found.');
+      final session = _sessionPath.firstMatch(request.uri.path);
+      if (session != null) {
+        // An upgraded session belongs to its pipe, not to this response.
+        if (await _openSession(request, int.parse(session[1]!), session[2]!)) return;
+      } else {
+        await _route(request);
       }
     } catch (e) {
       // Whatever fails, a store or a bug, Caddy still gets an answer.
@@ -126,6 +137,88 @@ final class BrokerServer {
       }
     }
     await response.close();
+  }
+
+  Future<void> _route(HttpRequest request) async {
+    final response = request.response;
+    switch ((request.method, request.uri.path)) {
+      case ('GET', '/auth/verify'):
+        await _verify(request);
+      case ('GET', '/auth/login'):
+        _signInPage(request);
+      case ('POST', '/auth/login'):
+        await _signIn(request);
+      case ('POST', '/auth/logout'):
+        await _signOut(request);
+      case (_, '/auth/verify' || '/auth/login' || '/auth/logout'):
+        _answer(response, 405, 'That method is not allowed here.');
+      default:
+        _answer(response, 404, 'Not found.');
+    }
+  }
+
+  /// `GET /u/<N>/w/<slug>/session`, the session WebSocket (D-117). It checks
+  /// everything it can before upgrading, so a refusal is an ordinary HTTP
+  /// answer rather than a socket that closes at once. Answers true once the
+  /// request is upgraded and belongs to its pipe.
+  Future<bool> _openSession(HttpRequest request, int user, String slug) async {
+    final response = request.response;
+    // dart:io reads nothing more on a connection that asked to upgrade, so a
+    // refusal says the connection closes, and no client writes into it. Only
+    // a refusal: on the 101 it would replace the `Connection: Upgrade` that a
+    // proxy checks before it switches protocols.
+    bool refuse(int status, String text) {
+      response.persistentConnection = false;
+      _answer(response, status, text);
+      return false;
+    }
+
+    if (request.method != 'GET') return refuse(405, 'That method is not allowed here.');
+    if (!WebSocketTransformer.isUpgradeRequest(request)) {
+      response.headers.set(HttpHeaders.upgradeHeader, 'websocket');
+      return refuse(426, 'This is a WebSocket endpoint.');
+    }
+    // A browser sends its page's origin with every WebSocket, so this is the
+    // check that stops another site opening a session with the cookie.
+    if (!_fromOwnOrigin(request)) return refuse(403, 'A session must come from ${_config.publicOrigin}.');
+    final session = await _sessions.find(request.headers.value(HttpHeaders.cookieHeader));
+    if (session == null) return refuse(401, 'Sign in first.');
+    if (session.user != user) return refuse(403, 'This path belongs to another user.');
+    final workspaces = _workspaces;
+    final hosts = _hosts;
+    if (workspaces == null || hosts == null) return refuse(503, 'This broker has no workspace host to start.');
+    final workspace = workspaces.find(user, slug);
+    if (workspace == null) return refuse(404, 'There is no such workspace.');
+    final Socket host;
+    try {
+      host = await Socket.connect(InternetAddress(await hosts.attach(workspace), type: InternetAddressType.unix), 0);
+    } on HostStartException catch (e) {
+      _log(e.message);
+      return refuse(503, 'The workspace host is not available.');
+    } on SocketException catch (e) {
+      _log('the host for $slug did not take the session: ${e.osError?.message ?? e.message}');
+      return refuse(503, 'The workspace host is not available.');
+    }
+    final WebSocket browser;
+    try {
+      browser = await WebSocketTransformer.upgrade(request, compression: CompressionOptions.compressionOff);
+    } catch (_) {
+      host.destroy();
+      rethrow;
+    }
+    // Pings find a browser that vanished without closing, and keep proxies
+    // from dropping a quiet session.
+    browser.pingInterval = const Duration(seconds: 30);
+    final pipe = SessionPipe.open(browser, host);
+    _pipes.add(pipe);
+    _log('user $user opened a session on $slug');
+    unawaited(
+      pipe.done.whenComplete(() {
+        _pipes.remove(pipe);
+        _log('a session on $slug ended');
+      }),
+    );
+    return true;
   }
 
   /// Caddy's forward-auth check. A 2xx lets the request through with
@@ -265,6 +358,10 @@ int? pathUser(String uri) {
 }
 
 final _userPath = RegExp(r'^/u/(0|[1-9][0-9]{0,8})(?:/|$)');
+
+/// A session WebSocket's path, `/u/<N>/w/<slug>/session`. The registry judges
+/// the slug.
+final _sessionPath = RegExp(r'^/u/(0|[1-9][0-9]{0,8})/w/([^/]+)/session$');
 
 /// Where to send a browser once it is signed in: [next] when it is a path on
 /// this origin outside `/auth/`, and `/` otherwise, so the sign-in page

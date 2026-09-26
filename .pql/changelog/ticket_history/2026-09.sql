@@ -4036,3 +4036,267 @@ Ten mutations of the client''s guards each failed the test written for them, and
 **Closed.** `broker-postgres` passed on every CI run since it was added (the pushes of a806cff8, f0e4ecf5 and 3975dda6): the store contract runs against PostgreSQL 16 with TLS, and the pinned image pulls in CI. Those runs were red in the `unit` job for another reason. This ticket''s stalled-server test and T-664''s Caddy restart test raced the clock on a loaded runner; the closing commit fixes the first, the next commit the second. The sign-in and restart check moved to T-664, as recorded above.
 
 **CI green.** Run 104, the first to name its failed tests on the run page, showed a third cause: the scripted server let the reset from a client that drops the connection mid-script surface as an unhandled error. Fixed in 840fbf56 with a deterministic test of the scripted server, and run 105 passed every job.', NULL, '2026-09-25 13:42:35', '2026-09-25 13:42:35.008', '2026-09-25 13:42:35.008', NULL, '25fb760f561ae1df269d0f909d4affa5', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06GCXB9QHG1T1ZPC753RGDNRZM', 'description', 'The internal Dart broker (D-117): the forward-auth endpoint Caddy calls (a token exchanged for a cookie; trusted-header mode refuses while unset), a session registry, spawn-or-attach per workspace, an idle policy, the workspace registry (slug and collision rules; onboarding per D-95), and an opaque WebSocket-to-unix-socket pass-through. Tested against a stub host until C4 lands.
+
+**Refinement (2026-09-24).** The design is recorded: sign-in in D-118 (a token link and form, or OIDC, with the trusted header dropped from D-117), workspaces and accounts in D-119, and supervision in D-120.
+
+**Goal.** The internal Dart broker behind Caddy (D-117). It signs a browser in, finds the workspaces in the mounted `clideprojects` folder, starts and supervises the hosts and Caddy, and bridges each session WebSocket to its workspace host''s socket byte for byte.
+
+**Scope:**
+- `bin/clide_broker.dart`, Flutter-free and compiled with `dart compile exe`, over `lib/src/broker/`.
+- It listens only on a unix socket in the state volume, mode 0600 (D-71). Caddy reaches it as `unix//…`.
+- Endpoints, all reached through Caddy:
+  - `GET /auth/verify`, the forward-auth check. A valid session whose user matches the path''s `/u/<N>/` gets a 200 and `X-Clide-User: <N>`. Otherwise a page navigation gets a redirect to sign-in, and anything else gets a 401.
+  - `GET /auth/login` serves the form, which the `#token=` link fills. `POST /auth/login` signs in by token.
+  - `GET /auth/oidc` starts the OIDC flow, and `GET /auth/callback` finishes it.
+  - `POST /auth/logout` ends the session.
+  - `GET /u/<N>/w/<slug>/session` upgrades to the session WebSocket. The broker checks the `Origin`, looks the workspace up, spawns or attaches, then pipes bytes both ways: binary frames in, the host socket''s bytes out, nothing parsed.
+- Sessions are stored hashed in the state volume, with a fixed lifetime. Rotating the token clears them.
+- `clide_broker token rotate` writes a new token hash and prints the sign-in link once.
+- The workspace registry follows D-119: a scan on demand, the name rule, symbolic links skipped, skipped names reported.
+- Host manager:
+  - The host command comes from configuration, because the real host is C4.
+  - Each host''s socket path comes from `workspaceSocketPath()` (D-70), under the state volume''s runtime directory.
+  - A host is spawned on first attach. The broker waits for its socket and restarts it with backoff. There is no idle reaping (D-120).
+- Supervision follows D-120: Caddy runs as a child and is restarted with backoff, and `SIGTERM` stops everything in order.
+- The Caddyfile adds `forward_auth` to the broker for everything outside `/auth/`, and reverse-proxies `/auth/*` and the session WebSocket to the broker''s socket. Static serving is unchanged.
+- The image builds the broker in the web stage, runs `tini` as PID 1 with the broker as its child, uses `/clide/state` as the state volume, and runs under any UID.
+- `package:crypto` becomes a direct, exact-pinned dependency with its `licenses.yaml` entry (D-118).
+
+**Out of scope:**
+- the real host (C4), and what travels over the pipe (C5, Q-52(c));
+- the browser''s WebSocket transport (C6);
+- the installer, and TLS for a real hostname (Epic G);
+- multi-user;
+- the provider''s own logout.
+
+**Tests:** `test/broker/`, under `dart test`, joins `make test-core`. It covers:
+- token sign-in and rotation;
+- session expiry, and sessions surviving a restart;
+- the forward-auth answers: no cookie, the wrong user in the path, a navigation compared with a fetch;
+- OIDC against a fake provider over TLS signed by a test CA. It must refuse a state mismatch, a nonce mismatch, the wrong `aud`, an expired token, a subject off the allowlist and an `http` issuer, and it must refuse to start without an allowlist;
+- the workspace name rule and symbolic links;
+- spawn-or-attach and restart against a stub host;
+- arbitrary bytes crossing the pipe both ways;
+- the `Origin` check.
+
+Every new test is mutation-checked. A container spec, `container-auth.spec.ts`, checks three things:
+- an unauthenticated workspace URL redirects to sign-in;
+- the token link signs in and the app loads;
+- a wrong token does not.
+
+**Done when:** the dev container signs in by token link and by OIDC against a real provider, finds workspaces in a mounted `clideprojects`, and bridges a WebSocket to a stub host, and the tests above pass in CI.
+
+**Scope addition (D-118).** `clide_broker signin-link` is the break-glass for OIDC mode. Run inside the container, it prints a single-use sign-in link that expires in ten minutes; the broker stores only its hash. Tests: the link works once, not after expiry, and not in token mode, where the standing token already serves.
+
+**Scope addition (D-121): the broker''s store.**
+- A store interface over the settings, the token hash, sessions, single-use sign-in links and OIDC sign-ins in progress, with `broker_`-prefixed tables and numbered migrations.
+- The SQLite store, the default. It is a clide-owned `dart:ffi` binding to the system `libsqlite3`, in WAL mode with a busy timeout, stored as one file in the state volume.
+- Settings in the store, overridden by an environment variable named for each setting. `clide_broker settings list|get|set|unset` prints each value with its source, never prints a secret, and reads a secret to set from standard input.
+- The store is chosen by `CLIDE_BROKER_STORE`, which defaults to the SQLite file.
+
+The Postgres adapter is T-697, which this ticket blocks.
+
+Tests: the store''s suite on SQLite (migrations, upserts, expiry sweeps, concurrent writes from a second process), settings precedence and secret masking, and the FFI binding''s error paths.
+
+**Correction to the store addition (D-121).** `CLIDE_BROKER_STORE` has no default. The image carries no store configuration: the variable, and for Postgres `CLIDE_BROKER_STORE_PASSWORD` or its `_FILE` form, are set where the container runs, and without the variable the broker refuses to start and names it. The Dockerfile sets none of them. `make ui-container` passes a `sqlite:` path in the state volume at `docker run`, as the installer''s compose file will. Tests: a missing variable, an unknown scheme and a Postgres URL carrying a password each stop the broker with a message that names the variable.
+
+**Secrets stay in their own variables (D-121).** The OIDC client secret is read only from `CLIDE_BROKER_OIDC_CLIENT_SECRET`, or the file `CLIDE_BROKER_OIDC_CLIENT_SECRET_FILE` names. The Postgres password is read only from `CLIDE_BROKER_STORE_PASSWORD` or its `_FILE` form. `clide_broker settings set` and `unset` refuse a secret and name its variable, and `settings list` shows only whether one is set. The store holds no secrets, only hashes.
+
+**Progress.** The store and its settings are built: the SQLite binding, migrations, the store contract, settings resolution and `clide_broker settings`. Next: token sign-in, sessions and forward-auth.
+
+**Progress: token sign-in, sessions and forward-auth are built.**
+- `clide_broker serve --socket <path>` checks its settings once, names every problem together, and refuses to start without a public origin, a sign-in mode, and in token mode an issued token. It serves on a unix socket (0600, in a 0700 directory), replaces a socket left behind but not one a running broker answers on, sweeps expired rows hourly, and stops cleanly on SIGTERM or SIGINT.
+- `GET /auth/verify` is Caddy''s forward-auth check:
+  - a session whose user matches the path''s `/u/<N>/` gets a 200 with `X-Clide-User`;
+  - another user''s path, or a user named in any other spelling, gets a 403;
+  - with no session, a page navigation is redirected to sign-in, and anything else gets a 401.
+- `/auth/login` serves the page, whose script and style are allowed by hash and nothing else. The page moves a `#token=` or `#link=` fragment into its form.
+- `POST /auth/login` signs in:
+  - it requires the install''s own `Origin`, takes forms only, 4 KiB at most, and answers an unreadable form with 400;
+  - it accepts the token in token mode, and a single-use link in either mode;
+  - it sets a `__Host-` cookie (`Secure`, `HttpOnly`, `SameSite=Lax`, the configured lifetime);
+  - it sends the browser on to a `next` path on this origin outside `/auth/`, and to `/` otherwise.
+- `POST /auth/logout` ends the session and clears the cookie.
+- `clide_broker token rotate` prints the sign-in link once and ends every session. `clide_broker signin-link` prints a ten-minute single-use link, in OIDC mode only.
+
+Tests exercise all of this through the socket, and the compiled binary was run end to end: token, serve, sign-in, SIGTERM. Mutating each of 12 guards failed its test. One guard no test could fail, a `//` check in the next-path filter, turned out redundant with the URL-authority check and was removed; that check is now the mutation-tested one.
+
+**Next:** the Caddyfile''s `forward_auth` and `/auth/*` routes, with the broker supervising Caddy in the image (D-120); then workspaces and the WebSocket pipe; then OIDC.
+
+**Progress: the container signs browsers in (D-117, D-118, D-120).**
+- **Caddyfile.** `/auth/*` goes to the broker''s socket. Every other request goes through `forward_auth` to `/auth/verify`, and `/auth/verify` itself answers 404 from outside. The static bundle is served as before.
+- **Supervision.** `clide_broker serve --socket … --caddy … --caddy-config …` starts Caddy once the broker''s socket is up.
+  - If Caddy exits within its first five seconds, that is a configuration problem, so the broker stops and says why rather than retrying.
+  - A later exit restarts Caddy with backoff (1 s doubling to 32 s, back to the start after a minute of steady running).
+  - On SIGTERM, Caddy stops first. SIGKILL follows if it ignores SIGTERM.
+- **Image.** The web stage compiles the broker, and the runtime stage runs `tini` → `clide_broker` → `caddy`, all as UID 10001. `/clide/state` is a 1777 volume, and Caddy''s CA lives in it. The store and sign-in settings come only from the environment at `docker run`.
+- **`make ui-container`** issues a token (printing the sign-in link) and runs the container with the store, origin and mode passed as environment.
+
+**Container specs** (`container-auth.spec.ts`, with `container-isolation.spec.ts` now signing in first) run against the built image. All seven pass:
+- a browser that is not signed in is redirected with the right `next`;
+- the link signs in and the app paints;
+- a wrong token gets a notice;
+- `/auth/verify` is unreachable from outside;
+- signing out ends the session;
+- a signed-in workspace URL is cross-origin-isolated;
+- a missing asset is a 404.
+
+A graceful `docker stop` takes about 0.4 s and exits 0.
+
+**They caught two defects that the unit tests could not:**
+- **The directive order.** Caddy''s default order ran `rewrite` before `forward_auth`, so the broker saw `/index.html` instead of `/u/<N>/w/<slug>/`. That lost the path''s user and the return address after sign-in. A `route` block now fixes the order.
+- **The referrer policy.** `Referrer-Policy: no-referrer` makes a browser send `Origin: null` with the form''s POST, so the origin check refused every real sign-in. The policy is now `same-origin`; the token''s fragment never travels in a Referer.
+
+Every new guard was mutation-checked and restored. That covers the supervisor''s startup refusal, its restarts, backoff reset, SIGKILL escalation and cancelled restarts; in the Caddyfile, the route order and the 404 on `/auth/verify`; and the referrer policy.
+
+**Next:** workspaces and the session WebSocket pipe to the hosts, then OIDC.', 'The internal Dart broker (D-117): the forward-auth endpoint Caddy calls (a token exchanged for a cookie; trusted-header mode refuses while unset), a session registry, spawn-or-attach per workspace, an idle policy, the workspace registry (slug and collision rules; onboarding per D-95), and an opaque WebSocket-to-unix-socket pass-through. Tested against a stub host until C4 lands.
+
+**Refinement (2026-09-24).** The design is recorded: sign-in in D-118 (a token link and form, or OIDC, with the trusted header dropped from D-117), workspaces and accounts in D-119, and supervision in D-120.
+
+**Goal.** The internal Dart broker behind Caddy (D-117). It signs a browser in, finds the workspaces in the mounted `clideprojects` folder, starts and supervises the hosts and Caddy, and bridges each session WebSocket to its workspace host''s socket byte for byte.
+
+**Scope:**
+- `bin/clide_broker.dart`, Flutter-free and compiled with `dart compile exe`, over `lib/src/broker/`.
+- It listens only on a unix socket in the state volume, mode 0600 (D-71). Caddy reaches it as `unix//…`.
+- Endpoints, all reached through Caddy:
+  - `GET /auth/verify`, the forward-auth check. A valid session whose user matches the path''s `/u/<N>/` gets a 200 and `X-Clide-User: <N>`. Otherwise a page navigation gets a redirect to sign-in, and anything else gets a 401.
+  - `GET /auth/login` serves the form, which the `#token=` link fills. `POST /auth/login` signs in by token.
+  - `GET /auth/oidc` starts the OIDC flow, and `GET /auth/callback` finishes it.
+  - `POST /auth/logout` ends the session.
+  - `GET /u/<N>/w/<slug>/session` upgrades to the session WebSocket. The broker checks the `Origin`, looks the workspace up, spawns or attaches, then pipes bytes both ways: binary frames in, the host socket''s bytes out, nothing parsed.
+- Sessions are stored hashed in the state volume, with a fixed lifetime. Rotating the token clears them.
+- `clide_broker token rotate` writes a new token hash and prints the sign-in link once.
+- The workspace registry follows D-119: a scan on demand, the name rule, symbolic links skipped, skipped names reported.
+- Host manager:
+  - The host command comes from configuration, because the real host is C4.
+  - Each host''s socket path comes from `workspaceSocketPath()` (D-70), under the state volume''s runtime directory.
+  - A host is spawned on first attach. The broker waits for its socket and restarts it with backoff. There is no idle reaping (D-120).
+- Supervision follows D-120: Caddy runs as a child and is restarted with backoff, and `SIGTERM` stops everything in order.
+- The Caddyfile adds `forward_auth` to the broker for everything outside `/auth/`, and reverse-proxies `/auth/*` and the session WebSocket to the broker''s socket. Static serving is unchanged.
+- The image builds the broker in the web stage, runs `tini` as PID 1 with the broker as its child, uses `/clide/state` as the state volume, and runs under any UID.
+- `package:crypto` becomes a direct, exact-pinned dependency with its `licenses.yaml` entry (D-118).
+
+**Out of scope:**
+- the real host (C4), and what travels over the pipe (C5, Q-52(c));
+- the browser''s WebSocket transport (C6);
+- the installer, and TLS for a real hostname (Epic G);
+- multi-user;
+- the provider''s own logout.
+
+**Tests:** `test/broker/`, under `dart test`, joins `make test-core`. It covers:
+- token sign-in and rotation;
+- session expiry, and sessions surviving a restart;
+- the forward-auth answers: no cookie, the wrong user in the path, a navigation compared with a fetch;
+- OIDC against a fake provider over TLS signed by a test CA. It must refuse a state mismatch, a nonce mismatch, the wrong `aud`, an expired token, a subject off the allowlist and an `http` issuer, and it must refuse to start without an allowlist;
+- the workspace name rule and symbolic links;
+- spawn-or-attach and restart against a stub host;
+- arbitrary bytes crossing the pipe both ways;
+- the `Origin` check.
+
+Every new test is mutation-checked. A container spec, `container-auth.spec.ts`, checks three things:
+- an unauthenticated workspace URL redirects to sign-in;
+- the token link signs in and the app loads;
+- a wrong token does not.
+
+**Done when:** the dev container signs in by token link and by OIDC against a real provider, finds workspaces in a mounted `clideprojects`, and bridges a WebSocket to a stub host, and the tests above pass in CI.
+
+**Scope addition (D-118).** `clide_broker signin-link` is the break-glass for OIDC mode. Run inside the container, it prints a single-use sign-in link that expires in ten minutes; the broker stores only its hash. Tests: the link works once, not after expiry, and not in token mode, where the standing token already serves.
+
+**Scope addition (D-121): the broker''s store.**
+- A store interface over the settings, the token hash, sessions, single-use sign-in links and OIDC sign-ins in progress, with `broker_`-prefixed tables and numbered migrations.
+- The SQLite store, the default. It is a clide-owned `dart:ffi` binding to the system `libsqlite3`, in WAL mode with a busy timeout, stored as one file in the state volume.
+- Settings in the store, overridden by an environment variable named for each setting. `clide_broker settings list|get|set|unset` prints each value with its source, never prints a secret, and reads a secret to set from standard input.
+- The store is chosen by `CLIDE_BROKER_STORE`, which defaults to the SQLite file.
+
+The Postgres adapter is T-697, which this ticket blocks.
+
+Tests: the store''s suite on SQLite (migrations, upserts, expiry sweeps, concurrent writes from a second process), settings precedence and secret masking, and the FFI binding''s error paths.
+
+**Correction to the store addition (D-121).** `CLIDE_BROKER_STORE` has no default. The image carries no store configuration: the variable, and for Postgres `CLIDE_BROKER_STORE_PASSWORD` or its `_FILE` form, are set where the container runs, and without the variable the broker refuses to start and names it. The Dockerfile sets none of them. `make ui-container` passes a `sqlite:` path in the state volume at `docker run`, as the installer''s compose file will. Tests: a missing variable, an unknown scheme and a Postgres URL carrying a password each stop the broker with a message that names the variable.
+
+**Secrets stay in their own variables (D-121).** The OIDC client secret is read only from `CLIDE_BROKER_OIDC_CLIENT_SECRET`, or the file `CLIDE_BROKER_OIDC_CLIENT_SECRET_FILE` names. The Postgres password is read only from `CLIDE_BROKER_STORE_PASSWORD` or its `_FILE` form. `clide_broker settings set` and `unset` refuse a secret and name its variable, and `settings list` shows only whether one is set. The store holds no secrets, only hashes.
+
+**Progress.** The store and its settings are built: the SQLite binding, migrations, the store contract, settings resolution and `clide_broker settings`. Next: token sign-in, sessions and forward-auth.
+
+**Progress: token sign-in, sessions and forward-auth are built.**
+- `clide_broker serve --socket <path>` checks its settings once, names every problem together, and refuses to start without a public origin, a sign-in mode, and in token mode an issued token. It serves on a unix socket (0600, in a 0700 directory), replaces a socket left behind but not one a running broker answers on, sweeps expired rows hourly, and stops cleanly on SIGTERM or SIGINT.
+- `GET /auth/verify` is Caddy''s forward-auth check:
+  - a session whose user matches the path''s `/u/<N>/` gets a 200 with `X-Clide-User`;
+  - another user''s path, or a user named in any other spelling, gets a 403;
+  - with no session, a page navigation is redirected to sign-in, and anything else gets a 401.
+- `/auth/login` serves the page, whose script and style are allowed by hash and nothing else. The page moves a `#token=` or `#link=` fragment into its form.
+- `POST /auth/login` signs in:
+  - it requires the install''s own `Origin`, takes forms only, 4 KiB at most, and answers an unreadable form with 400;
+  - it accepts the token in token mode, and a single-use link in either mode;
+  - it sets a `__Host-` cookie (`Secure`, `HttpOnly`, `SameSite=Lax`, the configured lifetime);
+  - it sends the browser on to a `next` path on this origin outside `/auth/`, and to `/` otherwise.
+- `POST /auth/logout` ends the session and clears the cookie.
+- `clide_broker token rotate` prints the sign-in link once and ends every session. `clide_broker signin-link` prints a ten-minute single-use link, in OIDC mode only.
+
+Tests exercise all of this through the socket, and the compiled binary was run end to end: token, serve, sign-in, SIGTERM. Mutating each of 12 guards failed its test. One guard no test could fail, a `//` check in the next-path filter, turned out redundant with the URL-authority check and was removed; that check is now the mutation-tested one.
+
+**Next:** the Caddyfile''s `forward_auth` and `/auth/*` routes, with the broker supervising Caddy in the image (D-120); then workspaces and the WebSocket pipe; then OIDC.
+
+**Progress: the container signs browsers in (D-117, D-118, D-120).**
+- **Caddyfile.** `/auth/*` goes to the broker''s socket. Every other request goes through `forward_auth` to `/auth/verify`, and `/auth/verify` itself answers 404 from outside. The static bundle is served as before.
+- **Supervision.** `clide_broker serve --socket … --caddy … --caddy-config …` starts Caddy once the broker''s socket is up.
+  - If Caddy exits within its first five seconds, that is a configuration problem, so the broker stops and says why rather than retrying.
+  - A later exit restarts Caddy with backoff (1 s doubling to 32 s, back to the start after a minute of steady running).
+  - On SIGTERM, Caddy stops first. SIGKILL follows if it ignores SIGTERM.
+- **Image.** The web stage compiles the broker, and the runtime stage runs `tini` → `clide_broker` → `caddy`, all as UID 10001. `/clide/state` is a 1777 volume, and Caddy''s CA lives in it. The store and sign-in settings come only from the environment at `docker run`.
+- **`make ui-container`** issues a token (printing the sign-in link) and runs the container with the store, origin and mode passed as environment.
+
+**Container specs** (`container-auth.spec.ts`, with `container-isolation.spec.ts` now signing in first) run against the built image. All seven pass:
+- a browser that is not signed in is redirected with the right `next`;
+- the link signs in and the app paints;
+- a wrong token gets a notice;
+- `/auth/verify` is unreachable from outside;
+- signing out ends the session;
+- a signed-in workspace URL is cross-origin-isolated;
+- a missing asset is a 404.
+
+A graceful `docker stop` takes about 0.4 s and exits 0.
+
+**They caught two defects that the unit tests could not:**
+- **The directive order.** Caddy''s default order ran `rewrite` before `forward_auth`, so the broker saw `/index.html` instead of `/u/<N>/w/<slug>/`. That lost the path''s user and the return address after sign-in. A `route` block now fixes the order.
+- **The referrer policy.** `Referrer-Policy: no-referrer` makes a browser send `Origin: null` with the form''s POST, so the origin check refused every real sign-in. The policy is now `same-origin`; the token''s fragment never travels in a Referer.
+
+Every new guard was mutation-checked and restored. That covers the supervisor''s startup refusal, its restarts, backoff reset, SIGKILL escalation and cancelled restarts; in the Caddyfile, the route order and the 404 on `/auth/verify`; and the referrer policy.
+
+**Next:** workspaces and the session WebSocket pipe to the hosts, then OIDC.
+
+**Progress: workspaces and the session pipe (D-117, D-119, D-120).**
+
+- **Workspaces.** The broker looks for user N''s workspaces in `<users>/N/projects` whenever a request needs one, so a folder added while it runs is found at once. It applies D-119''s name rule and does not follow symbolic links. `clide_broker workspaces` lists user 0''s workspaces and each folder it skipped, with why, and `serve` logs the same when it starts.
+- **Hosts.** `serve --host <host>` starts `<host> --workspace <folder>` in that folder on a workspace''s first session, and waits up to 30 s for the host to answer on its D-70 socket. Sessions that arrive during the start share it.
+  - A host that exits within a minute counts as a crash: the next session waits out a backoff of 1 s, doubling up to 32 s. One that ran longer starts again at once.
+  - Hosts are never stopped for being idle. When the broker stops, they get SIGTERM, then SIGKILL after a grace period.
+  - A host gets the broker''s environment without any `CLIDE_BROKER_` variable, because some of those are secrets and a host runs Claude and arbitrary commands.
+- **The pipe.** `GET /u/<N>/w/<slug>/session` checks everything before it upgrades, so each refusal is an ordinary HTTP answer: the method, the upgrade headers, the `Origin`, the session, the path''s user, the workspace, and the host''s start. After that it copies bytes both ways, unparsed and uncompressed. How a session ends:
+  - a text message from the browser: 1003;
+  - the host closing its side: 1001;
+  - a broken host connection: 1011;
+  - the broker stopping: 1001.
+- **Edge and image.** The Caddyfile sends the session path to the broker after `forward_auth`. The image adds `clide_stub_host`, a stand-in that greets each connection with its workspace''s name and echoes what it receives, and runs `serve --users /clide/users --host /usr/local/bin/clide_stub_host`. `make ui-container` mounts `tmp/clideprojects` with one workspace, `demo`.
+
+**Tests.**
+- The workspace name rule and symbolic links.
+- Against the stub and shell stand-ins: starting a host, sharing a start, crashes and their backoff, steady runs, the ready timeout, SIGTERM and SIGKILL, and a host''s environment.
+- Through the broker''s socket: every handshake refusal and every way a session ends.
+- `serve --host` end to end.
+- `container-session.spec.ts`: a signed-in page''s WebSocket reaches the stub through Caddy and comes back. A missing workspace, an unauthenticated handshake and a foreign origin are all refused.
+
+All 11 container specs pass against the built image.
+
+**Mutation checks.** 36 mutations each failed their test and were restored, one of them in the Caddyfile inside the container. Five guards that no test could fail turned out redundant and were removed:
+- `attach`''s early stop check, which `_start` repeats;
+- the host manager''s socket-directory setup, which every host does itself (D-71);
+- the pipe''s two "session already ending" checks, because a write to a destroyed socket goes nowhere;
+- the pipe''s end-on-close handler, because dart:io closes the WebSocket itself and that ends the pipe.
+
+**Found on the way:**
+- **A 101 needs `Connection: Upgrade`.** A refused handshake answers `Connection: close`, because dart:io reads nothing more on a connection that asked to upgrade. Set for the whole handler, it also replaced the 101''s `Connection: Upgrade`. dart:io''s client accepted that; Caddy refused to switch protocols and answered the browser 200. Now only refusals close, and a test checks the 101''s headers.
+- **A host must watch for SIGTERM before it binds its socket.** Otherwise a stop that arrives just after the broker sees the socket kills the host outright and leaves the socket file behind. The stub does this; the real host (C4) must too.
+
+**Next:** OIDC sign-in, then the docs.', NULL, '2026-09-26 12:20:02', '2026-09-26 12:20:02.854', '2026-09-26 12:20:02.854', NULL, 'ef0b4c2b84d396b64c19d7aa58d238de', 2) ON CONFLICT(hash) DO NOTHING;

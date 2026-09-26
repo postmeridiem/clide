@@ -138,6 +138,11 @@ void main() {
         ['serve', '--socket'],
         ['serve', '--socket', 'relative.sock'],
         ['serve', '--socket', '/x.sock', '--caddy', '/caddy'],
+        ['serve', '--socket', '/x.sock', '--host'],
+        ['serve', '--socket', '/x.sock', '--host', 'host'],
+        ['serve', '--socket', '/x.sock', '--users', 'users'],
+        ['serve', '--socket', '/x.sock', '--socket', '/y.sock'],
+        ['serve', '--socket', '/x.sock', '--hosts', '/host'],
       ]) {
         expect((await run(args)).$1, exitUsage, reason: args.join(' '));
       }

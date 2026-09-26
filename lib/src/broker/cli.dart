@@ -14,14 +14,22 @@ import 'settings.dart';
 import 'store/broker_store.dart';
 import 'store/location.dart';
 import 'supervise/caddy.dart';
+import 'supervise/hosts.dart';
+import 'workspaces.dart';
 
-const _usage = '''
+const _usage =
+    '''
 Usage: clide_broker <command>
 
   serve --socket <path> [--caddy <caddy> --caddy-config <Caddyfile>]
+        [--users <dir>] [--host <host>]
                              Answer Caddy on a unix socket until stopped.
                              With --caddy, also run Caddy, and start it again
-                             whenever it exits.
+                             whenever it exits. With --host, start a
+                             workspace's host when a session first needs it.
+                             Workspaces are the folders in <dir>/<N>/projects
+                             ($defaultUsersRoot by default).
+  workspaces [--users <dir>] List user 0's workspaces, and the folders skipped.
   token rotate               Issue a new access token, end every session it
                              had, and print the sign-in link.
   signin-link                Print a sign-in link that works once, for ten
@@ -68,11 +76,21 @@ Future<int> runBrokerCli(
       return 0;
     case ['settings', ...final rest]:
       return _settings(rest, environment, out, err);
-    case ['serve', '--socket', final path] when path.startsWith('/'):
-      return _withStore(environment, err, (store) => _serve(path, null, store, environment, err, stop, now));
-    case ['serve', '--socket', final path, '--caddy', final caddy, '--caddy-config', final caddyfile] when path.startsWith('/'):
-      final supervisor = CaddySupervisor(executable: caddy, config: caddyfile, log: err.writeln, startupGrace: caddyStartupGrace);
-      return _withStore(environment, err, (store) => _serve(path, supervisor, store, environment, err, stop, now));
+    case ['serve', ...final rest]:
+      final options = _serveOptions(rest);
+      if (options == null) {
+        err.writeln(_usage);
+        return exitUsage;
+      }
+      final caddy = switch (options.caddy) {
+        (final executable, final caddyfile) => CaddySupervisor(executable: executable, config: caddyfile, log: err.writeln, startupGrace: caddyStartupGrace),
+        null => null,
+      };
+      return _withStore(environment, err, (store) => _serve(options, caddy, store, environment, err, stop, now));
+    case ['workspaces']:
+      return _workspaces(const WorkspaceRegistry(defaultUsersRoot), out, err);
+    case ['workspaces', '--users', final root] when root.startsWith('/'):
+      return _workspaces(WorkspaceRegistry(root), out, err);
     case ['token', 'rotate']:
       return _withStore(environment, err, (store) => _rotateToken(store, environment, out, err));
     case ['signin-link']:
@@ -108,11 +126,31 @@ Future<int> _withStore(Map<String, String> environment, StringSink err, Future<i
   }
 }
 
-/// Serves on [path] and, given [caddy], runs Caddy once the socket is up
-/// (D-120). Caddy stops first, so nothing new arrives while the broker
-/// closes.
+typedef _ServeOptions = ({String socket, (String, String)? caddy, String users, String? host});
+
+/// `serve`'s options, or null when they are incomplete: each flag at most
+/// once with its value, `--caddy` and `--caddy-config` together, and every
+/// path absolute.
+_ServeOptions? _serveOptions(List<String> args) {
+  const flags = {'--socket', '--caddy', '--caddy-config', '--users', '--host'};
+  final values = <String, String>{};
+  for (var i = 0; i < args.length; i += 2) {
+    if (!flags.contains(args[i]) || i + 1 >= args.length || values.containsKey(args[i])) return null;
+    values[args[i]] = args[i + 1];
+  }
+  final socket = values['--socket'];
+  final caddy = values['--caddy'];
+  final caddyfile = values['--caddy-config'];
+  if (socket == null || (caddy == null) != (caddyfile == null)) return null;
+  if (values.values.any((path) => !path.startsWith('/'))) return null;
+  return (socket: socket, caddy: caddy == null ? null : (caddy, caddyfile!), users: values['--users'] ?? defaultUsersRoot, host: values['--host']);
+}
+
+/// Serves on the options' socket and, given [caddy], runs Caddy once the
+/// socket is up (D-120). On the way out Caddy stops first, so nothing new
+/// arrives, then the open sessions end, then the hosts stop.
 Future<int> _serve(
-  String path,
+  _ServeOptions options,
   CaddySupervisor? caddy,
   BrokerStore store,
   Map<String, String> environment,
@@ -120,22 +158,62 @@ Future<int> _serve(
   Future<void>? stop,
   DateTime Function() now,
 ) async {
+  void log(String line) => err.writeln('clide_broker: $line');
   final config = await ServeConfig.resolve(BrokerSettings(store, environment), store);
-  final server = await BrokerServer.bind(path, store: store, config: config, clock: now, log: (line) => err.writeln('clide_broker: $line'));
+  final workspaces = WorkspaceRegistry(options.users);
+  _reportWorkspaces(workspaces, log);
+  final hosts = switch (options.host) {
+    final host? => HostManager(executable: host, runtimeDirectory: File(options.socket).parent.path, environment: environment, log: log),
+    null => null,
+  };
+  if (hosts == null) log('no --host was given, so sessions cannot open');
+  final server = await BrokerServer.bind(options.socket, store: store, config: config, workspaces: workspaces, hosts: hosts, clock: now, log: log);
   if (caddy != null) {
     try {
       await caddy.start();
     } on Exception catch (e) {
       await server.close();
-      err.writeln('clide_broker: ${e is ProcessException ? 'Caddy could not be started: ${e.message}' : e}');
+      log(e is ProcessException ? 'Caddy could not be started: ${e.message}' : '$e');
       return exitConfig;
     }
   }
-  err.writeln('clide_broker: serving ${config.publicOrigin} on $path${caddy == null ? '' : ', behind Caddy'}');
+  log('serving ${config.publicOrigin} on ${options.socket}${caddy == null ? '' : ', behind Caddy'}');
   await (stop ?? _terminated());
   await caddy?.stop();
   await server.close();
-  err.writeln('clide_broker: stopped');
+  await hosts?.stop();
+  log('stopped');
+  return 0;
+}
+
+/// Names what the registry finds for user 0, and each folder it skips.
+void _reportWorkspaces(WorkspaceRegistry workspaces, void Function(String line) log) {
+  try {
+    final scan = workspaces.scan(0);
+    final count = scan.slugs.length;
+    log('$count ${count == 1 ? 'workspace' : 'workspaces'} in ${workspaces.projects(0)}');
+    for (final folder in scan.skipped) {
+      log('skipped the folder ${jsonEncode(folder.name)}: ${folder.reason}');
+    }
+  } on BrokerConfigException catch (e) {
+    log(e.message);
+  }
+}
+
+/// `clide_broker workspaces`: user 0's workspaces on [out], one per line, and
+/// the folders skipped on [err], with why.
+int _workspaces(WorkspaceRegistry workspaces, StringSink out, StringSink err) {
+  final ({List<String> slugs, List<SkippedFolder> skipped}) scan;
+  try {
+    scan = workspaces.scan(0);
+  } on BrokerConfigException catch (e) {
+    err.writeln(e.message);
+    return exitConfig;
+  }
+  scan.slugs.forEach(out.writeln);
+  for (final folder in scan.skipped) {
+    err.writeln('Skipped the folder ${jsonEncode(folder.name)}: ${folder.reason}.');
+  }
   return 0;
 }
 
