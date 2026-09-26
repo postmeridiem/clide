@@ -42,14 +42,18 @@ final class Sessions {
 
   /// The session id in a `Cookie` header, when it holds one shaped like a
   /// secret this broker makes.
-  static String? sessionId(String? cookieHeader) {
-    if (cookieHeader == null) return null;
-    for (final part in cookieHeader.split(';')) {
-      final eq = part.indexOf('=');
-      if (eq < 0 || part.substring(0, eq).trim() != cookieName) continue;
-      final value = part.substring(eq + 1).trim();
-      return looksLikeSecret(value) ? value : null;
-    }
-    return null;
+  static String? sessionId(String? cookieHeader) => cookieSecret(cookieHeader, cookieName);
+}
+
+/// The value of the cookie [name] in a `Cookie` header, when it is shaped like
+/// a secret this broker makes.
+String? cookieSecret(String? cookieHeader, String name) {
+  if (cookieHeader == null) return null;
+  for (final part in cookieHeader.split(';')) {
+    final eq = part.indexOf('=');
+    if (eq < 0 || part.substring(0, eq).trim() != name) continue;
+    final value = part.substring(eq + 1).trim();
+    return looksLikeSecret(value) ? value : null;
   }
+  return null;
 }

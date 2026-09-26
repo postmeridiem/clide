@@ -20,6 +20,7 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 - A development container serves the web build over TLS with cross-origin isolation, behind a sign-in: run `make ui-container` and open the sign-in link it prints (T-663, T-664).
 - The development container finds workspaces in a mounted projects folder, and bridges each one's session WebSocket to that workspace's host, for now a stub. `clide_broker workspaces` lists them, and any folders it skips (T-664).
+- The web broker signs browsers in through any OpenID Connect provider, with PKCE, and admits only the subjects, verified emails or groups on its allowlist. Without an allowlist, OIDC mode will not start (T-664).
 - CI boots the web build in Chromium on every push and pull request, and fails unless it paints the Welcome view with no uncaught errors (T-443).
 
 ### Changed

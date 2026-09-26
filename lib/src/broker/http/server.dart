@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../auth/login_page.dart';
+import '../auth/oidc.dart';
 import '../auth/secrets.dart';
 import '../auth/sessions.dart';
 import '../environment.dart';
@@ -19,7 +20,19 @@ import '../workspaces.dart';
 import 'session_pipe.dart';
 
 final class BrokerServer {
-  BrokerServer._(this._server, this.path, this._store, this._config, this._sessions, this._workspaces, this._hosts, this._failureDelay, this._log) {
+  BrokerServer._(
+    this._server,
+    this.path,
+    this._store,
+    this._config,
+    this._sessions,
+    this._oidc,
+    this._workspaces,
+    this._hosts,
+    this._failureDelay,
+    this._now,
+    this._log,
+  ) {
     _server.listen(_handle);
     _sweeper = Timer.periodic(const Duration(hours: 1), (_) => unawaited(_sweep()));
     unawaited(_sweep());
@@ -30,14 +43,16 @@ final class BrokerServer {
   /// left behind by a broker that is gone is replaced; one a running broker
   /// still answers on is not.
   ///
-  /// Sessions open on [workspaces], bridged to [hosts]; without them every
-  /// session is refused. [failureDelay] slows every refused sign-in down.
-  /// [log] receives a line per sign-in, sign-out, session and failure; it
-  /// never receives a secret.
+  /// In OIDC mode, [oidc] signs browsers in through the provider. Sessions
+  /// open on [workspaces], bridged to [hosts]; without them every session is
+  /// refused. [failureDelay] slows every refused sign-in down. [log] receives
+  /// a line per sign-in, sign-out, session and failure; it never receives a
+  /// secret.
   static Future<BrokerServer> bind(
     String path, {
     required BrokerStore store,
     required ServeConfig config,
+    OidcClient? oidc,
     WorkspaceRegistry? workspaces,
     WorkspaceHosts? hosts,
     Duration failureDelay = const Duration(seconds: 1),
@@ -73,7 +88,7 @@ final class BrokerServer {
       ..serverHeader = null
       ..defaultResponseHeaders.clear();
     final sessions = Sessions(store, lifetime: config.sessionLifetime, clock: clock);
-    return BrokerServer._(server, path, store, config, sessions, workspaces, hosts, failureDelay, log ?? (_) {});
+    return BrokerServer._(server, path, store, config, sessions, oidc, workspaces, hosts, failureDelay, clock ?? DateTime.now, log ?? (_) {});
   }
 
   final HttpServer _server;
@@ -81,9 +96,11 @@ final class BrokerServer {
   final BrokerStore _store;
   final ServeConfig _config;
   final Sessions _sessions;
+  final OidcClient? _oidc;
   final WorkspaceRegistry? _workspaces;
   final WorkspaceHosts? _hosts;
   final Duration _failureDelay;
+  final DateTime Function() _now;
   final void Function(String line) _log;
   final _pipes = <SessionPipe>{};
   late final Timer _sweeper;
@@ -150,7 +167,13 @@ final class BrokerServer {
         await _signIn(request);
       case ('POST', '/auth/logout'):
         await _signOut(request);
+      case ('GET', '/auth/oidc') when _oidc != null:
+        await _startOidc(request, _oidc);
+      case ('GET', '/auth/callback') when _oidc != null:
+        await _finishOidc(request, _oidc);
       case (_, '/auth/verify' || '/auth/login' || '/auth/logout'):
+        _answer(response, 405, 'That method is not allowed here.');
+      case (_, '/auth/oidc' || '/auth/callback') when _oidc != null:
         _answer(response, 405, 'That method is not allowed here.');
       default:
         _answer(response, 404, 'Not found.');
@@ -248,8 +271,86 @@ final class BrokerServer {
     request.response.headers
       ..set('content-security-policy', loginPageCsp)
       ..contentType = ContentType.html;
-    request.response.write(loginPage(next: safeNext(query['next']), failed: query['error'] == '1'));
+    request.response.write(loginPage(next: safeNext(query['next']), mode: _config.mode, error: query['error']));
   }
+
+  /// `GET /auth/oidc`: starts a sign-in at the provider (D-118). Its `state`
+  /// goes to the provider and, in a cookie, to this browser, so a callback
+  /// counts only in the browser that began it.
+  Future<void> _startOidc(HttpRequest request, OidcClient oidc) async {
+    final response = request.response;
+    final next = safeNext(request.uri.queryParameters['next']);
+    final state = randomSecret();
+    final nonce = randomSecret();
+    final verifier = randomSecret();
+    final Uri provider;
+    try {
+      provider = await oidc.authorizationUri(state: state, nonce: nonce, verifier: verifier);
+    } on OidcException catch (e) {
+      _log('an OIDC sign-in could not start: ${e.message}');
+      _redirect(response, '/auth/login?error=provider&next=${Uri.encodeQueryComponent(next)}');
+      return;
+    }
+    await _store.putOidcPending(
+      OidcPending(stateHash: secretHash(state), nonce: nonce, verifier: verifier, nextPath: next, expiresAt: _now().add(oidcSigninLifetime)),
+    );
+    response.headers.add(HttpHeaders.setCookieHeader, '$_signinCookie=$state; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${oidcSigninLifetime.inSeconds}');
+    _redirect(response, '$provider', status: HttpStatus.found);
+  }
+
+  /// `GET /auth/callback`: the provider's answer. The flow must be this
+  /// browser's, live, and taken once; the code is exchanged for an ID token,
+  /// whose claims and allowlist decide the rest.
+  Future<void> _finishOidc(HttpRequest request, OidcClient oidc) async {
+    final response = request.response;
+    final query = request.uri.queryParameters;
+    response.headers.add(HttpHeaders.setCookieHeader, '$_signinCookie=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0');
+    final state = query['state'] ?? '';
+    final bound = cookieSecret(request.headers.value(HttpHeaders.cookieHeader), _signinCookie);
+    final pending = looksLikeSecret(state) && bound != null && sameHash(secretHash(bound), secretHash(state))
+        ? await _store.takeOidcPending(secretHash(state))
+        : null;
+    if (pending == null) {
+      _log('an OIDC sign-in came back that this browser did not start, or too late');
+      _redirect(response, '/auth/login?error=expired');
+      return;
+    }
+    final retry = '/auth/login?error=provider&next=${Uri.encodeQueryComponent(pending.nextPath)}';
+    final error = query['error'];
+    final code = query['code'];
+    final issuer = query['iss'];
+    // RFC 9207: a provider that names itself here must be this one.
+    if (issuer != null && issuer != oidc.settings.issuer) {
+      _log('an OIDC sign-in came back from another issuer, ${_quoted(issuer)}');
+      _redirect(response, retry);
+      return;
+    }
+    if (error != null || code == null || code.isEmpty) {
+      _log('the provider did not sign the browser in: ${error == null ? 'no code' : _quoted(error)}');
+      _redirect(response, retry);
+      return;
+    }
+    final OidcIdentity identity;
+    try {
+      identity = await oidc.exchange(code: code, verifier: pending.verifier, nonce: pending.nonce);
+    } on OidcException catch (e) {
+      _log('an OIDC sign-in failed: ${e.message}');
+      _redirect(response, retry);
+      return;
+    }
+    if (!oidc.allows(identity)) {
+      _log('an OIDC sign-in by subject ${_quoted(identity.subject)} is not on the allowlist');
+      _redirect(response, '/auth/login?error=denied&next=${Uri.encodeQueryComponent(pending.nextPath)}');
+      return;
+    }
+    response.headers.add(HttpHeaders.setCookieHeader, await _sessions.start(0, via: 'oidc', subject: identity.subject));
+    _log('user 0 signed in by OIDC');
+    _redirect(response, pending.nextPath);
+  }
+
+  /// Text from outside, quoted for the log with its control characters
+  /// escaped, and cut short.
+  static String _quoted(String text) => jsonEncode(text.length > 100 ? '${text.substring(0, 100)}…' : text);
 
   Future<void> _signIn(HttpRequest request) async {
     if (!_fromOwnOrigin(request)) {
@@ -358,6 +459,13 @@ int? pathUser(String uri) {
 }
 
 final _userPath = RegExp(r'^/u/(0|[1-9][0-9]{0,8})(?:/|$)');
+
+/// How long a browser has to sign in at the provider and come back.
+const oidcSigninLifetime = Duration(minutes: 10);
+
+/// The cookie that binds an OIDC sign-in's `state` to the browser that began
+/// it. `__Host-` keeps it to this origin, like the session's.
+const _signinCookie = '__Host-clide_signin';
 
 /// A session WebSocket's path, `/u/<N>/w/<slug>/session`. The registry judges
 /// the slug.

@@ -132,6 +132,24 @@ void main() {
       expect(FileSystemEntity.typeSync(socket), FileSystemEntityType.notFound);
     });
 
+    test('in OIDC mode, refuses a CA file it cannot use, and serves without one', () async {
+      environment.addAll({
+        'CLIDE_BROKER_SIGNIN_MODE': 'oidc',
+        'CLIDE_BROKER_OIDC_ISSUER': 'https://auth.example.com/application/o/clide/',
+        'CLIDE_BROKER_OIDC_CLIENT_ID': 'clide',
+        'CLIDE_BROKER_OIDC_ALLOW_SUBJECTS': 'subject-1',
+        'CLIDE_BROKER_OIDC_CA_FILE': '${dir.path}/ca.pem',
+      });
+      File('${dir.path}/ca.pem').writeAsStringSync('not a certificate');
+      final (code, _, err) = await run(['serve', '--socket', '${dir.path}/run/broker.sock']);
+      expect(code, exitConfig);
+      expect(err, contains('oidc.ca_file cannot be used'));
+      environment.remove('CLIDE_BROKER_OIDC_CA_FILE');
+      final stop = Completer<void>()..complete();
+      final (served, _, log) = await run(['serve', '--socket', '${dir.path}/run/broker.sock'], stop: stop.future);
+      expect([served, log.contains('stopped')], [0, true]);
+    });
+
     test('needs an absolute socket path', () async {
       for (final args in [
         ['serve'],

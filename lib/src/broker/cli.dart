@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'auth/oidc.dart';
 import 'auth/secrets.dart';
 import 'environment.dart';
 import 'http/server.dart';
@@ -167,7 +168,17 @@ Future<int> _serve(
     null => null,
   };
   if (hosts == null) log('no --host was given, so sessions cannot open');
-  final server = await BrokerServer.bind(options.socket, store: store, config: config, workspaces: workspaces, hosts: hosts, clock: now, log: log);
+  final OidcClient? oidc;
+  try {
+    oidc = switch (config.oidc) {
+      final settings? => OidcClient(settings, redirectUri: '${config.publicOrigin}/auth/callback', clock: now),
+      null => null,
+    };
+  } on TlsException catch (e) {
+    log('oidc.ca_file cannot be used: ${e.osError?.message ?? e.message}');
+    return exitConfig;
+  }
+  final server = await BrokerServer.bind(options.socket, store: store, config: config, oidc: oidc, workspaces: workspaces, hosts: hosts, clock: now, log: log);
   if (caddy != null) {
     try {
       await caddy.start();
@@ -182,6 +193,7 @@ Future<int> _serve(
   await caddy?.stop();
   await server.close();
   await hosts?.stop();
+  oidc?.close();
   log('stopped');
   return 0;
 }

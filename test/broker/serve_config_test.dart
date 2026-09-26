@@ -41,8 +41,65 @@ void main() {
     expect([config.publicOrigin, config.mode, config.sessionLifetime], ['https://clide.example.com', SigninMode.token, const Duration(hours: 336)]);
   });
 
-  test('refuses OIDC mode until the broker can sign in with it', () async {
-    await expectLater(resolve({'CLIDE_BROKER_PUBLIC_ORIGIN': 'https://clide.example.com', 'CLIDE_BROKER_SIGNIN_MODE': 'oidc'}), refusedWith(['OIDC']));
+  group('OIDC mode', () {
+    const oidc = {'CLIDE_BROKER_PUBLIC_ORIGIN': 'https://clide.example.com', 'CLIDE_BROKER_SIGNIN_MODE': 'oidc'};
+    const provider = {'CLIDE_BROKER_OIDC_ISSUER': 'https://auth.example.com/application/o/clide/', 'CLIDE_BROKER_OIDC_CLIENT_ID': 'clide'};
+
+    test('names a missing issuer, client and allowlist at once', () async {
+      await expectLater(resolve(oidc), refusedWith(['oidc.issuer is not set', 'oidc.client_id is not set', 'OIDC mode needs an allowlist']));
+    });
+
+    test('refuses an http issuer, and a CA file that is not there', () async {
+      await expectLater(
+        resolve({
+          ...oidc,
+          ...provider,
+          'CLIDE_BROKER_OIDC_ISSUER': 'http://auth.example.com/',
+          'CLIDE_BROKER_OIDC_ALLOW_SUBJECTS': 'subject-1',
+          'CLIDE_BROKER_OIDC_CA_FILE': '${dir.path}/missing.pem',
+        }),
+        refusedWith(['oidc.issuer: must be an https URL', 'there is no file at ${dir.path}/missing.pem']),
+      );
+    });
+
+    test('reads the provider and the allowlist, with emails in lower case and blanks dropped', () async {
+      File('${dir.path}/ca.pem').writeAsStringSync('');
+      final config = await resolve({
+        ...oidc,
+        ...provider,
+        'CLIDE_BROKER_OIDC_CLIENT_SECRET': 'client secret',
+        'CLIDE_BROKER_OIDC_ALLOW_SUBJECTS': ' subject-1, subject-2,,',
+        'CLIDE_BROKER_OIDC_ALLOW_EMAILS': 'Owner@Example.com',
+        'CLIDE_BROKER_OIDC_ALLOW_GROUPS': 'clide-users',
+        'CLIDE_BROKER_OIDC_CA_FILE': '${dir.path}/ca.pem',
+      });
+      final settings = config.oidc!;
+      expect(config.mode, SigninMode.oidc);
+      expect(
+        [settings.issuer, settings.clientId, settings.clientSecret, settings.scopes, settings.groupsClaim, settings.caFile],
+        [
+          'https://auth.example.com/application/o/clide/',
+          'clide',
+          'client secret',
+          ['openid', 'profile', 'email'],
+          'groups',
+          '${dir.path}/ca.pem',
+        ],
+      );
+      expect(
+        [settings.subjects, settings.emails, settings.groups],
+        [
+          {'subject-1', 'subject-2'},
+          {'owner@example.com'},
+          {'clide-users'},
+        ],
+      );
+    });
+
+    test('takes an allowlist of any one kind, and needs no client secret', () async {
+      final config = await resolve({...oidc, ...provider, 'CLIDE_BROKER_OIDC_ALLOW_GROUPS': 'clide-users'});
+      expect([config.oidc!.clientSecret, config.oidc!.hasAllowlist], [null, true]);
+    });
   });
 
   test('reports an invalid value rather than starting on it', () async {
