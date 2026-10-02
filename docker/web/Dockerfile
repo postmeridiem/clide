@@ -19,8 +19,8 @@ ARG BASE=debian:bookworm-slim@sha256:3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da
 
 # ---- the web bundle, built with the SDK .fvmrc pins --------------------------
 FROM ${BASE} AS web
-ARG FLUTTER_VERSION=3.44.1
-ARG FLUTTER_SHA256=287937458126a53284ed112c8c7dbc647bea2d09ab65d46e2d5cf94e901aac69
+ARG FLUTTER_VERSION=3.44.9
+ARG FLUTTER_SHA256=a9120fa4a01048bdef438ddc3a2d4b7389662ea98a95db86eeaf10382bc4efcb
 ARG COMMIT=unknown
 ARG DATE=unknown
 RUN apt-get update \
