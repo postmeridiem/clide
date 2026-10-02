@@ -19,18 +19,10 @@ void main() {
   });
   tearDown(() => dir.deleteSync(recursive: true));
 
-  Future<(int, String, String)> run(List<String> args, {Future<void>? stop}) async {
+  Future<(int, String, String)> run(List<String> args, {Future<void>? stop, Duration caddyStartupGrace = const Duration(milliseconds: 200)}) async {
     final out = StringBuffer();
     final err = StringBuffer();
-    final code = await runBrokerCli(
-      args,
-      environment: environment,
-      out: out,
-      err: err,
-      stop: stop,
-      clock: () => now,
-      caddyStartupGrace: const Duration(milliseconds: 200),
-    );
+    final code = await runBrokerCli(args, environment: environment, out: out, err: err, stop: stop, clock: () => now, caddyStartupGrace: caddyStartupGrace);
     return (code, out.toString(), err.toString());
   }
 
@@ -177,7 +169,17 @@ void main() {
       environment['CLIDE_BROKER_SIGNIN_MODE'] = 'token';
       await run(['token', 'rotate']);
       final socket = '${dir.path}/run/broker.sock';
-      final (code, _, err) = await run(['serve', '--socket', socket, '--caddy', standIn('echo "port 8443 in use" >&2; exit 1'), '--caddy-config', '/x']);
+      // A long grace: the exit ends it at once, and on macOS a script's first
+      // run can take longer than the default 200 ms while the OS assesses it.
+      final (code, _, err) = await run([
+        'serve',
+        '--socket',
+        socket,
+        '--caddy',
+        standIn('echo "port 8443 in use" >&2; exit 1'),
+        '--caddy-config',
+        '/x',
+      ], caddyStartupGrace: const Duration(seconds: 10));
       expect(code, exitConfig);
       expect(err, allOf(contains('caddy: port 8443 in use'), contains('Caddy exited while starting, with code 1')));
       expect(FileSystemEntity.typeSync(socket), FileSystemEntityType.notFound);

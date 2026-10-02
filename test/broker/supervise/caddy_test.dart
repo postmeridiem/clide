@@ -54,7 +54,9 @@ void main() {
   });
 
   test('a Caddy that exits while starting is a configuration problem, not something to retry', () async {
-    final caddy = supervise(standIn('caddy', 'echo "bad Caddyfile" >&2; exit 1'));
+    // A long grace: the exit ends it at once, and on macOS a script's first
+    // run can take longer than the default 200 ms while the OS assesses it.
+    final caddy = supervise(standIn('caddy', 'echo "bad Caddyfile" >&2; exit 1'), grace: const Duration(seconds: 10));
     await expectLater(caddy.start(), throwsA(isA<CaddyStartException>().having((e) => e.message, 'message', contains('code 1'))));
     await until(() => lines.contains('caddy: bad Caddyfile'));
     await Future<void>.delayed(const Duration(milliseconds: 100));
