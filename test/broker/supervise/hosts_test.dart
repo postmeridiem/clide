@@ -156,12 +156,13 @@ void main() {
   }, testOn: stubRuns);
 
   test('a host that never answers is killed once the ready timeout passes', () async {
-    final hosts = manage(host(r'echo $$ > pid; exec sleep 30'), readyTimeout: const Duration(milliseconds: 500));
+    // Long enough that a loaded test pool still lets sh write its pid before
+    // the kill — at 500 ms the host could die first, leaving no pid to check.
+    final hosts = manage(host(r'echo $$ > pid; exec sleep 30'), readyTimeout: const Duration(seconds: 2));
     addTearDown(hosts.stop);
-    await expectLater(
-      hosts.attach(workspace),
-      throwsA(isA<HostStartException>().having((e) => e.message, 'message', contains('did not answer on its socket within 500 ms'))),
-    );
+    final attach = hosts.attach(workspace);
+    await until(() => File('$workspace/pid').existsSync());
+    await expectLater(attach, throwsA(isA<HostStartException>().having((e) => e.message, 'message', contains('did not answer on its socket within 2 s'))));
     final pid = File('$workspace/pid').readAsStringSync().trim();
     await until(() => Process.runSync('kill', ['-0', pid]).exitCode != 0);
   });
