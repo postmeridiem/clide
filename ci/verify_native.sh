@@ -46,12 +46,13 @@ echo "==> native gate OK: all vendored artefacts match their recorded SHA-256"
 
 # glibc floor (T-694). A Linux library that needs a newer glibc than its
 # directory's floor fails to load on the older distributions clide supports,
-# and nothing else notices until it is run there.
-declare -A glibc_floor=([native/linux-x64]=2.28)
+# and nothing else notices until it is run there. Checked before the
+# associative array: macOS ships bash 3.2, which has no `declare -A`.
 if [[ "$(uname -s)" != Linux ]] || ! command -v objdump >/dev/null 2>&1; then
   echo "==> native gate: glibc floor not checked here (it needs GNU objdump on Linux)"
   exit 0
 fi
+declare -A glibc_floor=([native/linux-x64]=2.28)
 floor_fail=0
 for dir in "${!glibc_floor[@]}"; do
   floor="${glibc_floor[$dir]}"
