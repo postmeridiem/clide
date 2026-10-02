@@ -1,7 +1,10 @@
 /// T-621 / D-113: installing a release over an installed bundle, and moving
 /// the windows onto it. The install runs the real `tar` and `sha256sum` over a
 /// real tarball in a temp dir; only the download is faked. Flutter-free.
-@TestOn('linux')
+///
+/// Only the install runs Linux-only: it needs `sha256sum`, and only a Linux
+/// bundle updates itself. The rest runs everywhere.
+@TestOn('!windows')
 library;
 
 import 'dart:async';
@@ -13,9 +16,12 @@ import 'package:clide/src/update/self_update.dart';
 import 'package:clide/src/update/update_check.dart';
 import 'package:test/test.dart';
 
+import '../helpers/short_temp.dart';
+
 void main() {
   late Directory tmp;
-  setUp(() async => tmp = await Directory.systemTemp.createTemp('clide-update-'));
+  // Short, so the relauncher's stand-in window sockets fit on macOS.
+  setUp(() => tmp = shortTempDir('clide-update-'));
   tearDown(() => tmp.deleteSync(recursive: true));
 
   /// A bundle dir holding a runnable `clide` (printing [version]) and a
@@ -121,7 +127,7 @@ void main() {
       await SelfUpdater(installDir: dir, download: copyFrom(tarball)).install(bundleOf(tarball, sha));
       expect(File('$dir/clide').existsSync(), isTrue);
     });
-  });
+  }, testOn: 'linux');
 
   group('httpDownload', () {
     test('streams the body to the file with progress; a non-200 throws', () async {
