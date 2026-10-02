@@ -24,6 +24,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- The macOS build needs macOS 12 or newer, up from 10.15. Xcode 27 no longer builds for anything older.
+
 ### Fixed
 
 - pql calls ignore `PQL_*` variables inherited from the environment. An exported `PQL_VAULT` used to send clide's queries and plan edits to that vault instead of the workspace's (T-693).
