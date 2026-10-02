@@ -17,6 +17,12 @@ void main() {
   late List<String> lines;
   final stub = '${Directory.current.path}/bin/clide_stub_host.dart';
 
+  // Where the stub runs: it listens on D-70's path, which follows
+  // XDG_RUNTIME_DIR only on Linux. On macOS D-70 puts it under
+  // ~/Library/Caches, so it never answers where the broker waits. The broker
+  // ships in the Linux container (D-116), and Linux CI runs these.
+  const stubRuns = 'linux';
+
   setUp(() {
     dir = Directory.systemTemp.createTempSync('clide-hosts-');
     runtime = '${dir.path}/run';
@@ -84,7 +90,7 @@ void main() {
     expect(await greeting(path), 'clide stub host for demo');
     expect(File('$workspace/args').readAsStringSync().trim(), '--workspace $workspace');
     expect((FileStat.statSync('$runtime/clide').mode & 0x1ff).toRadixString(8), '700');
-  });
+  }, testOn: stubRuns);
 
   test('attaches that arrive together share one start, and later ones reuse the host', () async {
     final hosts = manage(host(r'echo start >> starts; exec $STUB "$@"'));
@@ -93,7 +99,7 @@ void main() {
     expect(paths.toSet(), hasLength(1));
     await hosts.attach(workspace);
     expect(File('$workspace/starts').readAsLinesSync(), hasLength(1));
-  });
+  }, testOn: stubRuns);
 
   test('a started host sees none of the broker\'s own variables', () async {
     final hosts = manage(
@@ -104,7 +110,7 @@ void main() {
     await hosts.attach(workspace);
     final seen = File('$workspace/environment').readAsStringSync();
     expect(seen, allOf(contains('XDG_RUNTIME_DIR=$runtime\n'), contains('LANG=C.UTF-8'), isNot(contains('CLIDE_BROKER_')), isNot(contains('hunter2'))));
-  });
+  }, testOn: stubRuns);
 
   test('a host that exits before it answers is reported, and the next attach waits out the backoff', () async {
     final hosts = manage(host('echo start >> starts; echo "bad config" >&2; exit 3'), backoff: (_) => const Duration(milliseconds: 300));
@@ -147,7 +153,7 @@ void main() {
     expect(await greeting(await hosts.attach(workspace)), 'clide stub host for demo');
     expect(again.elapsed, lessThan(const Duration(seconds: 5)));
     expect(lines.where((l) => l.contains('starting it again')), isEmpty);
-  });
+  }, testOn: stubRuns);
 
   test('a host that never answers is killed once the ready timeout passes', () async {
     final hosts = manage(host(r'echo $$ > pid; exec sleep 30'), readyTimeout: const Duration(milliseconds: 500));
@@ -171,7 +177,7 @@ void main() {
     await hosts.stop();
     expect(File(path).existsSync(), isFalse, reason: 'the stub removes its socket when SIGTERM stops it');
     await expectLater(hosts.attach(workspace), throwsA(isA<HostStartException>().having((e) => e.message, 'message', contains('stopping'))));
-  });
+  }, testOn: stubRuns);
 
   test('stop sends SIGKILL to a host that ignores SIGTERM', () async {
     final hosts = manage(host(r"echo $$ > pid; trap '' TERM; while true; do sleep 0.1; done"));

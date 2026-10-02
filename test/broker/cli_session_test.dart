@@ -100,7 +100,10 @@ void main() {
       allOf(contains('1 workspace in ${dir.path}/users/0/projects'), contains('user 0 opened a session on demo'), contains('host demo: listening for demo')),
     );
     expect(Directory('${dir.path}/run/clide').listSync(), isEmpty, reason: 'the host was stopped, and removed its socket');
-  });
+    // The stub listens on D-70's path, which follows XDG_RUNTIME_DIR only on
+    // Linux; on macOS it never answers where the broker waits. The broker
+    // ships in the Linux container (D-116), and Linux CI runs this.
+  }, testOn: 'linux');
 
   test('serve without --host says sessions cannot open, and names a missing projects folder', () async {
     await run(['token', 'rotate']);

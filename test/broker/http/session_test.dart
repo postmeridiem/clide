@@ -181,7 +181,10 @@ void main() {
       await browser.closed;
       expect([browser.socket.closeCode, browser.socket.closeReason], [WebSocketStatus.internalServerError, 'The connection to the workspace host failed.']);
       expect(await handshake('/u/0/w/demo/session', cookie: await signIn()), 101, reason: 'the broker is still serving');
-    });
+      // Only Linux resets a unix socket closed with bytes unread; macOS ends
+      // it cleanly, so a read there cannot be made to fail. The broker ships
+      // in the Linux container (D-116), and Linux CI runs this.
+    }, testOn: 'linux');
 
     test('closes the host connection when the browser closes', () async {
       final browser = await open(await signIn());
