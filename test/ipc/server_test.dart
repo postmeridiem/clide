@@ -12,6 +12,7 @@ import 'package:clide/src/ipc/schema_v1.dart';
 import 'package:clide/src/ipc/server.dart';
 import 'package:test/test.dart';
 
+import '../helpers/short_temp.dart';
 import '../helpers/timeouts.dart';
 
 /// Every server binds in a per-test temp dir ([sockDir]), never the real
@@ -28,7 +29,7 @@ void main() {
   late String workRoot;
 
   setUp(() async {
-    xdg = await Directory.systemTemp.createTemp('clide-ipc-test-');
+    xdg = shortTempDir('clide-ipc-test-');
     sockDir = '${xdg.path}/clide';
     workRoot = '${xdg.path}/workspace-${DateTime.now().microsecondsSinceEpoch}';
     dispatcher = DaemonDispatcher();

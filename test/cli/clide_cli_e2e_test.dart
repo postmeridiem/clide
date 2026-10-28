@@ -22,6 +22,8 @@ import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/server.dart';
 import 'package:test/test.dart';
 
+import '../helpers/short_temp.dart';
+
 void main() {
   // Build the binary once for the whole suite.
   late final String binaryPath;
@@ -62,7 +64,7 @@ void main() {
     dispatcher = DaemonDispatcher();
     registerArgvUnwrap(dispatcher);
     streamingBus = DaemonBus();
-    runtimeDir = Directory(Directory.systemTemp.createTempSync('clide-rt-').resolveSymbolicLinksSync());
+    runtimeDir = Directory(shortTempDir('clide-rt-').resolveSymbolicLinksSync());
     server = IpcServer(
       dispatcher: dispatcher,
       workspaceRoot: workspaceRoot.path,

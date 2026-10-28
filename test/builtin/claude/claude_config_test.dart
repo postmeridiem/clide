@@ -10,6 +10,8 @@ import 'dart:io';
 import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/timeouts.dart';
+
 void main() {
   late Directory tmp;
   late Directory globalDir; // stands in for ~/.claude
@@ -245,7 +247,12 @@ void main() {
 
     await writeSkill(globalDir, 'late', name: 'late');
     ctrl.add(null);
-    await Future<void>.delayed(const Duration(milliseconds: 30));
+    // The refresh reads the disk; under a full parallel run that can take
+    // longer than any fixed pause, so wait for it.
+    final deadline = DateTime.now().add(ioTimeout);
+    while (c.skills.isEmpty && DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
 
     expect(c.skills.map((s) => s.name), ['late']);
     c.dispose();
