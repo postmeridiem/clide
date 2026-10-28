@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
@@ -7,7 +8,7 @@ import 'fake_ipc.dart';
 
 /// Boots a [KernelServices] with in-memory defaults suitable for tests.
 /// No real daemon, no real filesystem outside a temp dir, no asset
-/// bundle — i18n catalogs are passed as literals.
+/// bundle — i18n catalogs are passed as literals, over the shipped `core`.
 class KernelFixture {
   KernelFixture._({required this.services, required this.ipc, required this.tempDir});
 
@@ -25,7 +26,19 @@ class KernelFixture {
   }) async {
     final tempDir = await Directory.systemTemp.createTemp('clide_test_');
     final themes = bundledThemes ?? [_miniTheme()];
-    final catalogs = i18nCatalogs ?? const {};
+    // The shipped en_US catalogs sit under whatever the test passes, so chrome
+    // and built-in extension strings resolve instead of warning "namespace not
+    // registered" once per test (thousands of lines per suite run). A test's
+    // own keys win over the shipped ones, key by key.
+    final catalogs = <String, Map<Locale, Map<String, Object?>>>{
+      for (final e in _shippedCatalogs.entries) e.key: {defaultLocale: e.value},
+    };
+    for (final ns in (i18nCatalogs ?? const {}).entries) {
+      final merged = catalogs.putIfAbsent(ns.key, () => {});
+      for (final loc in ns.value.entries) {
+        merged[loc.key] = {...?merged[loc.key], ...loc.value};
+      }
+    }
     FakeDaemonClient? fake;
     final services = await KernelServices.boot(
       appDir: tempDir,
@@ -59,6 +72,15 @@ class KernelFixture {
     }
   }
 }
+
+/// Every en_US catalog as shipped, by namespace, read once per test isolate.
+/// Read synchronously from disk rather than through an asset bundle: a sync read
+/// opens no native port, so it is safe under the fake-async widget-test harness
+/// (T-280). `flutter test` runs from the repo root, which the relative path needs.
+final Map<String, Map<String, Object?>> _shippedCatalogs = {
+  for (final f in Directory('assets/i18n/en_us').listSync().whereType<File>().where((f) => f.path.endsWith('.json')))
+    f.uri.pathSegments.last.replaceFirst(RegExp(r'\.json$'), ''): (jsonDecode(f.readAsStringSync()) as Map).cast<String, Object?>(),
+};
 
 /// Pure-Dart stand-in for `git rev-parse --show-toplevel`: walk up from [path]
 /// looking for a `.git` directory and return the repo root, or null if none.
